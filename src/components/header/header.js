@@ -12,6 +12,7 @@
  */
 
 import { createBadge } from "../badge/badge.js";
+import { ROLE_LABELS, ROLE_TONES } from "../../core/roles.js";
 
 /**
  * @typedef {Object} HeaderUser
@@ -29,30 +30,6 @@ import { createBadge } from "../badge/badge.js";
  * @property {() => void} [onProfileClick] - Called when the profile area is clicked.
  * @property {() => void} [onMobileMenuClick] - Called when the mobile hamburger icon is clicked (shows sidebar on small screens).
  */
-
-/**
- * Human-readable label per role, used in the profile role badge.
- *
- * @type {Record<string, string>}
- */
-const ROLE_LABELS = {
-  creator: "Creator",
-  owner: "Owner",
-  guest: "Guest",
-};
-
-/**
- * Tone mapping per role for the profile role badge, kept
- * separate from Badge's status tones since roles are not
- * attendance/invitation statuses.
- *
- * @type {Record<string, string>}
- */
-const ROLE_TONES = {
-  creator: "primary",
-  owner: "secondary",
-  guest: "neutral",
-};
 
 /**
  * Creates the Header element.

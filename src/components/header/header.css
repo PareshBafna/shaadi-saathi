@@ -149,7 +149,7 @@
   align-items: center;
   justify-content: center;
   background-color: var(--color-primary);
-  color: var(--color-text-inverse);
+  color: var(--color-text-on-accent);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
 }

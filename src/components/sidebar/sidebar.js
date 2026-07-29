@@ -11,6 +11,8 @@
  * ============================================================
  */
 
+import { ROLES } from "../../core/roles.js";
+
 /**
  * @typedef {"creator"|"owner"|"guest"} UserRole
  */
@@ -83,11 +85,11 @@ const GUEST_NAV_ITEMS = [
  */
 function getNavItemsForRole(role) {
   switch (role) {
-    case "creator":
+    case ROLES.CREATOR:
       return CREATOR_NAV_ITEMS;
-    case "owner":
+    case ROLES.OWNER:
       return OWNER_NAV_ITEMS;
-    case "guest":
+    case ROLES.GUEST:
       return GUEST_NAV_ITEMS;
     default:
       console.warn(`[Sidebar] Unknown role "${role}" — defaulting to guest nav.`);

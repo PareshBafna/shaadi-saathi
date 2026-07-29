@@ -15,6 +15,7 @@
 import { createAppShell } from "../layouts/app/app.js";
 import { renderDashboard } from "../pages/dashboard/dashboard.js";
 import { renderWeddings } from "../pages/weddings/weddings.js";
+import { ROLES } from "./roles.js";
 
 /**
  * @typedef {Object} SessionUser
@@ -32,7 +33,7 @@ import { renderWeddings } from "../pages/weddings/weddings.js";
  */
 const PLACEHOLDER_USER = {
   name: "Paresh Bafna",
-  role: "creator",
+  role: ROLES.CREATOR,
 };
 
 /**
