@@ -1,0 +1,137 @@
+/**
+ * ============================================================
+ * Project : Shaadi Saathi
+ * File    : weddings.css
+ * Purpose : Styles specific to the Weddings listing page —
+ *           page header, section headings, wedding card grid,
+ *           and empty states. Component-level styling (Card,
+ *           Button) lives in their own component CSS files.
+ * Author  : Paresh Bafna
+ * ============================================================
+ */
+
+/* ============================================================
+   PAGE CONTAINER
+   ============================================================ */
+.weddings-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+  padding: var(--space-8);
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+}
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+.weddings-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.weddings-page__title {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.weddings-page__subtitle {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
+
+/* ============================================================
+   SECTION
+   ============================================================ */
+.weddings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.weddings-section__title {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* ============================================================
+   SECTION — GRID
+   ============================================================ */
+.weddings-section__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-6);
+}
+
+/* ============================================================
+   SECTION — EMPTY STATE
+   ============================================================ */
+.weddings-section__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background-color: var(--color-white);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+}
+
+.weddings-section__empty p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ============================================================
+   WEDDING CARD (extends base .card via Card component)
+   ============================================================ */
+.wedding-card__date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.wedding-card__date {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.wedding-card__days-remaining {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-dark);
+  background-color: var(--color-primary-bg);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.wedding-card__stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.wedding-card__stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.wedding-card__stat-item i {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}

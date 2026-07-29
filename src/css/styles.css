@@ -1,18 +1,44 @@
-/* ==========================================================
-   Master Stylesheet
-========================================================== */
+/**
+ * ============================================================
+ * Project : Shaadi Saathi
+ * File    : styles.css
+ * Purpose : Master stylesheet. Imports every other stylesheet
+ *           in the correct cascade order. This is the ONLY
+ *           stylesheet linked directly in HTML files.
+ * Author  : Paresh Bafna
+ * ============================================================
+ */
 
-/* Design System */
-@import "./variables.css";
-@import "./reset.css";
-@import "./utilities.css";
+/* ============================================================
+   1. FOUNDATION
+   ============================================================ */
+@import url('./variables.css');
+@import url('./reset.css');
+@import url('./utilities.css');
+@import url('../pages/dashboard/dashboard.css');
 
-/* Layouts */
-@import "../layouts/app/app.css";
+/* ============================================================
+   2. COMPONENTS
+   (Each component ships its own CSS file, imported here as
+   components are built. Keeping this list explicit avoids
+   silent missing imports.)
+   ============================================================ */
+@import url('../components/button/button.css');
+@import url('../components/card/card.css');
+@import url('../components/badge/badge.css');
+@import url('../components/modal/modal.css');
+@import url('../components/toast/toast.css');
+@import url('../components/table/table.css');
+@import url('../components/sidebar/sidebar.css');
+@import url('../components/header/header.css');
 
-/* Components */
-@import "../components/header/header.css";
-@import "../components/sidebar/sidebar.css";
+/* ============================================================
+   3. LAYOUTS
+   ============================================================ */
+@import url('../layouts/app/app.css');
 
-/* Pages */
-@import "../pages/dashboard/dashboard.css";
+/* ============================================================
+   4. PAGES
+   ============================================================ */
+@import url('../pages/dashboard/dashboard.css');
+@import url('../pages/weddings/weddings.css');

@@ -1,37 +1,111 @@
-/* ==========================================================
-   Utility Classes
-========================================================== */
+/**
+ * ============================================================
+ * Project : Shaadi Saathi
+ * File    : utilities.css
+ * Purpose : Small, single-responsibility utility classes for
+ *           layout, spacing, and text. Used to avoid one-off
+ *           inline styles or duplicate CSS across components.
+ * Author  : Paresh Bafna
+ * ============================================================
+ */
 
-.hidden {
+/* ============================================================
+   DISPLAY
+   ============================================================ */
+.u-flex        { display: flex; }
+.u-flex-col    { display: flex; flex-direction: column; }
+.u-grid        { display: grid; }
+.u-hidden      { display: none !important; }
+.u-block       { display: block; }
 
-    display: none !important;
+/* ============================================================
+   FLEX ALIGNMENT
+   ============================================================ */
+.u-items-center   { align-items: center; }
+.u-items-start    { align-items: flex-start; }
+.u-items-end      { align-items: flex-end; }
 
+.u-justify-center   { justify-content: center; }
+.u-justify-between  { justify-content: space-between; }
+.u-justify-end      { justify-content: flex-end; }
+
+.u-flex-wrap  { flex-wrap: wrap; }
+.u-flex-1     { flex: 1 1 0%; }
+
+/* ============================================================
+   GAP
+   ============================================================ */
+.u-gap-1 { gap: var(--space-1); }
+.u-gap-2 { gap: var(--space-2); }
+.u-gap-3 { gap: var(--space-3); }
+.u-gap-4 { gap: var(--space-4); }
+.u-gap-6 { gap: var(--space-6); }
+.u-gap-8 { gap: var(--space-8); }
+
+/* ============================================================
+   SPACING — MARGIN
+   ============================================================ */
+.u-mt-2 { margin-top: var(--space-2); }
+.u-mt-4 { margin-top: var(--space-4); }
+.u-mt-6 { margin-top: var(--space-6); }
+.u-mt-8 { margin-top: var(--space-8); }
+
+.u-mb-2 { margin-bottom: var(--space-2); }
+.u-mb-4 { margin-bottom: var(--space-4); }
+.u-mb-6 { margin-bottom: var(--space-6); }
+.u-mb-8 { margin-bottom: var(--space-8); }
+
+/* ============================================================
+   SPACING — PADDING
+   ============================================================ */
+.u-p-2 { padding: var(--space-2); }
+.u-p-4 { padding: var(--space-4); }
+.u-p-6 { padding: var(--space-6); }
+.u-p-8 { padding: var(--space-8); }
+
+/* ============================================================
+   TEXT
+   ============================================================ */
+.u-text-xs   { font-size: var(--font-size-xs); }
+.u-text-sm   { font-size: var(--font-size-sm); }
+.u-text-md   { font-size: var(--font-size-md); }
+.u-text-lg   { font-size: var(--font-size-lg); }
+.u-text-xl   { font-size: var(--font-size-xl); }
+
+.u-font-medium    { font-weight: var(--font-weight-medium); }
+.u-font-semibold  { font-weight: var(--font-weight-semibold); }
+.u-font-bold      { font-weight: var(--font-weight-bold); }
+
+.u-text-muted     { color: var(--color-text-muted); }
+.u-text-secondary { color: var(--color-text-secondary); }
+.u-text-center    { text-align: center; }
+.u-text-right     { text-align: right; }
+
+.u-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.text-center {
+/* ============================================================
+   BORDER / RADIUS / SHADOW
+   ============================================================ */
+.u-rounded-sm { border-radius: var(--radius-sm); }
+.u-rounded-md { border-radius: var(--radius-md); }
+.u-rounded-lg { border-radius: var(--radius-lg); }
+.u-rounded-full { border-radius: var(--radius-full); }
 
-    text-align: center;
+.u-shadow-sm { box-shadow: var(--shadow-sm); }
+.u-shadow-md { box-shadow: var(--shadow-md); }
+.u-shadow-lg { box-shadow: var(--shadow-lg); }
 
-}
+/* ============================================================
+   WIDTH / HEIGHT
+   ============================================================ */
+.u-w-full  { width: 100%; }
+.u-h-full  { height: 100%; }
 
-.flex {
-
-    display: flex;
-
-}
-
-.flex-column {
-
-    flex-direction: column;
-
-}
-
-.flex-center {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-}
+/* ============================================================
+   CURSOR
+   ============================================================ */
+.u-cursor-pointer { cursor: pointer; }
