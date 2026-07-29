@@ -1,0 +1,37 @@
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 70px;
+    padding: 0 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.header__left h2 {
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.header__right {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.header__icon-button,
+.header__profile-button {
+    width: 42px;
+    height: 42px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.header__profile-button {
+    background: #7c3aed;
+    color: white;
+    border: none;
+}

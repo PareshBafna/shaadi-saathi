@@ -1,0 +1,18 @@
+/* ==========================================================
+   Master Stylesheet
+========================================================== */
+
+/* Design System */
+@import "./variables.css";
+@import "./reset.css";
+@import "./utilities.css";
+
+/* Layouts */
+@import "../layouts/app/app.css";
+
+/* Components */
+@import "../components/header/header.css";
+@import "../components/sidebar/sidebar.css";
+
+/* Pages */
+@import "../pages/dashboard/dashboard.css";
