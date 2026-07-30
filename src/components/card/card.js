@@ -11,13 +11,15 @@
  * ============================================================
  */
 
+import { getIcon } from '../../utils/icons.js';
+
 /**
  * @typedef {Object} CardOptions
- * @property {string} [title]        - Card title text.
- * @property {string} [subtitle]     - Card subtitle text, shown below title.
- * @property {string} [icon]         - Lucide icon name shown in the card header.
+ * @property {string} [title]         - Card title text.
+ * @property {string} [subtitle]      - Card subtitle text, shown below title.
+ * @property {string} [icon]          - Icon name shown in the card header.
  * @property {HTMLElement|DocumentFragment|string} [content] - Main body content.
- * @property {HTMLElement} [footer]  - Optional footer element (e.g. actions row).
+ * @property {HTMLElement} [footer]   - Optional footer element (e.g. actions row).
  * @property {"default"|"outlined"|"elevated"} [variant="default"] - Visual style.
  * @property {boolean} [hoverable=false] - Whether card lifts on hover (for clickable cards).
  * @property {boolean} [clickable=false] - Whether the whole card is clickable.
@@ -29,16 +31,6 @@
  *
  * @param {CardOptions} options - Configuration options for the card.
  * @returns {HTMLDivElement} The constructed card element.
- *
- * @example
- * const statCard = createCard({
- *   title: "Active Weddings",
- *   subtitle: "Currently being planned",
- *   icon: "heart",
- *   content: "12",
- *   variant: "elevated",
- * });
- * document.querySelector("#stats-grid").appendChild(statCard);
  */
 export function createCard(options = {}) {
   const {
@@ -108,9 +100,8 @@ function buildCardHeader({ title, subtitle, icon }) {
   if (icon) {
     const iconWrap = document.createElement("div");
     iconWrap.classList.add("card__icon");
-    const iconEl = document.createElement("i");
-    iconEl.setAttribute("data-lucide", icon);
-    iconWrap.appendChild(iconEl);
+    iconWrap.style.cssText = "background: #3d292b; color: #e0bc6a; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;";
+    iconWrap.innerHTML = getIcon(icon);
     header.appendChild(iconWrap);
   }
 

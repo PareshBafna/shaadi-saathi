@@ -65,7 +65,6 @@ CREATE TABLE public.invitations (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-
 -- Enable RLS on all tables
 ALTER TABLE public.weddings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
@@ -79,23 +78,28 @@ ALTER TABLE public.invitations ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Hosts have full access to their weddings" 
 ON public.weddings FOR ALL 
-USING (auth.uid() = user_id);
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Hosts have full access to events" 
 ON public.events FOR ALL 
-USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()))
+WITH CHECK (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
 CREATE POLICY "Hosts have full access to families" 
 ON public.families FOR ALL 
-USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()))
+WITH CHECK (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
 CREATE POLICY "Hosts have full access to guests" 
 ON public.guests FOR ALL 
-USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()))
+WITH CHECK (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
 CREATE POLICY "Hosts have full access to invitations" 
 ON public.invitations FOR ALL 
-USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()))
+WITH CHECK (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
 -- -------------------------------------------------------------
 -- Guest / Public Policies (Read & RSVP Updates)
@@ -115,17 +119,20 @@ CREATE POLICY "Guests can view their guest record via invite_code"
 ON public.guests FOR SELECT 
 USING (true);
 
--- Guests can update their own RSVP status & dietary preference
+-- Guests can ONLY update their own RSVP status if the frontend passes their specific invite_code in the headers
 CREATE POLICY "Guests can update RSVP status" 
 ON public.guests FOR UPDATE 
-USING (true) 
-WITH CHECK (true);
+USING (invite_code = current_setting('request.headers', true)::json->>'x-invite-code') 
+WITH CHECK (invite_code = current_setting('request.headers', true)::json->>'x-invite-code');
 
 -- Public invitation slug lookup
 CREATE POLICY "Public can view invitation metadata" 
 ON public.invitations FOR SELECT 
 USING (true);
 
+-- -------------------------------------------------------------
+-- Indexes & Triggers
+-- -------------------------------------------------------------
 
 -- Indexes for Fast Querying
 CREATE INDEX idx_events_wedding_id ON public.events(wedding_id);

@@ -1,146 +1,99 @@
-/**
- * ============================================================
- * Project : Shaadi Saathi
- * File    : weddings.js
- * Purpose : Renders the Weddings listing page. Groups weddings
- *           into three premium-worded sections instead of the
- *           generic Past/Current/Future labels: "Ongoing
- *           Celebrations", "Upcoming Celebrations", and
- *           "Cherished Memories". Each wedding is shown as a
- *           card with couple names, date, days remaining, guest
- *           count, event count, and owners.
- * Author  : Paresh Bafna
- * ============================================================
- */
-
 import { createCard } from "../../components/card/card.js";
-import { createButton } from "../../components/button/button.js";
-import { openCreateWeddingModal } from "../../utils/wedding-actions.js";
+import { supabase } from "../../config/api.js";
 
-/**
- * @typedef {Object} Wedding
- * @property {string} id
- * @property {string} coupleNames - e.g. "Riya & Karan"
- * @property {string} weddingDate - ISO date string (YYYY-MM-DD) of the primary/main event.
- * @property {number} guestCount
- * @property {number} eventCount
- * @property {string[]} owners - Names of up to 2 owners assigned to this wedding.
- */
-
-/**
- * Placeholder wedding data, empty until Supabase is wired in.
- * Replace with a real fetch from the wedding-service layer once
- * the backend exists. Kept empty (rather than fabricated demo
- * entries) to stay consistent with how Dashboard handles the
- * "no data yet" state.
- *
- * @type {Wedding[]}
- */
-const PLACEHOLDER_WEDDINGS = [
-  {
-    id: "1",
-    coupleNames: "Riya & Karan",
-    weddingDate: "2026-12-14",
-    guestCount: 240,
-    eventCount: 4,
-    owners: ["Riya's Father", "Karan's Mother"],
-  },
-];  
-
-/**
- * Renders the full Weddings listing page as a mounted DOM element.
- *
- * @returns {HTMLElement} The weddings <section> element.
- *
- * @example
- * import { renderWeddings } from "./pages/weddings/weddings.js";
- * document.querySelector("#app").appendChild(renderWeddings());
- * lucide.createIcons();
- */
 export function renderWeddings() {
+  console.log("[DEBUG] renderWeddings called synchronously.");
+  
   const section = document.createElement("section");
   section.classList.add("weddings-page");
+  section.style.cssText = "padding: 2rem; color: #f3f4f6; width: 100%; box-sizing: border-box;";
 
   section.appendChild(buildPageHeader());
 
-  const groups = groupWeddingsByStatus(PLACEHOLDER_WEDDINGS);
+  const contentContainer = document.createElement("div");
+  contentContainer.id = "weddingsContentContainer";
+  contentContainer.innerHTML = `<div style="text-align: center; color: #9ca3af; padding: 2rem;">Loading weddings...</div>`;
+  section.appendChild(contentContainer);
 
-  section.appendChild(
-    buildWeddingSection({
-      title: "Ongoing Celebrations",
-      weddings: groups.ongoing,
-      emptyMessage: "No weddings are currently underway.",
-      showCreateAction: true,
-    })
-  );
-
-  section.appendChild(
-    buildWeddingSection({
-      title: "Upcoming Celebrations",
-      weddings: groups.upcoming,
-      emptyMessage: "No upcoming weddings scheduled yet.",
-      showCreateAction: true,
-    })
-  );
-
-  section.appendChild(
-    buildWeddingSection({
-      title: "Cherished Memories",
-      weddings: groups.past,
-      emptyMessage: "No past weddings yet — memories will appear here once a celebration concludes.",
-      showCreateAction: false,
-    })
-  );
+  fetchAndRenderWeddingsList(contentContainer);
 
   return section;
 }
 
-/**
- * Builds the page header (title + subtitle + primary Create
- * Wedding action).
- *
- * @returns {HTMLDivElement}
- */
+async function fetchAndRenderWeddingsList(container) {
+  try {
+    let weddingsList = [];
+    const { data, error } = await supabase.from('weddings').select('*');
+    
+    if (error) throw error;
+
+    if (data) {
+      weddingsList = data.map(w => ({
+        id: w.id,
+        coupleNames: w.couple_names,
+        weddingDate: w.wedding_date,
+        guestCount: w.guest_count || 0,
+        eventCount: w.event_count || 0,
+        owners: w.owners || ["Owner"]
+      }));
+    }
+
+    console.log("[DEBUG] Fetched weddings list for All Weddings page:", weddingsList);
+    container.innerHTML = "";
+
+    const groups = groupWeddingsByStatus(weddingsList);
+
+    container.appendChild(
+      buildWeddingSection({
+        title: "Ongoing Celebrations",
+        weddings: groups.ongoing,
+        emptyMessage: "No weddings are currently underway.",
+      })
+    );
+
+    container.appendChild(
+      buildWeddingSection({
+        title: "Upcoming Celebrations",
+        weddings: groups.upcoming,
+        emptyMessage: "No upcoming weddings scheduled yet.",
+      })
+    );
+
+    container.appendChild(
+      buildWeddingSection({
+        title: "Cherished Memories",
+        weddings: groups.past,
+        emptyMessage: "No past weddings yet — memories will appear here once a celebration concludes.",
+      })
+    );
+
+  } catch (err) {
+    console.error("[DEBUG ERROR] Failed to load weddings list:", err);
+    container.innerHTML = `<div style="color: #ef4444; padding: 2rem; background: #231718; border: 1px solid #3d292b; border-radius: 8px;">Failed to load weddings: ${err.message}</div>`;
+  }
+}
+
 function buildPageHeader() {
   const header = document.createElement("div");
-  header.classList.add("weddings-page__header");
+  header.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;";
 
   const textWrap = document.createElement("div");
 
   const title = document.createElement("h1");
-  title.classList.add("weddings-page__title");
+  title.style.cssText = "font-size: 2rem; font-weight: bold; color: #fdf8f6; margin: 0;";
   title.textContent = "All Weddings";
 
   const subtitle = document.createElement("p");
-  subtitle.classList.add("weddings-page__subtitle");
+  subtitle.style.cssText = "color: #9ca3af; margin: 0.25rem 0 0 0; font-size: 0.95rem;";
   subtitle.textContent = "Every celebration you manage, in one place.";
 
   textWrap.appendChild(title);
   textWrap.appendChild(subtitle);
-
-  const createBtn = createButton({
-    label: "Create Wedding",
-    icon: "plus",
-    variant: "primary",
-    onClick: () => openCreateWeddingModal(),
-  });
-
   header.appendChild(textWrap);
-  header.appendChild(createBtn);
 
   return header;
 }
 
-/**
- * Splits weddings into three status groups based on their
- * wedding date relative to today:
- * - "ongoing": the wedding date is today.
- * - "upcoming": the wedding date is in the future.
- * - "past": the wedding date has already passed ("Cherished Memories").
- *
- * @param {Wedding[]} weddings
- * @returns {{ ongoing: Wedding[], upcoming: Wedding[], past: Wedding[] }}
- */
 function groupWeddingsByStatus(weddings) {
   const today = startOfDay(new Date());
 
@@ -162,46 +115,34 @@ function groupWeddingsByStatus(weddings) {
   );
 }
 
-/**
- * Zeroes out the time portion of a Date so day-level comparisons
- * aren't affected by the current time of day.
- *
- * @param {Date} date
- * @returns {Date}
- */
 function startOfDay(date) {
   const copy = new Date(date);
   copy.setHours(0, 0, 0, 0);
   return copy;
 }
 
-/**
- * Builds a full section (heading + grid of wedding cards or an
- * empty state).
- *
- * @param {Object} params
- * @param {string} params.title
- * @param {Wedding[]} params.weddings
- * @param {string} params.emptyMessage
- * @param {boolean} params.showCreateAction - Whether to show a "Create Wedding" button in the empty state.
- * @returns {HTMLDivElement}
- */
-function buildWeddingSection({ title, weddings, emptyMessage, showCreateAction }) {
+function buildWeddingSection({ title, weddings, emptyMessage }) {
   const section = document.createElement("div");
-  section.classList.add("weddings-section");
+  section.style.cssText = "margin-bottom: 2.5rem;";
 
   const heading = document.createElement("h2");
-  heading.classList.add("weddings-section__title");
+  heading.style.cssText = "font-size: 1.25rem; font-weight: bold; color: #fdf8f6; margin-bottom: 1rem;";
   heading.textContent = title;
   section.appendChild(heading);
 
   if (weddings.length === 0) {
-    section.appendChild(buildEmptyState(emptyMessage, showCreateAction));
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "background: #231718; border: 1px solid #3d292b; border-radius: 12px; padding: 1.5rem; text-align: center; color: #9ca3af; font-size: 0.875rem;";
+    const text = document.createElement("p");
+    text.style.margin = "0";
+    text.textContent = emptyMessage;
+    wrap.appendChild(text);
+    section.appendChild(wrap);
     return section;
   }
 
   const grid = document.createElement("div");
-  grid.classList.add("weddings-section__grid");
+  grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;";
 
   weddings.forEach((wedding) => {
     grid.appendChild(buildWeddingCard(wedding));
@@ -211,44 +152,6 @@ function buildWeddingSection({ title, weddings, emptyMessage, showCreateAction }
   return section;
 }
 
-/**
- * Builds the empty-state block shown when a section has no
- * weddings, optionally including a "Create Wedding" quick action.
- *
- * @param {string} message
- * @param {boolean} showCreateAction
- * @returns {HTMLDivElement}
- */
-function buildEmptyState(message, showCreateAction) {
-  const wrap = document.createElement("div");
-  wrap.classList.add("weddings-section__empty");
-
-  const text = document.createElement("p");
-  text.textContent = message;
-  wrap.appendChild(text);
-
-  if (showCreateAction) {
-    const createBtn = createButton({
-      label: "Create Wedding",
-      icon: "plus",
-      variant: "outline",
-      size: "sm",
-      onClick: () => openCreateWeddingModal(),
-    });
-    wrap.appendChild(createBtn);
-  }
-
-  return wrap;
-}
-
-/**
- * Builds a single wedding card using the shared Card component,
- * with a custom body showing date, days remaining, guest count,
- * event count, and owners.
- *
- * @param {Wedding} wedding
- * @returns {HTMLDivElement}
- */
 function buildWeddingCard(wedding) {
   const card = createCard({
     title: wedding.coupleNames,
@@ -258,37 +161,34 @@ function buildWeddingCard(wedding) {
     hoverable: true,
   });
 
-  card.classList.add("wedding-card");
+  card.style.cssText = "cursor: pointer; background: #231718; border: 1px solid #3d292b; border-radius: 12px; color: #f3f4f6; display: flex; flex-direction: column; justify-content: space-between;";
+  card.addEventListener('click', () => {
+    console.log("[DEBUG] All Weddings card clicked, redirecting to weddingId:", wedding.id);
+    window.location.hash = `#dashboard?weddingId=${wedding.id}`;
+  });
+
   return card;
 }
 
-/**
- * Builds the custom body content for a wedding card: formatted
- * date, days-remaining chip, and a stats row (guests, events,
- * owners).
- *
- * @param {Wedding} wedding
- * @returns {DocumentFragment}
- */
 function buildWeddingCardBody(wedding) {
   const fragment = document.createDocumentFragment();
 
   const dateRow = document.createElement("div");
-  dateRow.classList.add("wedding-card__date-row");
+  dateRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; font-size: 0.875rem;";
 
   const dateEl = document.createElement("span");
-  dateEl.classList.add("wedding-card__date");
+  dateEl.style.color = "#9ca3af";
   dateEl.textContent = formatWeddingDate(wedding.weddingDate);
 
   const daysRemainingEl = document.createElement("span");
-  daysRemainingEl.classList.add("wedding-card__days-remaining");
+  daysRemainingEl.style.cssText = "color: #e0bc6a; background: #3d292b; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500;";
   daysRemainingEl.textContent = formatDaysRemaining(wedding.weddingDate);
 
   dateRow.appendChild(dateEl);
   dateRow.appendChild(daysRemainingEl);
 
   const statsRow = document.createElement("div");
-  statsRow.classList.add("wedding-card__stats");
+  statsRow.style.cssText = "display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.875rem; color: #9ca3af; border-top: 1px solid #3d292b; padding-top: 0.75rem; margin-top: 0.5rem;";
 
   statsRow.appendChild(buildStatItem("users", `${wedding.guestCount} Guests`));
   statsRow.appendChild(buildStatItem("calendar", `${wedding.eventCount} Events`));
@@ -300,20 +200,13 @@ function buildWeddingCardBody(wedding) {
   return fragment;
 }
 
-/**
- * Builds a single icon + label stat row item used inside a
- * wedding card's stats section.
- *
- * @param {string} icon
- * @param {string} label
- * @returns {HTMLDivElement}
- */
 function buildStatItem(icon, label) {
   const item = document.createElement("div");
-  item.classList.add("wedding-card__stat-item");
+  item.style.cssText = "display: flex; align-items: center; gap: 0.5rem;";
 
   const iconEl = document.createElement("i");
   iconEl.setAttribute("data-lucide", icon);
+  iconEl.style.cssText = "width: 16px; height: 16px; color: #e0bc6a;";
 
   const labelEl = document.createElement("span");
   labelEl.textContent = label;
@@ -324,13 +217,6 @@ function buildStatItem(icon, label) {
   return item;
 }
 
-/**
- * Formats an ISO date string into a readable display format,
- * e.g. "2026-12-14" -> "14 Dec 2026".
- *
- * @param {string} isoDate
- * @returns {string}
- */
 function formatWeddingDate(isoDate) {
   const date = new Date(isoDate);
   return date.toLocaleDateString("en-IN", {
@@ -340,13 +226,6 @@ function formatWeddingDate(isoDate) {
   });
 }
 
-/**
- * Returns a human-readable "days remaining" string relative to
- * today, e.g. "In 12 days", "Today", or "3 days ago".
- *
- * @param {string} isoDate
- * @returns {string}
- */
 function formatDaysRemaining(isoDate) {
   const today = startOfDay(new Date());
   const weddingDay = startOfDay(new Date(isoDate));

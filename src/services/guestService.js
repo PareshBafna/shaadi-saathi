@@ -1,4 +1,5 @@
 import { supabase } from '../config/api.js';
+import Papa from 'https://cdn.jsdelivr.net/npm/papaparse/+esm';
 
 export const guestService = {
     /**
@@ -103,3 +104,68 @@ export const guestService = {
         return true;
     }
 };
+
+/**
+ * Parses a CSV file and batch-inserts guest records into Supabase.
+ * @param {File} file - The uploaded CSV file.
+ * @param {string} weddingId - The active wedding UUID.
+ * @returns {Promise<Object>} Result object with status and inserted count.
+ */
+export async function importGuestsFromCSV(file, weddingId) {
+    return new Promise((resolve, reject) => {
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (results) => {
+                try {
+                    const guestsToInsert = results.data.map(row => ({
+                        wedding_id: weddingId,
+                        name: row.Name || row.name || 'Unnamed Guest',
+                        phone: row.Phone || row.phone || null,
+                        email: row.Email || row.email || null,
+                        invite_code: Math.random().toString(36).substring(2, 10).toUpperCase(),
+                        rsvp_status: 'pending',
+                        dietary_pref: (row.Diet || row.dietary_pref || 'veg').toLowerCase()
+                    }));
+
+                    const { data, error } = await supabase
+                        .from('guests')
+                        .insert(guestsToInsert)
+                        .select();
+
+                    if (error) throw error;
+
+                    resolve({ success: true, count: data.length, data });
+                } catch (err) {
+                    reject({ success: false, error: err.message });
+                }
+            },
+            error: (err) => {
+                reject({ success: false, error: err.message });
+            }
+        });
+    });
+}
+
+/**
+ * Fetches all guests for a specific wedding.
+ * @param {string} weddingId - The active wedding UUID.
+ * @returns {Promise<Array>} Array of guest objects.
+ */
+export async function getGuests(weddingId) {
+    const { data, error } = await supabase
+        .from('guests')
+        .select(`
+            *,
+            families ( family_name )
+        `)
+        .eq('wedding_id', weddingId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching guests:", error);
+        throw error;
+    }
+    
+    return data;
+}

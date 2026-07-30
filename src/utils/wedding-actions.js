@@ -11,7 +11,7 @@
  * ============================================================
  */
 
-import { openModal } from "../components/modal/modal.js";
+import { openModal } from "../components/modals/modal.js";
 import { showToast } from "../components/toast/toast.js";
 
 /**

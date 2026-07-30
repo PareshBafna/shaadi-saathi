@@ -11,10 +11,12 @@
  * ============================================================
  */
 
+import { getIcon } from '../../utils/icons.js';
+
 /**
  * @typedef {Object} ButtonOptions
  * @property {string} [label]        - Visible text label of the button.
- * @property {string} [icon]         - Lucide icon name (e.g. "plus", "trash-2").
+ * @property {string} [icon]         - Icon name (e.g. "plus", "trash-2").
  * @property {"left"|"right"} [iconPosition="left"] - Icon placement relative to label.
  * @property {"primary"|"secondary"|"danger"|"ghost"|"outline"} [variant="primary"] - Visual style.
  * @property {"sm"|"md"|"lg"} [size="md"] - Button size.
@@ -23,7 +25,7 @@
  * @property {boolean} [loading=false]    - Whether button shows a loading spinner.
  * @property {boolean} [iconOnly=false]   - Whether button renders as icon-only (no label).
  * @property {string} [type="button"]     - Native button type attribute.
- * @property {string} [ariaLabel]          - Accessible label (required if iconOnly).
+ * @property {string} [ariaLabel]         - Accessible label (required if iconOnly).
  * @property {(event: MouseEvent) => void} [onClick] - Click handler.
  */
 
@@ -32,15 +34,6 @@
  *
  * @param {ButtonOptions} options - Configuration options for the button.
  * @returns {HTMLButtonElement} The constructed button element.
- *
- * @example
- * const saveBtn = createButton({
- *   label: "Save Changes",
- *   icon: "check",
- *   variant: "primary",
- *   onClick: () => saveWedding(),
- * });
- * document.body.appendChild(saveBtn);
  */
 export function createButton(options = {}) {
   const {
@@ -136,18 +129,17 @@ function buildButtonContent({ label, icon, iconPosition, iconOnly, loading }) {
 }
 
 /**
- * Builds a Lucide <i> icon placeholder element. Actual icon
- * rendering is performed by lucide.createIcons() after the
- * button is mounted to the DOM.
+ * Builds the icon wrapper element and injects the SVG.
  *
- * @param {string} iconName - Lucide icon name.
+ * @param {string} iconName - Icon name to fetch from icons.js.
  * @returns {HTMLElement}
  */
 function buildIcon(iconName) {
-  const icon = document.createElement("i");
-  icon.setAttribute("data-lucide", iconName);
-  icon.classList.add("button__icon");
-  return icon;
+  const iconSpan = document.createElement("span");
+  iconSpan.classList.add("button__icon");
+  iconSpan.style.display = "inline-flex";
+  iconSpan.innerHTML = getIcon(iconName);
+  return iconSpan;
 }
 
 /**

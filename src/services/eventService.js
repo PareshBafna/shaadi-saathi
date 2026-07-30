@@ -57,3 +57,40 @@ export const eventService = {
         return true;
     }
 };
+
+/**
+ * Fetches all events for a specific wedding, ordered chronologically.
+ * @param {string} weddingId - The active wedding UUID.
+ * @returns {Promise<Array>} Array of event objects.
+ */
+
+export async function getEvents(weddingId) {
+    const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('wedding_id', weddingId)
+        .order('start_time', { ascending: true });
+
+    if (error) throw error;
+    return data;
+}
+
+/**
+ * Creates a new event for the wedding timeline.
+ * @param {Object} eventData - Event details (wedding_id, title, start_time, venue, dress_code)
+ * @returns {Promise<Object>} The created event record.
+ */
+export async function createEvent(eventData) {
+    const { data, error } = await supabase
+        .from('events')
+        .insert([eventData])
+        .select()
+        .single();
+
+    if (error) {
+        console.error("Error creating event:", error);
+        throw error;
+    }
+
+    return data;
+}

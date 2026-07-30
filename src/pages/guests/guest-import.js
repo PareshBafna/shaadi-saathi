@@ -1,4 +1,4 @@
-import { guestService } from '../../services/guestService.js';
+import { importGuestsFromCSV } from '../../services/guestService.js';
 
 export class GuestImporter {
     constructor(fileInputId, uploadButtonId, statusContainerId, weddingId) {
@@ -7,7 +7,12 @@ export class GuestImporter {
         this.statusContainer = document.getElementById(statusContainerId);
         this.weddingId = weddingId;
 
-        this.initListeners();
+        // Safety check to ensure DOM elements exist before binding listeners
+        if (this.fileInput && this.uploadButton) {
+            this.initListeners();
+        } else {
+            console.warn('GuestImporter: Required DOM elements not found on this page.');
+        }
     }
 
     initListeners() {
@@ -21,53 +26,43 @@ export class GuestImporter {
             return;
         }
 
-        this.showStatus('Parsing CSV...', 'info');
+        try {
+            // 1. Set UI to Loading State
+            this.uploadButton.disabled = true;
+            this.uploadButton.textContent = 'Importing...';
+            this.showStatus('Parsing and uploading CSV...', 'info');
 
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            try {
-                const csvData = event.target.result;
-                const parsedGuests = this.parseCSV(csvData);
-                
-                this.showStatus(`Uploading ${parsedGuests.length} guests...`, 'info');
-                
-                await guestService.bulkAddGuests(parsedGuests);
-                this.showStatus('Successfully imported all guests!', 'success');
-                
-                // Optional: Trigger a UI refresh event here
-            } catch (error) {
-                console.error('Import failed:', error);
-                this.showStatus(`Import failed: ${error.message}`, 'error');
-            }
-        };
-        
-        reader.readAsText(file);
-    }
-
-    parseCSV(csvText) {
-        const rows = csvText.split('\n').filter(row => row.trim() !== '');
-        const headers = rows.shift().split(',').map(h => h.trim().toLowerCase());
-        
-        // Expected headers: name, phone, email, dietary_pref
-        return rows.map(row => {
-            const values = row.split(',').map(v => v.trim());
-            const guestObj = { wedding_id: this.weddingId };
+            // 2. Delegate the heavy lifting to the PapaParse service function
+            const result = await importGuestsFromCSV(file, this.weddingId);
             
-            headers.forEach((header, index) => {
-                // Map CSV headers to database columns
-                if (header === 'diet' || header === 'dietary_pref') {
-                    guestObj.dietary_pref = values[index] || 'veg';
-                } else if (header === 'name' || header === 'phone' || header === 'email') {
-                    guestObj[header] = values[index];
-                }
-            });
+            // 3. Handle Success
+            this.showStatus(`Successfully imported ${result.count} guests!`, 'success');
+            this.fileInput.value = ''; // Clear the file input
+            
+            // Optional: Dispatch a custom event so other parts of your app (like a table) know to refresh
+            document.dispatchEvent(new CustomEvent('guestsImported'));
 
-            return guestObj;
-        });
+        } catch (error) {
+            // 4. Handle Errors gracefully
+            console.error('Import failed:', error);
+            this.showStatus(`Import failed: ${error.error || error.message}`, 'error');
+        } finally {
+            // 5. Reset UI State
+            this.uploadButton.disabled = false;
+            this.uploadButton.textContent = 'Upload CSV';
+        }
     }
 
     showStatus(message, type) {
+        if (!this.statusContainer) return;
         this.statusContainer.textContent = message;
+        // Sets the class to 'status-toast error', 'status-toast success', etc. for your CSS
         this.statusContainer.className = `status-toast ${type}`;
     }
+}
+
+// Helper wrapper to easily initialize the class from your main router or page load script
+export function initGuestImport(activeWeddingId) {
+    // Ensure these IDs match your actual HTML structure
+    return new GuestImporter('csvFileInput', 'uploadCsvBtn', 'statusContainer', activeWeddingId);
 }
