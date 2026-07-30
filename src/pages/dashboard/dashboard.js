@@ -1,7 +1,6 @@
 import * as weddingService from '../../services/weddingService.js';
 import { initEventTimeline } from '../events/event-timeline.js';
 import { initFamilyManager } from '../families/family-manager.js';
-import { createCard } from '../../components/card/card.js';
 import { createButton } from '../../components/button/button.js';
 import { supabase } from '../../config/api.js';
 
@@ -18,7 +17,7 @@ export function renderDashboard(containerOrOptions, weddingId = null) {
 
     const wrapper = document.createElement('section');
     wrapper.style.cssText = "padding: 2rem; color: #f3f4f6; width: 100%; box-sizing: border-box;";
-    wrapper.innerHTML = `<div style="text-align: center; color: #9ca3af; padding: 2rem;">Loading dashboard...</div>`;
+    wrapper.innerHTML = `<div style="text-align: center; color: #9ca3af; padding: 2rem; font-size: 0.95rem;">Loading dashboard...</div>`;
 
     loadDashboardData(wrapper, activeWeddingId);
 
@@ -50,29 +49,29 @@ async function loadDashboardData(section, weddingId) {
             section.appendChild(buildStatsGrid(liveStats));
 
             const contentContainer = document.createElement("div");
-            contentContainer.style.cssText = "display: flex; flex-direction: column; gap: 2rem; margin-top: 2rem;";
+            contentContainer.style.cssText = "display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.5rem;";
             contentContainer.innerHTML = `
-                <div style="background: #231718; border: 1px solid #3d292b; border-radius: 12px; padding: 1.5rem;">
-                    <h2 style="font-size: 1.25rem; font-weight: bold; color: #fdf8f6; margin-bottom: 1rem;">Event Itinerary</h2>
+                <div style="background: #231718; border: 1px solid #3d292b; border-radius: 10px; padding: 1.25rem;">
+                    <h2 style="font-size: 1.1rem; font-weight: bold; color: #fdf8f6; margin-bottom: 0.85rem;">Event Itinerary</h2>
                     <div id="wedding-timeline-container"></div>
                 </div>
 
-                <div style="background: #231718; border: 1px solid #3d292b; border-radius: 12px; padding: 1.5rem;">
-                    <h2 style="font-size: 1.25rem; font-weight: bold; color: #fdf8f6; margin-bottom: 1rem;">Guest List</h2>
+                <div style="background: #231718; border: 1px solid #3d292b; border-radius: 10px; padding: 1.25rem;">
+                    <h2 style="font-size: 1.1rem; font-weight: bold; color: #fdf8f6; margin-bottom: 0.85rem;">Guest List Control Center</h2>
                     <div style="overflow-x: auto;">
-                        <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 0.875rem;">
+                        <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 0.85rem;">
                             <thead>
                                 <tr style="border-bottom: 1px solid #3d292b; color: #9ca3af;">
-                                    <th style="padding: 0.75rem;">Name</th>
-                                    <th style="padding: 0.75rem;">Family</th>
-                                    <th style="padding: 0.75rem;">Phone</th>
-                                    <th style="padding: 0.75rem;">RSVP</th>
-                                    <th style="padding: 0.75rem;">Dietary</th>
-                                    <th style="padding: 0.75rem;">Invite Code</th>
+                                    <th style="padding: 0.6rem; font-weight: 600;">Name</th>
+                                    <th style="padding: 0.6rem; font-weight: 600;">Family</th>
+                                    <th style="padding: 0.6rem; font-weight: 600;">Phone</th>
+                                    <th style="padding: 0.6rem; font-weight: 600;">RSVP</th>
+                                    <th style="padding: 0.6rem; font-weight: 600;">Dietary</th>
+                                    <th style="padding: 0.6rem; font-weight: 600;">Invite Code</th>
                                 </tr>
                             </thead>
                             <tbody id="guestTableBody">
-                                <tr><td colspan="6" style="text-align: center; padding: 1rem; color: #9ca3af;">Loading guests...</td></tr>
+                                <tr><td colspan="6" style="text-align: center; padding: 1rem; color: #9ca3af; font-size: 0.85rem;">Loading guests...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -89,7 +88,7 @@ async function loadDashboardData(section, weddingId) {
             await dashboardMgr.loadDashboardData();
 
         } else {
-            console.log("[DEBUG] No weddingId provided. Loading global overview...");
+            console.log("[DEBUG] No weddingId provided. Loading optimized executive dashboard...");
             let weddings = [];
             const { data, error } = await supabase.from('weddings').select('*');
             if (!error && data) {
@@ -102,14 +101,19 @@ async function loadDashboardData(section, weddingId) {
             section.innerHTML = "";
             section.appendChild(buildGlobalHeader());
 
+            const today = startOfDay(new Date());
+            const totalCount = weddings.length;
+            const upcomingCount = weddings.filter(w => new Date(w.wedding_date) >= today).length;
+            const archivedCount = weddings.filter(w => new Date(w.wedding_date) < today).length;
+
             const globalStats = [
-                { label: "Total Weddings", value: weddings.length, icon: "heart" },
-                { label: "Upcoming", value: weddings.filter(w => new Date(w.wedding_date) >= new Date()).length, icon: "calendar" },
-                { label: "Archived", value: weddings.filter(w => new Date(w.wedding_date) < new Date()).length, icon: "archive" },
+                { label: "Total Weddings", value: totalCount, icon: "heart" },
+                { label: "Upcoming", value: upcomingCount, icon: "calendar" },
+                { label: "Archived", value: archivedCount, icon: "archive" },
             ];
 
             section.appendChild(buildStatsGrid(globalStats));
-            section.appendChild(buildRecentWeddingsSection(weddings));
+            section.appendChild(buildFeaturedCelebrationSection(weddings));
             section.appendChild(buildRecentActivitySection());
         }
 
@@ -119,18 +123,18 @@ async function loadDashboardData(section, weddingId) {
 
     } catch (error) {
         console.error('[DEBUG ERROR] Failed to load dashboard data:', error);
-        section.innerHTML = `<div style="color: #ef4444; padding: 2rem; background: #231718; border: 1px solid #3d292b; border-radius: 8px;">Failed to load data: ${error.message}</div>`;
+        section.innerHTML = `<div style="color: #ef4444; padding: 1.25rem; background: #231718; border: 1px solid #3d292b; border-radius: 8px; font-size: 0.9rem;">Failed to load data: ${error.message}</div>`;
     }
 }
 
 function buildGlobalHeader() {
     const header = document.createElement("div");
-    header.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;";
+    header.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.75rem;";
     
     const titleWrap = document.createElement("div");
     titleWrap.innerHTML = `
-        <h1 style="font-size: 2rem; font-weight: bold; color: #fdf8f6; margin: 0;">Dashboard</h1>
-        <p style="color: #9ca3af; margin: 0.25rem 0 0 0; font-size: 0.95rem;">Welcome back! Here's an overview of your weddings.</p>
+        <h1 style="font-size: 1.65rem; font-weight: bold; color: #fdf8f6; margin: 0; letter-spacing: -0.02em;">Studio Dashboard</h1>
+        <p style="color: #9ca3af; margin: 0.25rem 0 0 0; font-size: 0.9rem;">Executive command center and studio performance pulse.</p>
     `;
     header.appendChild(titleWrap);
 
@@ -147,13 +151,13 @@ function buildGlobalHeader() {
 
 function buildSpecificHeader(wedding) {
     const header = document.createElement("div");
-    header.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;";
+    header.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.75rem;";
     header.innerHTML = `
         <div>
-            <h1 style="font-size: 2rem; font-weight: bold; color: #fdf8f6; margin: 0;">${wedding.couple_names}</h1>
-            <p style="color: #9ca3af; margin: 0.25rem 0 0 0; font-size: 0.95rem;">Wedding Date: ${new Date(wedding.wedding_date).toLocaleDateString()}</p>
+            <h1 style="font-size: 1.65rem; font-weight: bold; color: #fdf8f6; margin: 0;">${wedding.couple_names}</h1>
+            <p style="color: #9ca3af; margin: 0.25rem 0 0 0; font-size: 0.9rem;">Wedding Date: <strong style="color: #e0bc6a;">${formatWeddingDate(wedding.wedding_date)}</strong></p>
         </div>
-        <button id="backToOverview" style="background: #3d292b; color: #e0bc6a; border: 1px solid #573a3d; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 0.875rem;">
+        <button id="backToOverview" style="background: #3d292b; color: #e0bc6a; border: 1px solid #573a3d; padding: 0.4rem 0.85rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: background 0.2s;">
             ← Back to Overview
         </button>
     `;
@@ -166,74 +170,100 @@ function buildSpecificHeader(wedding) {
 
 function buildStatsGrid(stats) {
     const grid = document.createElement("div");
-    grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;";
+    grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;";
     grid.innerHTML = stats.map(s => `
-        <div style="background: #231718; border: 1px solid #3d292b; border-radius: 12px; padding: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+        <div style="background: #231718; border: 1px solid #3d292b; border-radius: 10px; padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);">
             <div>
-                <p style="color: #9ca3af; font-size: 0.875rem; margin: 0; font-weight: 500;">${s.label}</p>
-                <p style="color: #fdf8f6; font-size: 1.5rem; font-weight: bold; margin: 0.25rem 0 0 0;">${s.value}</p>
+                <p style="color: #9ca3af; font-size: 0.8rem; margin: 0; font-weight: 500;">${s.label}</p>
+                <p style="color: #fdf8f6; font-size: 1.4rem; font-weight: bold; margin: 0.2rem 0 0 0; letter-spacing: -0.02em;">${s.value}</p>
             </div>
-            <div style="background: #3d292b; color: #e0bc6a; width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <i data-lucide="${s.icon}" style="width: 22px; height: 22px;"></i>
+            <div style="background: #3d292b; color: #e0bc6a; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i data-lucide="${s.icon}" style="width: 18px; height: 18px;"></i>
             </div>
         </div>
     `).join('');
     return grid;
 }
 
-function buildRecentWeddingsSection(weddings) {
-    const section = document.createElement("div");
-    section.style.cssText = "margin-bottom: 2rem;";
-    section.innerHTML = `<h2 style="font-size: 1.25rem; font-weight: bold; color: #fdf8f6; margin-bottom: 1rem;">Recent Weddings</h2>`;
+function startOfDay(date) {
+    const copy = new Date(date);
+    copy.setHours(0, 0, 0, 0);
+    return copy;
+}
+
+function buildFeaturedCelebrationSection(weddings) {
+    const container = document.createElement("div");
+    container.style.cssText = "margin-bottom: 1.75rem;";
+
+    const heading = document.createElement("h2");
+    heading.style.cssText = "font-size: 1.1rem; font-weight: bold; color: #fdf8f6; margin-bottom: 0.85rem;";
+    heading.textContent = "Featured Celebration Spotlight";
+    container.appendChild(heading);
 
     if (!weddings || weddings.length === 0) {
         const emptyDiv = document.createElement("div");
-        emptyDiv.style.cssText = "background: #231718; border: 1px solid #3d292b; border-radius: 12px; padding: 2rem; text-align: center; color: #9ca3af;";
-        emptyDiv.textContent = "No weddings have been created yet. Click \"+ Create Wedding\" above to get started!";
-        section.appendChild(emptyDiv);
-        return section;
+        emptyDiv.style.cssText = "background: #1a1011; border: 1px dashed #3d292b; border-radius: 10px; padding: 1.25rem; text-align: center; color: #9ca3af; font-size: 0.85rem; max-width: 520px;";
+        emptyDiv.textContent = "No weddings scheduled. Click \"+ Create Wedding\" above to initialize your first celebration.";
+        container.appendChild(emptyDiv);
+        return container;
     }
 
-    const grid = document.createElement("div");
-    grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;";
+    const today = startOfDay(new Date());
+    const sorted = [...weddings].sort((a, b) => new Date(a.wedding_date) - new Date(b.wedding_date));
+    const featured = sorted.find(w => startOfDay(new Date(w.wedding_date)).getTime() >= today.getTime()) || sorted[sorted.length - 1];
 
-    weddings.forEach(wedding => {
-        const cardEl = createCard({
-            title: wedding.couple_names,
-            icon: "heart",
-            content: buildWeddingCardContent(wedding),
-            variant: "elevated",
-            hoverable: true
-        });
-        cardEl.style.cssText = "cursor: pointer; background: #231718; border: 1px solid #3d292b; border-radius: 12px; color: #f3f4f6; display: flex; flex-direction: column; justify-content: space-between;";
-        cardEl.addEventListener('click', () => {
-            console.log("[DEBUG] Wedding card clicked, navigating to weddingId:", wedding.id);
-            window.location.hash = `#dashboard?weddingId=${wedding.id}`;
-        });
-        grid.appendChild(cardEl);
+    const cardEl = document.createElement("div");
+    cardEl.style.cssText = "cursor: pointer; background: #1a1011; border: 1px solid #3d292b; border-radius: 10px; color: #f3f4f6; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); transition: border-color 0.2s; max-width: 520px;";
+    
+    cardEl.addEventListener('mouseenter', () => cardEl.style.borderColor = '#e0bc6a');
+    cardEl.addEventListener('mouseleave', () => cardEl.style.borderColor = '#3d292b');
+
+    cardEl.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 1rem; width: 100%;">
+            <div style="background: #3d292b; color: #e0bc6a; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i data-lucide="heart" style="width: 18px; height: 18px;"></i>
+            </div>
+            <div style="flex: 1;">
+                <h3 style="margin: 0; font-size: 0.95rem; font-weight: bold; color: #fdf8f6;">${featured.couple_names}</h3>
+                <p style="margin: 0.15rem 0 0 0; font-size: 0.8rem; color: #9ca3af;">Scheduled for ${formatWeddingDate(featured.wedding_date)} &bull; <span style="color: #34d399; font-weight: 500;">Active Priority Focus</span></p>
+            </div>
+            <div style="color: #e0bc6a; font-size: 1rem; font-weight: bold; padding-left: 0.75rem;">
+                →
+            </div>
+        </div>
+    `;
+
+    cardEl.addEventListener('click', () => {
+        console.log("[DEBUG] Featured wedding card clicked, navigating to weddingId:", featured.id);
+        window.location.hash = `#dashboard?weddingId=${featured.id}`;
     });
 
-    section.appendChild(grid);
-    return section;
+    container.appendChild(cardEl);
+    return container;
 }
 
-function buildWeddingCardContent(wedding) {
-    const frag = document.createDocumentFragment();
-    const div = document.createElement("div");
-    div.style.cssText = "font-size: 0.875rem; color: #9ca3af; margin-top: 0.5rem;";
-    div.innerHTML = `
-        <p style="margin: 0;">Date: ${new Date(wedding.wedding_date).toLocaleDateString()}</p>
-    `;
-    frag.appendChild(div);
-    return frag;
+function formatWeddingDate(isoDate) {
+    if (!isoDate) return "";
+    const date = new Date(isoDate);
+    const day = date.getDate();
+    
+    let suffix = "th";
+    if (day === 1 || day === 21 || day === 31) suffix = "st";
+    else if (day === 2 || day === 22) suffix = "nd";
+    else if (day === 3 || day === 23) suffix = "rd";
+    
+    const month = date.toLocaleString("en-IN", { month: "long" });
+    const year = date.getFullYear();
+    
+    return `${day}${suffix} ${month}, ${year}`;
 }
 
 function buildRecentActivitySection() {
     const section = document.createElement("div");
     section.innerHTML = `
-        <h2 style="font-size: 1.25rem; font-weight: bold; color: #fdf8f6; margin-bottom: 1rem;">Recent Activity</h2>
-        <div style="background: #231718; border: 1px solid #3d292b; border-radius: 12px; padding: 1.5rem; text-align: center; color: #9ca3af;">
-            No activity available.
+        <h2 style="font-size: 1.1rem; font-weight: bold; color: #fdf8f6; margin-bottom: 0.85rem;">Recent Studio Activity</h2>
+        <div style="background: #1a1011; border: 1px solid #3d292b; border-radius: 10px; padding: 1.25rem; text-align: center; color: #9ca3af; font-size: 0.85rem; max-width: 520px;">
+            No recent activity logs recorded.
         </div>
     `;
     return section;
@@ -245,28 +275,33 @@ export function openCreateWeddingModal() {
     if (existingModal) existingModal.remove();
 
     const modalHTML = `
-        <div id="createWeddingModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
-            <div style="background: #231718; border: 1px solid #3d292b; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); max-width: 450px; width: 100%; padding: 2rem; color: #f3f4f6; position: relative;">
+        <div id="createWeddingModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+            <div style="background: #231718; border: 1px solid #3d292b; border-radius: 10px; box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); max-width: 390px; width: 100%; padding: 1.75rem; color: #f3f4f6; position: relative;">
                 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: bold; color: #fdf8f6;">Create Wedding</h3>
-                    <button id="closeWeddingModal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #9ca3af;">&times;</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: bold; color: #fdf8f6;">Create New Wedding</h3>
+                    <button id="closeWeddingModal" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #9ca3af; padding: 0;">&times;</button>
                 </div>
 
-                <form id="createWeddingForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                <form id="createWeddingForm" style="display: flex; flex-direction: column; gap: 0.85rem;">
                     <div>
-                        <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #d1d5db; margin-bottom: 0.25rem;">Couple Names</label>
-                        <input type="text" id="coupleNames" required placeholder="e.g., Riya & Karan" style="width: 100%; background: #1a1011; border: 1px solid #3d292b; border-radius: 8px; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: white; box-sizing: border-box;" />
+                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: #d1d5db; margin-bottom: 0.25rem;">Bride's Name</label>
+                        <input type="text" id="brideName" required placeholder="e.g., Riya" style="width: 100%; background: #1a1011; border: 1px solid #3d292b; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.85rem; color: white; box-sizing: border-box;" />
                     </div>
 
                     <div>
-                        <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #d1d5db; margin-bottom: 0.25rem;">Wedding Date</label>
-                        <input type="date" id="weddingDate" required style="width: 100%; background: #1a1011; border: 1px solid #3d292b; border-radius: 8px; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: white; box-sizing: border-box;" />
+                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: #d1d5db; margin-bottom: 0.25rem;">Groom's Name</label>
+                        <input type="text" id="groomName" required placeholder="e.g., Karan" style="width: 100%; background: #1a1011; border: 1px solid #3d292b; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.85rem; color: white; box-sizing: border-box;" />
                     </div>
 
-                    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #3d292b;">
-                        <button type="button" id="cancelWeddingBtn" style="padding: 0.5rem 1rem; background: transparent; border: none; color: #9ca3af; font-weight: 500; cursor: pointer; border-radius: 6px;">Cancel</button>
-                        <button type="submit" id="saveWeddingBtn" style="padding: 0.5rem 1.25rem; background: #e0bc6a; color: #1a1011; border: none; font-weight: 600; cursor: pointer; border-radius: 6px;">Create</button>
+                    <div>
+                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: #d1d5db; margin-bottom: 0.25rem;">Wedding Date</label>
+                        <input type="date" id="weddingDate" required style="width: 100%; background: #1a1011; border: 1px solid #3d292b; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.85rem; color: white; box-sizing: border-box; cursor: pointer;" />
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid #3d292b;">
+                        <button type="button" id="cancelWeddingBtn" style="padding: 0.5rem 0.85rem; background: transparent; border: none; color: #9ca3af; font-weight: 500; cursor: pointer; border-radius: 6px; font-size: 0.85rem;">Cancel</button>
+                        <button type="submit" id="saveWeddingBtn" style="padding: 0.5rem 1.1rem; background: #e0bc6a; color: #1a1011; border: none; font-weight: 600; cursor: pointer; border-radius: 6px; font-size: 0.85rem;">Create Wedding</button>
                     </div>
                 </form>
 
@@ -280,6 +315,19 @@ export function openCreateWeddingModal() {
     const closeBtn = document.getElementById('closeWeddingModal');
     const cancelBtn = document.getElementById('cancelWeddingBtn');
     const form = document.getElementById('createWeddingForm');
+    const dateInput = document.getElementById('weddingDate');
+
+    if (dateInput) {
+        dateInput.addEventListener('click', () => {
+            if (typeof dateInput.showPicker === 'function') {
+                try {
+                    dateInput.showPicker();
+                } catch (err) {
+                    console.log("[DEBUG] showPicker prevented or unsupported:", err);
+                }
+            }
+        });
+    }
 
     const closeModal = () => modal.remove();
 
@@ -292,7 +340,9 @@ export function openCreateWeddingModal() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const saveBtn = document.getElementById('saveWeddingBtn');
-        const coupleNames = document.getElementById('coupleNames').value.trim();
+        const brideName = document.getElementById('brideName').value.trim();
+        const groomName = document.getElementById('groomName').value.trim();
+        const coupleNames = `${brideName} & ${groomName}`;
         const weddingDate = document.getElementById('weddingDate').value;
 
         console.log("[DEBUG] Submitting new wedding:", { coupleNames, weddingDate });
@@ -315,7 +365,7 @@ export function openCreateWeddingModal() {
             console.error("[DEBUG ERROR] Failed to create wedding:", error);
             alert('Failed to create wedding: ' + error.message);
             saveBtn.disabled = false;
-            saveBtn.textContent = 'Create';
+            saveBtn.textContent = 'Create Wedding';
         }
     });
 }
@@ -338,18 +388,18 @@ class DashboardManager {
             const tbody = document.getElementById('guestTableBody');
             if (tbody) {
                 if (!data || data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 1rem; color: #9ca3af;">No guests added yet.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 1rem; color: #9ca3af; font-size: 0.85rem;">No guests added yet.</td></tr>`;
                     return;
                 }
 
                 tbody.innerHTML = data.map(guest => `
                     <tr style="border-bottom: 1px solid #3d292b;">
-                        <td style="padding: 0.75rem; font-weight: 500; color: #fdf8f6;">${guest.name}</td>
-                        <td style="padding: 0.75rem; color: #9ca3af;">${guest.family_id || 'Unassigned'}</td>
-                        <td style="padding: 0.75rem; color: #9ca3af;">${guest.phone || '-'}</td>
-                        <td style="padding: 0.75rem;"><span style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 9999px; background: ${guest.rsvp_status === 'attending' ? 'rgba(16, 185, 129, 0.2); color: #34d399;' : 'rgba(234, 179, 8, 0.2); color: #facc15;'}">${guest.rsvp_status || 'Pending'}</span></td>
-                        <td style="padding: 0.75rem; color: #9ca3af;">${guest.dietary_pref || '-'}</td>
-                        <td style="padding: 0.75rem; font-family: monospace; font-size: 0.75rem; color: #9ca3af;">${guest.invite_code || '-'}</td>
+                        <td style="padding: 0.6rem 0.75rem; font-weight: 500; color: #fdf8f6; font-size: 0.85rem;">${guest.name}</td>
+                        <td style="padding: 0.6rem 0.75rem; color: #9ca3af; font-size: 0.85rem;">${guest.family_id || 'Unassigned'}</td>
+                        <td style="padding: 0.6rem 0.75rem; color: #9ca3af; font-size: 0.85rem;">${guest.phone || '-'}</td>
+                        <td style="padding: 0.6rem 0.75rem;"><span style="padding: 0.15rem 0.5rem; font-size: 0.725rem; border-radius: 9999px; font-weight: 500; background: ${guest.rsvp_status === 'attending' ? 'rgba(16, 185, 129, 0.2); color: #34d399;' : 'rgba(234, 179, 8, 0.2); color: #facc15;'}">${guest.rsvp_status || 'Pending'}</span></td>
+                        <td style="padding: 0.6rem 0.75rem; color: #9ca3af; font-size: 0.85rem;">${guest.dietary_pref || '-'}</td>
+                        <td style="padding: 0.6rem 0.75rem; font-family: monospace; font-size: 0.75rem; color: #9ca3af;">${guest.invite_code || '-'}</td>
                     </tr>
                 `).join('');
             }
