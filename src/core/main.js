@@ -12,7 +12,7 @@
  * ============================================================
  */
 
-import { createAppShell } from "../layouts/app/app.js";
+import { createAppShell } from "../shared/layouts/app/app.js";
 import { renderDashboard } from "../pages/dashboard/dashboard.js";
 import { renderWeddings } from "../pages/weddings/weddings.js";
 import { ROLES } from "./roles.js";
@@ -55,7 +55,7 @@ function getCurrentUser() {
  * built (Guests, Settings, etc.), add them here — this is the
  * single source of truth for what App Shell can render.
  *
- * @returns {import("../layouts/app/app.js").PageDefinition[]}
+ * @returns {import("../shared/layouts/app/app.js").PageDefinition[]}
  */
 function getRegisteredPages() {
   return [

@@ -12,7 +12,7 @@
  */
 
 import { createBadge } from "../badge/badge.js";
-import { ROLE_LABELS, ROLE_TONES } from "../../core/roles.js";
+import { ROLE_LABELS, ROLE_TONES } from "../../../core/roles.js";
 
 /**
  * @typedef {Object} HeaderUser

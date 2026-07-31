@@ -11,7 +11,7 @@
  * ============================================================
  */
 
-import { getIcon } from '../../utils/icons.js';
+import { getIcon } from '../../../utils/icons.js';
 
 /**
  * @typedef {Object} ButtonOptions

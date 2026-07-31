@@ -11,7 +11,7 @@
  * ============================================================
  */
 
-import { ROLES } from "../../core/roles.js";
+import { ROLES } from "../../../core/roles.js";
 
 /**
  * @typedef {"creator"|"owner"|"guest"} UserRole

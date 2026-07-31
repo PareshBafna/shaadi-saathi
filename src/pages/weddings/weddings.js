@@ -1,8 +1,6 @@
 import { supabase } from "../../config/api.js";
 
 export function renderWeddings() {
-  console.log("[DEBUG] renderWeddings master table view called.");
-  
   const section = document.createElement("section");
   section.classList.add("weddings-page");
   section.style.cssText = "padding: 2rem; color: #f3f4f6; width: 100%; box-sizing: border-box;";
@@ -37,7 +35,6 @@ async function fetchAndRenderWeddingsTable(container) {
       }));
     }
 
-    console.log("[DEBUG] Master directory fetched weddings:", weddingsList);
     renderTableContent(container, weddingsList);
 
   } catch (err) {
@@ -76,7 +73,6 @@ function renderTableContent(container, weddings) {
   const wrapper = document.createElement("div");
   wrapper.style.cssText = "background: #1a1011; border: 1px solid #3d292b; border-radius: 12px; padding: 1.5rem;";
 
-  // Controls Bar (Search & Sort)
   const controlsBar = document.createElement("div");
   controlsBar.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;";
   
@@ -98,7 +94,6 @@ function renderTableContent(container, weddings) {
   `;
   wrapper.appendChild(controlsBar);
 
-  // Table Container
   const tableContainer = document.createElement("div");
   tableContainer.style.cssText = "overflow-x: auto;";
   
@@ -146,13 +141,11 @@ function renderTableContent(container, weddings) {
       return;
     }
 
+    // 1. Build the HTML and store the ID in a data attribute
     tbody.innerHTML = filtered.map(wedding => {
       const statusBadge = getStatusBadge(wedding.weddingDate);
       return `
-        <tr style="border-bottom: 1px solid #3d292b; cursor: pointer; transition: background 0.15s;" 
-            onmouseover="this.style.background='#231718'" 
-            onmouseout="this.style.background='transparent'" 
-            onclick="window.location.hash='#wedding?id=${wedding.id}';">
+        <tr data-wedding-id="${wedding.id}" class="clickable-wedding-row" style="border-bottom: 1px solid #3d292b; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#231718'" onmouseout="this.style.background='transparent'">
           <td style="padding: 0.85rem 0.75rem; font-weight: 500; color: #fdf8f6;">${wedding.coupleNames}</td>
           <td style="padding: 0.85rem 0.75rem; color: #9ca3af;">${formatWeddingDate(wedding.weddingDate)}</td>
           <td style="padding: 0.85rem 0.75rem;"><span style="padding: 0.2rem 0.6rem; font-size: 0.75rem; border-radius: 9999px; font-weight: 500; background: ${statusBadge.bg}; color: ${statusBadge.color};">${statusBadge.label}</span></td>
@@ -164,6 +157,16 @@ function renderTableContent(container, weddings) {
         </tr>
       `;
     }).join('');
+
+    // 2. Attach standard JavaScript click listeners dynamically
+    tbody.querySelectorAll('.clickable-wedding-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const id = row.getAttribute('data-wedding-id');
+        window.location.hash = `#wedding?id=${id}`;
+        // Force the app router to fire immediately 
+        window.dispatchEvent(new Event('hashchange'));
+      });
+    });
 
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
       window.lucide.createIcons();

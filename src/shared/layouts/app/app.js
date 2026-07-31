@@ -48,7 +48,7 @@ import { createHeader } from "../../components/header/header.js";
  * @returns {HTMLDivElement} The root app-shell element, ready to append to `#app`.
  *
  * @example
- * import { createAppShell } from "./layouts/app/app.js";
+ * import { createAppShell } from "./shared/layouts/app/app.js";
  * import { renderDashboard } from "./pages/dashboard/dashboard.js";
  *
  * const shell = createAppShell({
