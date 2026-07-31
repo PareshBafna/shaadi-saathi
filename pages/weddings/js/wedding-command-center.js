@@ -1,12 +1,12 @@
-import { weddingService } from '../../../database/js/weddingService.js';
+import { weddingService } from '../../../database/weddingService.js';
 import { initEventTimeline } from './event-timeline.js';
 import { initFamilyManager } from './family-manager.js';
-import { supabase } from '../../../database/js/api.js';
+import { supabase } from '../../../database/api.js';
 
 export function renderWeddingCommandCenter(weddingId) {
     const wrapper = document.createElement('section');
-    wrapper.style.cssText = "padding: 2rem; color: #f3f4f6; width: 100%; box-sizing: border-box;";
-    wrapper.innerHTML = `<div style="text-align: center; color: #9ca3af; padding: 3rem; font-size: 0.95rem;">Loading command center...</div>`;
+    wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
+    wrapper.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 3rem; font-size: 0.95rem;">Loading command center...</div>`;
 
     if (!weddingId) {
         wrapper.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 3rem;">Error: No Wedding ID provided. Please return to the directory.</div>`;
@@ -39,23 +39,23 @@ async function loadWeddingData(section, weddingId) {
         const contentContainer = document.createElement("div");
         contentContainer.style.cssText = "display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.5rem;";
         contentContainer.innerHTML = `
-            <div style="background: #231718; border: 1px solid #3d292b; border-radius: 10px; padding: 1.25rem;">
+            <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 10px; padding: 1.25rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
-                    <h2 style="font-size: 1.1rem; font-weight: bold; color: #fdf8f6; margin: 0;">Event Itinerary</h2>
-                    <button id="addEventBtn" style="background: transparent; color: #e0bc6a; border: 1px solid #573a3d; padding: 0.3rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; cursor: pointer;">+ Add Event</button>
+                    <h2 style="font-size: 1.1rem; font-weight: bold; color: var(--text-primary); margin: 0;">Event Itinerary</h2>
+                    <button id="addEventBtn" style="background: transparent; color: var(--accent); border: 1px solid var(--border-color); padding: 0.3rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; cursor: pointer;">+ Add Event</button>
                 </div>
                 <div id="wedding-timeline-container"></div>
             </div>
 
-            <div style="background: #231718; border: 1px solid #3d292b; border-radius: 10px; padding: 1.25rem;">
+            <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 10px; padding: 1.25rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
-                    <h2 style="font-size: 1.1rem; font-weight: bold; color: #fdf8f6; margin: 0;">Guest List Control Center</h2>
-                    <button id="addGuestBtn" style="background: #e0bc6a; color: #1a1011; border: none; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">+ Add Guest</button>
+                    <h2 style="font-size: 1.1rem; font-weight: bold; color: var(--text-primary); margin: 0;">Guest List Control Center</h2>
+                    <button id="addGuestBtn" style="background: var(--accent); color: var(--bg-surface); border: none; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">+ Add Guest</button>
                 </div>
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 0.85rem;">
                         <thead>
-                            <tr style="border-bottom: 1px solid #3d292b; color: #9ca3af;">
+                            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary);">
                                 <th style="padding: 0.6rem; font-weight: 600;">Name</th>
                                 <th style="padding: 0.6rem; font-weight: 600;">Family</th>
                                 <th style="padding: 0.6rem; font-weight: 600;">Phone</th>
@@ -65,7 +65,7 @@ async function loadWeddingData(section, weddingId) {
                             </tr>
                         </thead>
                         <tbody id="guestTableBody">
-                            <tr><td colspan="6" style="text-align: center; padding: 1rem; color: #9ca3af; font-size: 0.85rem;">Loading guests...</td></tr>
+                            <tr><td colspan="6" style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;">Loading guests...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -94,7 +94,7 @@ async function loadWeddingData(section, weddingId) {
 
     } catch (error) {
         console.error('[DEBUG ERROR] Failed to load wedding data:', error);
-        section.innerHTML = `<div style="color: #ef4444; padding: 1.25rem; background: #231718; border: 1px solid #3d292b; border-radius: 8px; font-size: 0.9rem;">Failed to load data: ${error.message}</div>`;
+        section.innerHTML = `<div style="color: #ef4444; padding: 1.25rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem;">Failed to load data: ${error.message}</div>`;
     }
 }
 
@@ -103,10 +103,10 @@ function buildSpecificHeader(wedding) {
     header.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.75rem;";
     header.innerHTML = `
         <div>
-            <h1 style="font-size: 1.65rem; font-weight: bold; color: #fdf8f6; margin: 0;">${wedding.couple_names}</h1>
-            <p style="color: #9ca3af; margin: 0.25rem 0 0 0; font-size: 0.9rem;">Wedding Date: <strong style="color: #e0bc6a;">${formatWeddingDate(wedding.wedding_date)}</strong></p>
+            <h1 style="font-size: 1.65rem; font-weight: bold; color: var(--text-primary); margin: 0;">${wedding.couple_names}</h1>
+            <p style="color: var(--text-secondary); margin: 0.25rem 0 0 0; font-size: 0.9rem;">Wedding Date: <strong style="color: var(--accent);">${formatWeddingDate(wedding.wedding_date)}</strong></p>
         </div>
-        <button id="backToOverview" style="background: #3d292b; color: #e0bc6a; border: 1px solid #573a3d; padding: 0.4rem 0.85rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+        <button id="backToOverview" style="background: var(--border-color); color: var(--accent); border: 1px solid var(--border-color); padding: 0.4rem 0.85rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
             ← Back to Directory
         </button>
     `;
@@ -121,12 +121,12 @@ function buildStatsGrid(stats) {
     const grid = document.createElement("div");
     grid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;";
     grid.innerHTML = stats.map(s => `
-        <div style="background: #231718; border: 1px solid #3d292b; border-radius: 10px; padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: space-between;">
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: space-between;">
             <div>
-                <p style="color: #9ca3af; font-size: 0.8rem; margin: 0; font-weight: 500;">${s.label}</p>
-                <p style="color: #fdf8f6; font-size: 1.4rem; font-weight: bold; margin: 0.2rem 0 0 0;">${s.value}</p>
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0; font-weight: 500;">${s.label}</p>
+                <p style="color: var(--text-primary); font-size: 1.4rem; font-weight: bold; margin: 0.2rem 0 0 0;">${s.value}</p>
             </div>
-            <div style="background: #3d292b; color: #e0bc6a; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+            <div style="background: var(--border-color); color: var(--accent); width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
                 <i data-lucide="${s.icon}" style="width: 18px; height: 18px;"></i>
             </div>
         </div>
@@ -160,18 +160,18 @@ async function loadGuestTableData(weddingId) {
         const tbody = document.getElementById('guestTableBody');
         if (tbody) {
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 1rem; color: #9ca3af; font-size: 0.85rem;">No guests added yet. Click "+ Add Guest" to start.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;">No guests added yet. Click "+ Add Guest" to start.</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = data.map(guest => `
-                <tr style="border-bottom: 1px solid #3d292b;">
-                    <td style="padding: 0.6rem 0.75rem; font-weight: 500; color: #fdf8f6; font-size: 0.85rem;">${guest.name}</td>
-                    <td style="padding: 0.6rem 0.75rem; color: #9ca3af; font-size: 0.85rem;">${guest.family_id || 'Unassigned'}</td>
-                    <td style="padding: 0.6rem 0.75rem; color: #9ca3af; font-size: 0.85rem;">${guest.phone || '-'}</td>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 0.6rem 0.75rem; font-weight: 500; color: var(--text-primary); font-size: 0.85rem;">${guest.name}</td>
+                    <td style="padding: 0.6rem 0.75rem; color: var(--text-secondary); font-size: 0.85rem;">${guest.family_id || 'Unassigned'}</td>
+                    <td style="padding: 0.6rem 0.75rem; color: var(--text-secondary); font-size: 0.85rem;">${guest.phone || '-'}</td>
                     <td style="padding: 0.6rem 0.75rem;"><span style="padding: 0.15rem 0.5rem; font-size: 0.725rem; border-radius: 9999px; font-weight: 500; background: ${guest.rsvp_status === 'attending' ? 'rgba(16, 185, 129, 0.2); color: #34d399;' : 'rgba(234, 179, 8, 0.2); color: #facc15;'}">${guest.rsvp_status || 'Pending'}</span></td>
-                    <td style="padding: 0.6rem 0.75rem; color: #9ca3af; font-size: 0.85rem;">${guest.dietary_pref || '-'}</td>
-                    <td style="padding: 0.6rem 0.75rem; font-family: monospace; font-size: 0.75rem; color: #e0bc6a;">${guest.invite_code || '-'}</td>
+                    <td style="padding: 0.6rem 0.75rem; color: var(--text-secondary); font-size: 0.85rem;">${guest.dietary_pref || '-'}</td>
+                    <td style="padding: 0.6rem 0.75rem; font-family: monospace; font-size: 0.75rem; color: var(--accent);">${guest.invite_code || '-'}</td>
                 </tr>
             `).join('');
         }
@@ -186,31 +186,31 @@ function openAddGuestModal(weddingId) {
 
     const modalHTML = `
         <div id="addGuestModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
-            <div style="background: #231718; border: 1px solid #3d292b; border-radius: 10px; max-width: 390px; width: 100%; padding: 1.75rem; color: #f3f4f6;">
+            <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 10px; max-width: 390px; width: 100%; padding: 1.75rem; color: var(--text-primary);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: bold; color: #fdf8f6;">Add New Guest</h3>
-                    <button id="closeGuestModal" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #9ca3af;">&times;</button>
+                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: bold;">Add New Guest</h3>
+                    <button id="closeGuestModal" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
                 </div>
                 <form id="addGuestForm" style="display: flex; flex-direction: column; gap: 0.85rem;">
                     <div>
-                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: #d1d5db; margin-bottom: 0.25rem;">Guest Name *</label>
-                        <input type="text" id="guestName" required placeholder="e.g., Anjali Sharma" style="width: 100%; background: #1a1011; border: 1px solid #3d292b; border-radius: 6px; padding: 0.5rem 0.75rem; color: white; box-sizing: border-box;" />
+                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 0.25rem;">Guest Name *</label>
+                        <input type="text" id="guestName" required placeholder="e.g., Anjali Sharma" style="width: 100%; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem 0.75rem; color: white; box-sizing: border-box;" />
                     </div>
                     <div>
-                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: #d1d5db; margin-bottom: 0.25rem;">Phone Number</label>
-                        <input type="tel" id="guestPhone" placeholder="e.g., +91 98765 43210" style="width: 100%; background: #1a1011; border: 1px solid #3d292b; border-radius: 6px; padding: 0.5rem 0.75rem; color: white; box-sizing: border-box;" />
+                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 0.25rem;">Phone Number</label>
+                        <input type="tel" id="guestPhone" placeholder="e.g., +91 98765 43210" style="width: 100%; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem 0.75rem; color: white; box-sizing: border-box;" />
                     </div>
                     <div>
-                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: #d1d5db; margin-bottom: 0.25rem;">RSVP Status</label>
-                        <select id="guestRsvp" style="width: 100%; background: #1a1011; border: 1px solid #3d292b; border-radius: 6px; padding: 0.5rem 0.75rem; color: white; box-sizing: border-box;">
+                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 0.25rem;">RSVP Status</label>
+                        <select id="guestRsvp" style="width: 100%; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem 0.75rem; color: white; box-sizing: border-box;">
                             <option value="pending">Pending</option>
                             <option value="attending">Attending</option>
                             <option value="declined">Declined</option>
                         </select>
                     </div>
-                    <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1rem; border-top: 1px solid #3d292b; padding-top: 0.85rem;">
-                        <button type="button" id="cancelGuestBtn" style="padding: 0.5rem 0.85rem; background: transparent; border: none; color: #9ca3af; cursor: pointer;">Cancel</button>
-                        <button type="submit" id="saveGuestBtn" style="padding: 0.5rem 1.1rem; background: #e0bc6a; color: #1a1011; border: none; font-weight: 600; cursor: pointer; border-radius: 6px;">Add Guest</button>
+                    <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.85rem;">
+                        <button type="button" id="cancelGuestBtn" style="padding: 0.5rem 0.85rem; background: transparent; border: none; color: var(--text-secondary); cursor: pointer;">Cancel</button>
+                        <button type="submit" id="saveGuestBtn" style="padding: 0.5rem 1.1rem; background: var(--accent); color: var(--bg-surface); border: none; font-weight: 600; cursor: pointer; border-radius: 6px;">Add Guest</button>
                     </div>
                 </form>
             </div>

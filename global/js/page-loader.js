@@ -46,7 +46,6 @@ if (headerEl) {
     }));
 }
 
-// FIX: Wait 50ms to ensure all async HTML from modules has been attached to the DOM
 setTimeout(() => {
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
         window.lucide.createIcons();
