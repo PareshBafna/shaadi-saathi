@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Shaadi Saathi</title>
+    <link rel="stylesheet" href="../src/css/styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body style="margin: 0; background-color: #120b0c; font-family: inherit;">
+    <div id="app" style="display: flex; height: 100vh; width: 100vw; overflow: hidden; box-sizing: border-box;">
+        <aside id="sidebar" style="width: 260px; flex-shrink: 0; background: #1a1011; border-right: 1px solid #3d292b; overflow-y: auto;"></aside>
+        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+            <header id="header" style="height: 68px; flex-shrink: 0; background: #1a1011; border-bottom: 1px solid #3d292b;"></header>
+            <main id="content" style="flex: 1; overflow-y: auto; background: #120b0c; padding: 2rem; box-sizing: border-box; color: #f3f4f6;">
+                <h1 style="font-size: 1.65rem; font-weight: bold; color: #fdf8f6; margin-bottom: 0.5rem;">Dashboard</h1>
+                <p style="color: #9ca3af; font-size: 0.9rem;">Welcome back! Here is your studio overview.</p>
+            </main>
+        </div>
+    </div>
+    <script type="module" src="../src/core/page-loader.js"></script>
+</body>
+</html>

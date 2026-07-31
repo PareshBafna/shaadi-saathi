@@ -1,24 +1,22 @@
-import { renderAppLayout } from "../shared/layouts/app/app.js";
-import { renderHeader } from "../shared/components/header/header.js";
-import { renderSidebar } from "../shared/components/sidebar/sidebar.js";
+/**
+ * ============================================================
+ * Project : Shaadi Saathi
+ * File    : app.js (Core)
+ * Purpose : Core application bootstrap. Authenticates session,
+ *           initializes the App Shell layout with all standalone 
+ *           pages, and manages routing and user state.
+ * Author  : Paresh Bafna
+ * ============================================================
+ */
+
+import { createAppShell } from "../shared/layouts/app/app.js";
+import { renderDashboard } from "../pages/dashboard/dashboard.js";
+import { renderWeddings } from "../pages/weddings/weddings.js";
+import { renderOwners } from "../pages/owners/owners.js";
+import { renderActivity } from "../pages/activity/activity.js";
+import { renderSettings } from "../pages/settings/settings.js";
 import { supabase } from '../config/api.js';
 import { router } from './router.js';
-
-function initializeApp() {
-    const app = document.getElementById("app");
-    app.innerHTML = renderAppLayout();
-
-    document.getElementById("sidebar").innerHTML = renderSidebar();
-    document.getElementById("header").innerHTML = renderHeader();
-
-    if (window.lucide) {
-        window.lucide.createIcons();
-    }
-
-    console.log("Shaadi Saathi initialized.");
-}
-
-initializeApp();
 
 export class App {
     constructor() {
@@ -27,12 +25,15 @@ export class App {
     }
 
     async init() {
+        console.log("[APP] App initialization sequence started...");
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) console.error('Error fetching session:', error.message);
 
         this.setSession(session);
 
         supabase.auth.onAuthStateChange((event, session) => {
+            console.log(`Auth event: ${event}`);
             this.setSession(session);
             
             if (event === 'SIGNED_OUT') {
@@ -42,8 +43,57 @@ export class App {
             }
         });
 
-        // Initialize the central router (this controls all page switching)
+        this.mountAppShell();
         router.init();
+    }
+
+    mountAppShell() {
+        const appContainer = document.getElementById("app");
+        if (!appContainer) {
+            console.error("[APP ERROR] #app container not found in DOM!");
+            return;
+        }
+
+        appContainer.innerHTML = "";
+
+        // Determine safe initial sidebar tab based on current hash
+        const rawHash = window.location.hash || '#dashboard';
+        let initialPageId = "dashboard";
+        
+        if (rawHash.startsWith('#weddings') || rawHash.startsWith('#wedding?id=')) {
+            initialPageId = "weddings";
+        } else if (rawHash.startsWith('#owners')) {
+            initialPageId = "owners";
+        } else if (rawHash.startsWith('#activity')) {
+            initialPageId = "activity";
+        } else if (rawHash.startsWith('#settings')) {
+            initialPageId = "settings";
+        }
+
+        // Assemble the App Shell with all standalone pages registered
+        const shell = createAppShell({
+            user: { 
+                name: this.user?.email || "Paresh Bafna", 
+                role: "creator" 
+            },
+            pages: [
+                { id: "dashboard", title: "Dashboard", render: renderDashboard },
+                { id: "weddings", title: "All Weddings Directory", render: renderWeddings },
+                { id: "owners", title: "Manage Owners", render: renderOwners },
+                { id: "activity", title: "Activity Log", render: renderActivity },
+                { id: "settings", title: "Settings", render: renderSettings },
+            ],
+            initialPageId: initialPageId,
+            notificationCount: 0,
+        });
+
+        appContainer.appendChild(shell);
+
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+            window.lucide.createIcons();
+        }
+
+        console.log("Shaadi Saathi App Shell successfully mounted with all pages.");
     }
 
     setSession(session) {
@@ -59,4 +109,10 @@ export class App {
 }
 
 export const app = new App();
-document.addEventListener('DOMContentLoaded', () => app.init());
+
+// Execute initialization immediately when module loads
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => app.init());
+} else {
+    app.init();
+}

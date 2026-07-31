@@ -44,3 +44,34 @@
 
 /* Specific Wedding Command Center Styles */
 @import url('../pages/wedding-detail/events.css');
+
+/* Enhanced UI Polishing for Command Center & Layout */
+.app-shell__content {
+    padding: 32px;
+    background-color: #120b0c;
+    color: #f3e9e9;
+}
+
+/* Stat Cards Glow & Border */
+.stat-card, div[style*="background: rgb(26, 16, 17)"] {
+    background: #181112 !important;
+    border: 1px solid #332123 !important;
+    border-radius: 12px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.stat-card:hover {
+    border-color: #5a383b !important;
+    transform: translateY(-2px);
+}
+
+/* Buttons Polish */
+button, .btn {
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+button:active {
+    transform: scale(0.98);
+}

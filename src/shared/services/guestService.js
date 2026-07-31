@@ -1,4 +1,4 @@
-import { supabase } from '../config/api.js';
+import { supabase } from '../../config/api.js';
 import Papa from 'https://cdn.jsdelivr.net/npm/papaparse/+esm';
 
 export const guestService = {

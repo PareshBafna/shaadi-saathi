@@ -1,4 +1,4 @@
-import { supabase } from '../config/api.js';
+import { supabase } from '../../config/api.js';
 
 export const eventService = {
     /**

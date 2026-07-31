@@ -1,5 +1,5 @@
-import { getEvents } from '../../services/eventService.js';
-import { openAddEventModal } from '../../components/modal/event-modal.js';
+import { getEvents } from '../../shared/services/eventService.js';
+import { openAddEventModal } from '../../shared/components/modal/event-modal.js';
 
 export class EventTimeline {
     constructor(containerId, weddingId) {

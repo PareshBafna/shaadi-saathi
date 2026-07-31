@@ -1,5 +1,5 @@
-import { getFamilies, createFamily, assignGuestToFamily } from '../../services/familyService.js';
-import { getGuests } from '../../services/guestService.js';
+import { getFamilies, createFamily, assignGuestToFamily } from '../../shared/services/familyService.js';
+import { getGuests } from '../../shared/services/guestService.js';
 
 export class FamilyManager {
     constructor(containerId, weddingId) {

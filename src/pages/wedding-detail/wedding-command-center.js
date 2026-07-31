@@ -9,7 +9,7 @@ export function renderWeddingCommandCenter(weddingId) {
     wrapper.innerHTML = `<div style="text-align: center; color: #9ca3af; padding: 2rem; font-size: 0.95rem;">Loading command center...</div>`;
 
     if (!weddingId) {
-        wrapper.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 2rem;">Error: No Wedding ID provided. Please return to the dashboard.</div>`;
+        wrapper.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 2rem;">Error: No Wedding ID provided. Please return to the directory.</div>`;
         return wrapper;
     }
 
@@ -112,8 +112,7 @@ function buildSpecificHeader(wedding) {
     `;
     
     header.querySelector('#backToOverview').addEventListener('click', () => {
-        window.location.hash = '#dashboard';
-        window.dispatchEvent(new Event('hashchange'));
+        window.location.hash = '#weddings';
     });
     return header;
 }
