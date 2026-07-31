@@ -52,12 +52,18 @@ async function loadDashboardData(section, weddingId) {
             contentContainer.style.cssText = "display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.5rem;";
             contentContainer.innerHTML = `
                 <div style="background: #231718; border: 1px solid #3d292b; border-radius: 10px; padding: 1.25rem;">
-                    <h2 style="font-size: 1.1rem; font-weight: bold; color: #fdf8f6; margin-bottom: 0.85rem;">Event Itinerary</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+                        <h2 style="font-size: 1.1rem; font-weight: bold; color: #fdf8f6; margin: 0;">Event Itinerary</h2>
+                        <button id="addEventBtn" style="background: transparent; color: #e0bc6a; border: 1px solid #573a3d; padding: 0.3rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: border-color 0.2s;">+ Add Event</button>
+                    </div>
                     <div id="wedding-timeline-container"></div>
                 </div>
 
                 <div style="background: #231718; border: 1px solid #3d292b; border-radius: 10px; padding: 1.25rem;">
-                    <h2 style="font-size: 1.1rem; font-weight: bold; color: #fdf8f6; margin-bottom: 0.85rem;">Guest List Control Center</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+                        <h2 style="font-size: 1.1rem; font-weight: bold; color: #fdf8f6; margin: 0;">Guest List Control Center</h2>
+                        <button id="addGuestBtn" style="background: #e0bc6a; color: #1a1011; border: none; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s;">+ Add Guest</button>
+                    </div>
                     <div style="overflow-x: auto;">
                         <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 0.85rem;">
                             <thead>
@@ -80,6 +86,14 @@ async function loadDashboardData(section, weddingId) {
                 <div id="family-manager-container"></div>
             `;
             section.appendChild(contentContainer);
+
+            setTimeout(() => {
+                const addGuestBtn = document.getElementById('addGuestBtn');
+                if (addGuestBtn) addGuestBtn.addEventListener('click', () => openAddGuestModal(weddingId));
+                
+                const addEventBtn = document.getElementById('addEventBtn');
+                if (addEventBtn) addEventBtn.addEventListener('click', () => alert("Event builder module coming next!"));
+            }, 0);
 
             initEventTimeline('wedding-timeline-container', weddingId);
             initFamilyManager('family-manager-container', weddingId);
@@ -161,9 +175,11 @@ function buildSpecificHeader(wedding) {
             ← Back to Overview
         </button>
     `;
-    header.querySelector('#backToOverview').addEventListener('click', () => {
-        console.log("[DEBUG] Returning to global overview via hash change.");
+    header.querySelector('#backToOverview').addEventListener('click', (e) => {
+        console.log("[DEBUG] Returning to global overview.");
         window.location.hash = '#dashboard';
+        const section = e.target.closest('section');
+        loadDashboardData(section, null); // Instantly load the global view
     });
     return header;
 }
@@ -234,8 +250,9 @@ function buildFeaturedCelebrationSection(weddings) {
     `;
 
     cardEl.addEventListener('click', () => {
-        console.log("[DEBUG] Featured wedding card clicked, navigating to weddingId:", featured.id);
-        window.location.hash = `#dashboard?weddingId=${featured.id}`;
+        console.log("[DEBUG] Navigating to specific wedding page for ID:", featured.id);
+        // Use a completely distinct route so the router detects a new page
+        window.location.hash = `#wedding?id=${featured.id}`;
     });
 
     container.appendChild(cardEl);
@@ -315,19 +332,6 @@ export function openCreateWeddingModal() {
     const closeBtn = document.getElementById('closeWeddingModal');
     const cancelBtn = document.getElementById('cancelWeddingBtn');
     const form = document.getElementById('createWeddingForm');
-    const dateInput = document.getElementById('weddingDate');
-
-    if (dateInput) {
-        dateInput.addEventListener('click', () => {
-            if (typeof dateInput.showPicker === 'function') {
-                try {
-                    dateInput.showPicker();
-                } catch (err) {
-                    console.log("[DEBUG] showPicker prevented or unsupported:", err);
-                }
-            }
-        });
-    }
 
     const closeModal = () => modal.remove();
 
@@ -345,8 +349,6 @@ export function openCreateWeddingModal() {
         const coupleNames = `${brideName} & ${groomName}`;
         const weddingDate = document.getElementById('weddingDate').value;
 
-        console.log("[DEBUG] Submitting new wedding:", { coupleNames, weddingDate });
-
         try {
             saveBtn.disabled = true;
             saveBtn.textContent = 'Creating...';
@@ -357,8 +359,6 @@ export function openCreateWeddingModal() {
             }]);
 
             if (error) throw error;
-
-            console.log("[DEBUG] Wedding created successfully.");
             closeModal();
             window.location.reload(); 
         } catch (error) {
@@ -366,6 +366,98 @@ export function openCreateWeddingModal() {
             alert('Failed to create wedding: ' + error.message);
             saveBtn.disabled = false;
             saveBtn.textContent = 'Create Wedding';
+        }
+    });
+}
+
+export function openAddGuestModal(weddingId) {
+    console.log("[DEBUG] openAddGuestModal triggered for weddingId:", weddingId);
+    const existingModal = document.getElementById('addGuestModal');
+    if (existingModal) existingModal.remove();
+
+    const modalHTML = `
+        <div id="addGuestModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+            <div style="background: #231718; border: 1px solid #3d292b; border-radius: 10px; box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); max-width: 390px; width: 100%; padding: 1.75rem; color: #f3f4f6; position: relative;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: bold; color: #fdf8f6;">Add New Guest</h3>
+                    <button id="closeGuestModal" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #9ca3af; padding: 0;">&times;</button>
+                </div>
+
+                <form id="addGuestForm" style="display: flex; flex-direction: column; gap: 0.85rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: #d1d5db; margin-bottom: 0.25rem;">Guest Name *</label>
+                        <input type="text" id="guestName" required placeholder="e.g., Anjali Sharma" style="width: 100%; background: #1a1011; border: 1px solid #3d292b; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.85rem; color: white; box-sizing: border-box;" />
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: #d1d5db; margin-bottom: 0.25rem;">Phone Number</label>
+                        <input type="tel" id="guestPhone" placeholder="e.g., +91 98765 43210" style="width: 100%; background: #1a1011; border: 1px solid #3d292b; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.85rem; color: white; box-sizing: border-box;" />
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.825rem; font-weight: 500; color: #d1d5db; margin-bottom: 0.25rem;">RSVP Status</label>
+                        <select id="guestRsvp" style="width: 100%; background: #1a1011; border: 1px solid #3d292b; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.85rem; color: white; box-sizing: border-box; cursor: pointer;">
+                            <option value="Pending">Pending</option>
+                            <option value="Attending">Attending</option>
+                            <option value="Declined">Declined</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid #3d292b;">
+                        <button type="button" id="cancelGuestBtn" style="padding: 0.5rem 0.85rem; background: transparent; border: none; color: #9ca3af; font-weight: 500; cursor: pointer; border-radius: 6px; font-size: 0.85rem;">Cancel</button>
+                        <button type="submit" id="saveGuestBtn" style="padding: 0.5rem 1.1rem; background: #e0bc6a; color: #1a1011; border: none; font-weight: 600; cursor: pointer; border-radius: 6px; font-size: 0.85rem;">Add Guest</button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    const modal = document.getElementById('addGuestModal');
+    const closeBtn = document.getElementById('closeGuestModal');
+    const cancelBtn = document.getElementById('cancelGuestBtn');
+    const form = document.getElementById('addGuestForm');
+
+    const closeModal = () => modal.remove();
+
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const saveBtn = document.getElementById('saveGuestBtn');
+        const guestName = document.getElementById('guestName').value.trim();
+        const guestPhone = document.getElementById('guestPhone').value.trim() || null;
+        const guestRsvp = document.getElementById('guestRsvp').value;
+        
+        const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        try {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Adding...';
+
+            const { error } = await supabase.from('guests').insert([{ 
+                wedding_id: weddingId,
+                name: guestName,
+                phone: guestPhone,
+                rsvp_status: guestRsvp.toLowerCase(),
+                invite_code: inviteCode
+            }]);
+
+            if (error) throw error;
+            closeModal();
+            window.location.reload(); 
+        } catch (error) {
+            console.error("[DEBUG ERROR] Failed to add guest:", error);
+            alert('Failed to add guest: ' + error.message);
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Add Guest';
         }
     });
 }
@@ -380,7 +472,8 @@ class DashboardManager {
             const { data, error } = await supabase
                 .from('guests')
                 .select('*')
-                .eq('wedding_id', this.weddingId);
+                .eq('wedding_id', this.weddingId)
+                .order('created_at', { ascending: false });
 
             if (error) throw error;
 
@@ -388,18 +481,18 @@ class DashboardManager {
             const tbody = document.getElementById('guestTableBody');
             if (tbody) {
                 if (!data || data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 1rem; color: #9ca3af; font-size: 0.85rem;">No guests added yet.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 1rem; color: #9ca3af; font-size: 0.85rem;">No guests added yet. Click "+ Add Guest" to start.</td></tr>`;
                     return;
                 }
 
                 tbody.innerHTML = data.map(guest => `
-                    <tr style="border-bottom: 1px solid #3d292b;">
+                    <tr style="border-bottom: 1px solid #3d292b; transition: background 0.15s;" onmouseover="this.style.background='#1a1011'" onmouseout="this.style.background='transparent'">
                         <td style="padding: 0.6rem 0.75rem; font-weight: 500; color: #fdf8f6; font-size: 0.85rem;">${guest.name}</td>
                         <td style="padding: 0.6rem 0.75rem; color: #9ca3af; font-size: 0.85rem;">${guest.family_id || 'Unassigned'}</td>
                         <td style="padding: 0.6rem 0.75rem; color: #9ca3af; font-size: 0.85rem;">${guest.phone || '-'}</td>
-                        <td style="padding: 0.6rem 0.75rem;"><span style="padding: 0.15rem 0.5rem; font-size: 0.725rem; border-radius: 9999px; font-weight: 500; background: ${guest.rsvp_status === 'attending' ? 'rgba(16, 185, 129, 0.2); color: #34d399;' : 'rgba(234, 179, 8, 0.2); color: #facc15;'}">${guest.rsvp_status || 'Pending'}</span></td>
+                        <td style="padding: 0.6rem 0.75rem;"><span style="padding: 0.15rem 0.5rem; font-size: 0.725rem; border-radius: 9999px; font-weight: 500; background: ${guest.rsvp_status === 'attending' ? 'rgba(16, 185, 129, 0.2); color: #34d399;' : guest.rsvp_status === 'declined' ? 'rgba(239, 68, 68, 0.2); color: #ef4444;' : 'rgba(234, 179, 8, 0.2); color: #facc15;'}">${guest.rsvp_status.charAt(0).toUpperCase() + guest.rsvp_status.slice(1) || 'Pending'}</span></td>
                         <td style="padding: 0.6rem 0.75rem; color: #9ca3af; font-size: 0.85rem;">${guest.dietary_pref || '-'}</td>
-                        <td style="padding: 0.6rem 0.75rem; font-family: monospace; font-size: 0.75rem; color: #9ca3af;">${guest.invite_code || '-'}</td>
+                        <td style="padding: 0.6rem 0.75rem; font-family: monospace; font-size: 0.75rem; color: #e0bc6a; letter-spacing: 0.05em;">${guest.invite_code || '-'}</td>
                     </tr>
                 `).join('');
             }

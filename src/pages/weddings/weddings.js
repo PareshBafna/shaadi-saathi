@@ -149,7 +149,10 @@ function renderTableContent(container, weddings) {
     tbody.innerHTML = filtered.map(wedding => {
       const statusBadge = getStatusBadge(wedding.weddingDate);
       return `
-        <tr style="border-bottom: 1px solid #3d292b; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#231718'" onmouseout="this.style.background='transparent'" onclick="window.location.hash='#dashboard?weddingId=${wedding.id}'">
+        <tr style="border-bottom: 1px solid #3d292b; cursor: pointer; transition: background 0.15s;" 
+            onmouseover="this.style.background='#231718'" 
+            onmouseout="this.style.background='transparent'" 
+            onclick="window.location.hash='#wedding?id=${wedding.id}';">
           <td style="padding: 0.85rem 0.75rem; font-weight: 500; color: #fdf8f6;">${wedding.coupleNames}</td>
           <td style="padding: 0.85rem 0.75rem; color: #9ca3af;">${formatWeddingDate(wedding.weddingDate)}</td>
           <td style="padding: 0.85rem 0.75rem;"><span style="padding: 0.2rem 0.6rem; font-size: 0.75rem; border-radius: 9999px; font-weight: 500; background: ${statusBadge.bg}; color: ${statusBadge.color};">${statusBadge.label}</span></td>
