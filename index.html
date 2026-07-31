@@ -1,34 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shaadi Saathi — From Invitation to Celebration</title>
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="src/assets/icons/favicon.ico" />
-
-  <!-- Master Stylesheet (imports all component/layout/page CSS) -->
-  <link rel="stylesheet" href="src/css/styles.css" />
-
-  <!-- Google Fonts: Inter (body) + Playfair Display (headings) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
-    rel="stylesheet"
-  />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shaadi Saathi</title>
+    <!-- Instantly redirects the browser to your new Dashboard -->
+    <meta http-equiv="refresh" content="0; url=./pages/dashboard/html/dashboard.html">
 </head>
-<body>
+<body style="background-color: #120b0c; color: #fdf8f6; font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+    
+    <div style="text-align: center;">
+        <p style="color: #9ca3af; font-size: 0.9rem;">Loading Shaadi Saathi Studio...</p>
+    </div>
 
-  <!-- App Mount Point -->
-  <div id="app"></div>
-
-  <!-- Lucide Icons (must load before main.js runs its first createIcons() call) -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- App Entry Point -->
-  <script type="module" src="src/core/main.js"></script>
-
+    <!-- Fallback JavaScript redirect -->
+    <script>
+        window.location.replace("./pages/dashboard/html/dashboard.html");
+    </script>
 </body>
 </html>
