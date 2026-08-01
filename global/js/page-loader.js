@@ -1,5 +1,12 @@
-import { createSidebar } from '../components/sidebar.js';
-import { createHeader } from '../components/header.js';
+import { createSidebar } from '../components/js/sidebar.js';
+import { createHeader } from '../components/js/header.js';
+
+// Clean up the URL bar visually on load without breaking your file path
+if (window.location.pathname.includes('dashboard.html')) {
+    window.history.replaceState({}, '', '/dashboard');
+} else if (window.location.pathname.includes('weddings.html')) {
+    window.history.replaceState({}, '', '/weddings');
+}
 
 const pathname = window.location.pathname;
 let activeId = "dashboard";
@@ -16,16 +23,17 @@ if (pathname.includes("weddings") || pathname.includes("wedding-detail")) {
 
 const sidebarEl = document.getElementById("sidebar");
 if (sidebarEl) {
-    sidebarEl.replaceChildren(createSidebar({
+    sidebarEl.replaceWith(createSidebar({
         role: "creator",
         activeItemId: activeId,
         onNavigate: (pageId) => {
+            // Use absolute paths from root to prevent path duplication errors
             const pageMap = {
-                dashboard: "../../dashboard/html/dashboard.html",
-                weddings: "../../weddings/html/weddings.html",
-                owners: "../../owners/html/owners.html",
-                activity: "../../activity/html/activity.html",
-                settings: "../../settings/html/settings.html"
+                dashboard: "/pages/dashboard/html/dashboard.html",
+                weddings: "/pages/weddings/html/weddings.html",
+                owners: "/pages/owners/html/owners.html",
+                activity: "/pages/activity/html/activity.html",
+                settings: "/pages/settings/html/settings.html"
             };
             if (pageMap[pageId]) {
                 window.location.href = pageMap[pageId];
@@ -36,13 +44,17 @@ if (sidebarEl) {
 
 const headerEl = document.getElementById("header");
 if (headerEl) {
-    const formattedTitle = activeId.charAt(0).toUpperCase() + activeId.slice(1);
-    headerEl.replaceChildren(createHeader({
+    const formattedTitle = activeId === 'weddings' ? 'All Weddings' : activeId.charAt(0).toUpperCase() + activeId.slice(1);
+    headerEl.replaceWith(createHeader({
         pageTitle: formattedTitle,
         user: { name: "Paresh Bafna", role: "creator" },
-        notificationCount: 0,
+        notificationCount: 2,
         onNotificationsClick: () => console.log("Notifications clicked"),
-        onProfileClick: () => console.log("Profile clicked")
+        onProfileClick: () => console.log("Profile clicked"),
+        onMobileMenuClick: () => {
+            const sidebar = document.querySelector(".sidebar");
+            if (sidebar) sidebar.classList.toggle("sidebar--open");
+        }
     }));
 }
 

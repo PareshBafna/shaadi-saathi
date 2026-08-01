@@ -4,20 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>All Weddings - Shaadi Saathi</title>
-    <link rel="stylesheet" href="../../../../global/css/global.css">
+    <!-- Stepping out: html -> weddings -> pages -> root -> global -->
+    <link rel="stylesheet" href="../../../global/css/global.css">
+    <link rel="stylesheet" href="../css/weddings.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="app-container" id="app">
+    <div class="app-shell" id="app">
         <aside id="sidebar"></aside>
-        <div class="main-wrapper">
+        <div class="app-shell__main">
             <header id="header"></header>
-            <main id="content" class="content-area"></main>
+            <main id="content" class="app-shell__content"></main>
         </div>
     </div>
     <script type="module">
         import { renderWeddings } from '../js/weddings.js';
-        import '../../../../global/js/page-loader.js';
+        import '../../../global/js/page-loader.js';
         
         const contentEl = document.getElementById('content');
         contentEl.appendChild(renderWeddings());

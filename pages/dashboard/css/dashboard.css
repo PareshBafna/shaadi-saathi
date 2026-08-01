@@ -1,0 +1,124 @@
+/* ============================================================
+   PAGE CONTAINER
+   ============================================================ */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5); /* Reduced from space-8 to kill the huge empty gap */
+  padding: var(--space-4) var(--space-8) var(--space-8); /* Tighter top padding */
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.dashboard__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.dashboard__title {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
+}
+
+.dashboard__subtitle {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}
+
+/* ============================================================
+   STATS GRID
+   ============================================================ */
+.dashboard__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-6); /* This single property dictates exact, even spacing */
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .dashboard__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard__stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard__stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   STAT CARD
+   ============================================================ */
+.dashboard__stat-card .card__title {
+  font-size: var(--font-size-2xl);
+  font-family: var(--font-family-display);
+}
+
+.dashboard__stat-card .card__subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ============================================================
+   GENERIC DASHBOARD SECTION
+   ============================================================ */
+.dashboard-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-section h2 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.dashboard-section__empty {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.dashboard-section .button {
+  align-self: flex-start;
+}
+
+/* Modal specific styles */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: var(--color-overlay);
+    display: flex; align-items: center; justify-content: center;
+    z-index: var(--z-modal-backdrop);
+    padding: var(--space-4);
+}
+
+.modal-content {
+    background: var(--color-bg-muted);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xl);
+    max-width: 400px;
+    width: 100%;
+    padding: var(--space-6);
+    color: var(--color-text-primary);
+}
