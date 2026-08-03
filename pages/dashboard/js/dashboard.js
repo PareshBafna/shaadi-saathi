@@ -1,5 +1,12 @@
 import { supabase } from '../../../database/js/api.js';
 import { openModal } from '../../../global/components/js/modal.js';
+import { showAlert } from '../../../global/components/js/alerts.js';
+
+// SIMULATED AUTH CONTEXT
+const currentUser = {
+    id: "creator_paresh",
+    role: "creator" // 'creator', 'host', or 'guest'
+};
 
 export function renderDashboard() {
     const wrapper = document.createElement('section');
@@ -24,20 +31,17 @@ async function loadGlobalDashboardData(section) {
 
         const todayTime = startOfDay(new Date()).getTime();
 
-        // NEW LOGIC: In Progress if today is between or equal to start/end dates
         const inProgressWeddings = weddings.filter(w => {
             const start = startOfDay(new Date(w.start_date)).getTime();
             const end = startOfDay(new Date(w.end_date)).getTime();
             return todayTime >= start && todayTime <= end;
         });
         
-        // Upcoming if today is strictly before the start date
         const upcomingWeddings = weddings.filter(w => {
             const start = startOfDay(new Date(w.start_date)).getTime();
             return todayTime < start;
         });
         
-        // Archived if today is strictly after the end date
         const archivedWeddings = weddings.filter(w => {
             const end = startOfDay(new Date(w.end_date)).getTime();
             return todayTime > end;
@@ -53,10 +57,8 @@ async function loadGlobalDashboardData(section) {
         section.appendChild(buildStatsGrid(globalStats));
         
         const listsWrapper = document.createElement("div");
-        // Added margin-top to perfectly mirror the spacing below the card
         listsWrapper.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--space-6); width: 100%; margin-top: var(--space-6); margin-bottom: var(--space-6);";
 
-        // Removed the word "Celebrations"
         const inProgressSection = buildWeddingListSection("In Progress", inProgressWeddings);
         const upcomingSection = buildWeddingListSection("Upcoming", upcomingWeddings);
         
@@ -103,19 +105,6 @@ function startOfDay(date) {
     return copy;
 }
 
-function formatWeddingDate(isoDate) {
-    if (!isoDate) return "";
-    const date = new Date(isoDate);
-    const day = date.getDate();
-    let suffix = "th";
-    if (day === 1 || day === 21 || day === 31) suffix = "st";
-    else if (day === 2 || day === 22) suffix = "nd";
-    else if (day === 3 || day === 23) suffix = "rd";
-    const month = date.toLocaleString("en-IN", { month: "long" });
-    const year = date.getFullYear();
-    return `${day}${suffix} ${month}, ${year}`;
-}
-
 function buildRecentActivitySection() {
     const section = document.createElement("div");
     section.className = "dashboard-section";
@@ -130,55 +119,107 @@ function buildRecentActivitySection() {
 
 export function openCreateWeddingModal() {
     const formHTML = `
-        <form id="createWeddingForm" style="display:flex; flex-direction:column; gap:var(--space-3);">
+        <form id="createWeddingForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Bride's Name</label>
-                <input type="text" id="brideName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box;">
-            </div>
-            <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Groom's Name</label>
-                <input type="text" id="groomName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box;">
-            </div>
-            <div style="display: flex; gap: var(--space-3);">
-                <div style="flex: 1;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Start Date</label>
-                    <input type="date" id="startDate" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer;">
-                </div>
-                <div style="flex: 1;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">End Date</label>
-                    <input type="date" id="endDate" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:8px;">Primary Side</label>
+                <div style="display: flex; gap: var(--space-4);">
+                    <label style="display: flex; align-items: center; gap: 4px; color: var(--color-text-primary); font-size: var(--font-size-sm); cursor: pointer;">
+                        <input type="radio" name="primarySide" value="bride" checked style="accent-color: var(--color-primary); cursor: pointer;"> Bride's Side
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 4px; color: var(--color-text-primary); font-size: var(--font-size-sm); cursor: pointer;">
+                        <input type="radio" name="primarySide" value="groom" style="accent-color: var(--color-primary); cursor: pointer;"> Groom's Side
+                    </label>
                 </div>
             </div>
-            <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Primary Contact Details</label>
-                <input type="text" id="contactDetails" placeholder="e.g., +91 98765 43210 (Rahul)" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box;">
+
+            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 140px;">
+                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Bride's Name *</label>
+                    <input type="text" id="brideName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                </div>
+                <div style="flex: 1; min-width: 140px;">
+                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Groom's Name *</label>
+                    <input type="text" id="groomName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                </div>
             </div>
+
+            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 140px;">
+                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Start Date *</label>
+                    <input type="date" id="startDate" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
+                </div>
+                <div style="flex: 1; min-width: 140px;">
+                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">End Date *</label>
+                    <input type="date" id="endDate" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
+                </div>
+            </div>
+
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Details</label>
-                <input type="text" id="familyDetails" placeholder="e.g., The Bafna & Sharma Families" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Contact Details *</label>
+                <input type="text" id="contactDetails" required placeholder="e.g., +91 98765 43210 (Rahul)" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+            </div>
+
+            <div>
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Details *</label>
+                <input type="text" id="familyDetails" required placeholder="e.g., The Bafna & Sharma Families" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
             </div>
         </form>
     `;
 
     const modal = openModal({
-        title: "Create New Wedding",
+        title: "Add New Wedding",
         content: formHTML,
         actions: [
             { label: "Cancel", variant: "ghost" },
             { 
-                label: "Create Wedding", 
+                label: "Add", 
                 variant: "primary", 
                 closesModal: false,
                 onClick: async () => {
-                    const form = document.getElementById('createWeddingForm');
-                    if(!form.checkValidity()) { form.reportValidity(); return; }
+                    const requiredFields = [
+                        { id: 'brideName', name: "Bride's Name" },
+                        { id: 'groomName', name: "Groom's Name" },
+                        { id: 'startDate', name: "Start Date" },
+                        { id: 'endDate', name: "End Date" },
+                        { id: 'contactDetails', name: "Contact Details" },
+                        { id: 'familyDetails', name: "Family Details" }
+                    ];
 
-                    const coupleNames = `${document.getElementById('brideName').value.trim()} & ${document.getElementById('groomName').value.trim()}`;
+                    let isValid = true;
+                    let firstEmptyField = null;
+
+                    requiredFields.forEach(field => {
+                        const el = document.getElementById(field.id);
+                        if (!el.value.trim()) {
+                            el.style.borderColor = "red";
+                            isValid = false;
+                            if (!firstEmptyField) firstEmptyField = field.name;
+                        } else {
+                            el.style.borderColor = "green";
+                        }
+                    });
+
+                    if (!isValid) {
+                        showAlert({
+                            icon: 'warning',
+                            title: 'Missing Information',
+                            text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}`
+                        });
+                        return;
+                    }
+
+                    const primarySide = document.querySelector('input[name="primarySide"]:checked').value;
+                    const brideName = document.getElementById('brideName').value.trim();
+                    const groomName = document.getElementById('groomName').value.trim();
                     const startDate = document.getElementById('startDate').value;
                     const endDate = document.getElementById('endDate').value;
                     
                     if (new Date(endDate) < new Date(startDate)) {
-                        alert("End date cannot be earlier than the start date.");
+                        showAlert({
+                            icon: 'error',
+                            title: 'Invalid Dates',
+                            text: 'End date cannot be earlier than the start date.'
+                        });
                         return;
                     }
 
@@ -187,7 +228,9 @@ export function openCreateWeddingModal() {
 
                     try {
                         const { error } = await supabase.from('weddings').insert([{ 
-                            couple_names: coupleNames, 
+                            primary_side: primarySide,
+                            bride_name: brideName,
+                            groom_name: groomName, 
                             start_date: startDate,
                             end_date: endDate,
                             contact_details: contactDetails,
@@ -201,14 +244,38 @@ export function openCreateWeddingModal() {
                         
                         const wrapper = document.querySelector('.dashboard');
                         if(wrapper) loadGlobalDashboardData(wrapper);
+
+                        showAlert({
+                            icon: 'success',
+                            title: 'Added!',
+                            text: 'The wedding celebration has been successfully added.',
+                            timer: 2000
+                        });
                         
                     } catch (error) {
-                        alert('Failed to create wedding: ' + error.message);
+                        showAlert({
+                            icon: 'error',
+                            title: 'Database Error',
+                            text: 'Failed to add wedding: ' + error.message
+                        });
                     }
                 }
             }
         ]
     });
+
+    setTimeout(() => {
+        const requiredIds = ['brideName', 'groomName', 'startDate', 'endDate', 'contactDetails', 'familyDetails'];
+        requiredIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                el.addEventListener('input', () => {
+                    el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                });
+            }
+        });
+    }, 50);
 }
 
 function buildWeddingListSection(title, weddingsList) {
@@ -233,8 +300,11 @@ function buildWeddingListSection(title, weddingsList) {
     const listContainer = document.createElement("div");
     listContainer.style.cssText = "display: flex; flex-direction: column; gap: var(--space-3);";
 
-    // Sort chronologically before rendering
-    weddingsList.sort((a, b) => new Date(a.wedding_date) - new Date(b.wedding_date)).forEach(wedding => {
+    weddingsList.sort((a, b) => new Date(a.start_date) - new Date(b.start_date)).forEach(wedding => {        
+        const displayNames = wedding.primary_side === 'groom' 
+            ? `${wedding.groom_name} & ${wedding.bride_name}` 
+            : `${wedding.bride_name} & ${wedding.groom_name}`;
+        
         const cardEl = document.createElement("div");
         cardEl.className = "stat-card";
         cardEl.setAttribute('data-wedding-id', wedding.id);
@@ -247,8 +317,8 @@ function buildWeddingListSection(title, weddingsList) {
                     <i data-lucide="heart" style="width: 16px; height: 16px;"></i>
                 </div>
                 <div>
-                    <h3 style="margin: 0; font-size: 0.9rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${wedding.couple_names}</h3>
-                    <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: var(--color-text-secondary);">${formatWeddingDate(wedding.wedding_date)}</p>
+                    <h3 style="margin: 0; font-size: 0.9rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${displayNames}</h3>
+                    <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: var(--color-text-secondary);"><i data-lucide="calendar" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
                 </div>
             </div>
             <div style="color: var(--color-primary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); padding-left: var(--space-4);">
@@ -266,4 +336,37 @@ function buildWeddingListSection(title, weddingsList) {
 
     container.appendChild(listContainer);
     return container;
+}
+
+function formatWeddingDateRange(startIso, endIso) {
+    if (!startIso || !endIso) return "Dates TBD";
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    
+    const sDay = start.getDate();
+    const eDay = end.getDate();
+    
+    const getSuffix = (day) => {
+        if (day > 3 && day < 21) return 'th';
+        switch (day % 10) {
+            case 1: return "st";
+            case 2: return "nd";
+            case 3: return "rd";
+            default: return "th";
+        }
+    };
+
+    const sMonth = start.toLocaleString("en-IN", { month: "short" });
+    const eMonth = end.toLocaleString("en-IN", { month: "short" });
+    const year = start.getFullYear();
+
+    if (startIso === endIso) {
+        return `${sDay}${getSuffix(sDay)} ${start.toLocaleString("en-IN", { month: "long" })}, ${year}`;
+    }
+    
+    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+        return `${sDay}${getSuffix(sDay)} - ${eDay}${getSuffix(eDay)} ${start.toLocaleString("en-IN", { month: "long" })}, ${year}`;
+    }
+    
+    return `${sDay}${getSuffix(sDay)} ${sMonth} - ${eDay}${getSuffix(eDay)} ${eMonth}, ${year}`;
 }

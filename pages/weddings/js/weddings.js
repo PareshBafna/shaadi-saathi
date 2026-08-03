@@ -67,7 +67,7 @@ export function renderWeddings() {
     // Fetch Initial Data
     loadWeddingsData(sectionsContainer);
 
-    // Instant Refresh Listener (Catches the event dispatched from the modal)
+    // Instant Refresh Listener
     window.addEventListener('weddingDataUpdated', () => {
         if (document.getElementById('weddings-galleries')) {
             loadWeddingsData(document.getElementById('weddings-galleries'));
@@ -108,17 +108,30 @@ function filterAndRenderGalleries() {
     const searchTerm = document.getElementById('searchWeddings')?.value.toLowerCase() || '';
     const sortValue = document.getElementById('sortWeddings')?.value || 'date-asc';
 
-    let filtered = allWeddings.filter(w => w.couple_names.toLowerCase().includes(searchTerm));
+    const combinedSearchTerm = searchTerm.replace(/\s+/g, ''); // For searching "bride&groom" easily
+    
+    let filtered = allWeddings.filter(w => {
+        const side = w.primary_side || 'bride';
+        const full = side === 'groom' ? `${w.groom_name} & ${w.bride_name}`.toLowerCase() : `${w.bride_name} & ${w.groom_name}`.toLowerCase();
+        return full.includes(searchTerm) || w.bride_name.toLowerCase().includes(searchTerm) || w.groom_name.toLowerCase().includes(searchTerm);
+    });
 
     filtered.sort((a, b) => {
         if (sortValue === 'date-asc') return new Date(a.start_date) - new Date(b.start_date);
         if (sortValue === 'date-desc') return new Date(b.start_date) - new Date(a.start_date);
-        if (sortValue === 'name-asc') return a.couple_names.localeCompare(b.couple_names);
+        if (sortValue === 'name-asc') {
+            const sideA = a.primary_side || 'bride';
+            const nameA = sideA === 'groom' ? `${a.groom_name} & ${a.bride_name}` : `${a.bride_name} & ${a.groom_name}`;
+            const sideB = b.primary_side || 'bride';
+            const nameB = sideB === 'groom' ? `${b.groom_name} & ${b.bride_name}` : `${b.bride_name} & ${b.groom_name}`;
+            return nameA.localeCompare(nameB);
+        }
         return 0;
     });
 
     const todayTime = startOfDay(new Date()).getTime();
 
+    // FILTER GALLERY LISTS
     const inProgress = filtered.filter(w => {
         const start = startOfDay(new Date(w.start_date)).getTime();
         const end = startOfDay(new Date(w.end_date)).getTime();
@@ -130,17 +143,19 @@ function filterAndRenderGalleries() {
     const container = document.getElementById('weddings-galleries');
     if (!container) return;
 
-    container.innerHTML = `
-        ${buildGallerySection("In Progress", inProgress)}
-        ${buildGallerySection("Upcoming", upcoming)}
-        ${buildGallerySection("Archived", archived)}
-    `;
-
     if (filtered.length === 0) {
         container.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-muted); background: var(--color-white); border-radius: var(--radius-lg); border: 1px solid var(--color-border);">No celebrations match your search.</div>`;
+        return;
     }
 
-    // Make entire cards natively clickable, replacing the old 'Action' column
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: var(--space-6); width: 100%; align-items: start;">
+            ${buildGallerySection("In Progress", inProgress)}
+            ${buildGallerySection("Upcoming", upcoming)}
+            ${buildGallerySection("Archived", archived)}
+        </div>
+    `;
+
     container.querySelectorAll('.gallery-card').forEach(card => {
         card.addEventListener('click', () => {
             const id = card.getAttribute('data-wedding-id');
@@ -154,39 +169,59 @@ function filterAndRenderGalleries() {
 function buildGallerySection(title, weddings) {
     if (!weddings || weddings.length === 0) return '';
     
-    const grid = weddings.map(wedding => {
-        // Visibility Logic: Guests visible ONLY to Creator or the specific Host Owner
+    const listItems = weddings.map(wedding => {
         const isOwnerOrCreator = currentUser.role === 'creator' || currentUser.id === wedding.host_id;
-        
         const guestStat = isOwnerOrCreator ? 
             `<div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary);"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.guests_count || 0} Guests</div>` : '';
 
+        // Evaluate the display name order
+        const displayNames = wedding.primary_side === 'groom' 
+            ? `${wedding.groom_name} & ${wedding.bride_name}` 
+            : `${wedding.bride_name} & ${wedding.groom_name}`;
+
+        // ADDED 'stat-card' here so the hover effect applies ONLY to the specific list item
         return `
-        <div class="stat-card gallery-card" data-wedding-id="${wedding.id}" style="cursor: pointer; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); transition: all 0.2s ease; box-shadow: var(--shadow-sm);">
-            <div>
-                <h3 style="margin: 0; font-size: 1.1rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${wedding.couple_names}</h3>
-                <p style="margin: 6px 0 0 0; font-size: var(--font-size-sm); color: var(--color-text-secondary);"><i data-lucide="calendar" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;"></i> ${formatWeddingDateRange(wedding.wedding_date)}</p>
+        <div class="stat-card gallery-card" data-wedding-id="${wedding.id}" style="cursor: pointer; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: var(--space-3); transition: all 0.2s ease;">
+            
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="background: var(--color-border); color: var(--color-primary); width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i data-lucide="heart" style="width: 16px; height: 16px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${displayNames}</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--color-text-secondary);"><i data-lucide="calendar" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
+                    </div>
+                </div>
+                <div style="color: var(--color-primary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); padding-left: var(--space-4);">
+                    Manage →
+                </div>
             </div>
-            <div style="display: flex; justify-content: flex-start; gap: var(--space-5); margin-top: auto; padding-top: var(--space-4); border-top: 1px solid var(--color-border);">
+
+            <!-- Extra Details Row (Guests & Events) -->
+            <div style="display: flex; justify-content: flex-start; gap: var(--space-5); margin-top: 4px; padding-top: var(--space-3); border-top: 1px solid var(--color-border);">
                 ${guestStat}
                 <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary);"><i data-lucide="calendar-days" style="width:14px; height:14px;"></i> ${wedding.events_count || 0} Events Invited</div>
             </div>
+
         </div>
         `;
     }).join('');
 
+    // REMOVED 'stat-card' from the outer wrapper to kill the giant hover effect, 
+    // replacing it with explicit background/border styles so it still looks right.
     return `
-        <div class="gallery-section" style="margin-bottom: var(--space-8);">
-            <h2 style="font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-bottom: var(--space-4); padding-bottom: var(--space-2); border-bottom: 2px solid var(--color-border); display: inline-block;">${title}</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-5);">
-                ${grid}
+        <div style="background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
+            <h2 style="font-size: 1.25rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;">${title}</h2>
+            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                ${listItems}
             </div>
         </div>
     `;
 }
 
 export function formatWeddingDateRange(startIso, endIso) {
-    if (!startIso || !endIso) return "";
+    if (!startIso || !endIso) return "Dates TBD";
     const start = new Date(startIso);
     const end = new Date(endIso);
     
