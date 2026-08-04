@@ -2,14 +2,14 @@ import { createSidebar } from '../components/js/sidebar.js';
 import { createHeader } from '../components/js/header.js';
 import { renderDashboard } from '../../pages/dashboard/js/dashboard.js';
 import { renderWeddings } from '../../pages/weddings/js/weddings.js';
-import { renderWeddingCommandCenter } from '../../pages/weddings/js/wedding-command-center.js';
+import { renderWeddingDetails } from '../../pages/weddings/js/wedding-details.js';
 import { renderSample } from '../../pages/sample/js/sample.js'; // IMPORT ADDED
 
 const routes = {
     '': renderDashboard,
     'dashboard': renderDashboard,
     'weddings': renderWeddings,
-    'wedding': (params) => renderWeddingCommandCenter(params.id),
+    'wedding': (params) => renderWeddingDetails(params.id),
     'hosts': renderDashboard, 
     'sample': renderSample // ROUTE ADDED
 };

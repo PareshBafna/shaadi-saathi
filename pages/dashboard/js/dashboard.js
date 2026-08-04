@@ -1,5 +1,5 @@
 import { supabase } from '../../../database/js/api.js';
-import { openModal } from '../../../global/components/js/modal.js';
+import { openCreateWeddingModal } from '../../weddings/js/weddings.js';
 import { showAlert } from '../../../global/components/js/alerts.js';
 
 // SIMULATED AUTH CONTEXT
@@ -8,15 +8,26 @@ const currentUser = {
     role: "creator" // 'creator', 'host', or 'guest'
 };
 
+// ==========================================
+// MAIN RENDER FUNCTION
+// ==========================================
 export function renderDashboard() {
     const wrapper = document.createElement('section');
     wrapper.className = "dashboard";
+
+    if (currentUser.role !== 'creator') {
+        return wrapper; 
+    }
+
     wrapper.innerHTML = `<div class="dashboard-section__empty" style="text-align: center;">Loading dashboard...</div>`;
 
     loadGlobalDashboardData(wrapper);
     return wrapper;
 }
 
+// ==========================================
+// ASYNC DATA FETCHER
+// ==========================================
 async function loadGlobalDashboardData(section) {
     try {
         let weddings = [];
@@ -25,6 +36,21 @@ async function loadGlobalDashboardData(section) {
             weddings = data;
         } else if (error) {
             throw error;
+        }
+        
+        for (let wedding of weddings) {
+            const { count: eventsCount } = await supabase
+                .from('events')
+                .select('*', { count: 'exact', head: true })
+                .eq('wedding_id', wedding.id);
+
+            const { count: guestsCount } = await supabase
+                .from('guests')
+                .select('*', { count: 'exact', head: true })
+                .eq('wedding_id', wedding.id);
+
+            wedding.events_count = eventsCount || 0;
+            wedding.guests_count = guestsCount || 0;
         }
         
         section.innerHTML = "";
@@ -69,7 +95,6 @@ async function loadGlobalDashboardData(section) {
         listsWrapper.appendChild(upcomingSection);
 
         section.appendChild(listsWrapper);
-
         section.appendChild(buildRecentActivitySection());
 
         if (window.lucide && typeof window.lucide.createIcons === 'function') {
@@ -117,167 +142,6 @@ function buildRecentActivitySection() {
     return section;
 }
 
-export function openCreateWeddingModal() {
-    const formHTML = `
-        <form id="createWeddingForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
-            <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:8px;">Primary Side</label>
-                <div style="display: flex; gap: var(--space-4);">
-                    <label style="display: flex; align-items: center; gap: 4px; color: var(--color-text-primary); font-size: var(--font-size-sm); cursor: pointer;">
-                        <input type="radio" name="primarySide" value="bride" checked style="accent-color: var(--color-primary); cursor: pointer;"> Bride's Side
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 4px; color: var(--color-text-primary); font-size: var(--font-size-sm); cursor: pointer;">
-                        <input type="radio" name="primarySide" value="groom" style="accent-color: var(--color-primary); cursor: pointer;"> Groom's Side
-                    </label>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Bride's Name *</label>
-                    <input type="text" id="brideName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Groom's Name *</label>
-                    <input type="text" id="groomName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
-            </div>
-
-            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Start Date *</label>
-                    <input type="date" id="startDate" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
-                </div>
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">End Date *</label>
-                    <input type="date" id="endDate" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
-                </div>
-            </div>
-
-            <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Contact Details *</label>
-                <input type="text" id="contactDetails" required placeholder="e.g., +91 98765 43210 (Rahul)" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-            </div>
-
-            <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Details *</label>
-                <input type="text" id="familyDetails" required placeholder="e.g., The Bafna & Sharma Families" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-            </div>
-        </form>
-    `;
-
-    const modal = openModal({
-        title: "Add New Wedding",
-        content: formHTML,
-        actions: [
-            { label: "Cancel", variant: "ghost" },
-            { 
-                label: "Add", 
-                variant: "primary", 
-                closesModal: false,
-                onClick: async () => {
-                    const requiredFields = [
-                        { id: 'brideName', name: "Bride's Name" },
-                        { id: 'groomName', name: "Groom's Name" },
-                        { id: 'startDate', name: "Start Date" },
-                        { id: 'endDate', name: "End Date" },
-                        { id: 'contactDetails', name: "Contact Details" },
-                        { id: 'familyDetails', name: "Family Details" }
-                    ];
-
-                    let isValid = true;
-                    let firstEmptyField = null;
-
-                    requiredFields.forEach(field => {
-                        const el = document.getElementById(field.id);
-                        if (!el.value.trim()) {
-                            el.style.borderColor = "red";
-                            isValid = false;
-                            if (!firstEmptyField) firstEmptyField = field.name;
-                        } else {
-                            el.style.borderColor = "green";
-                        }
-                    });
-
-                    if (!isValid) {
-                        showAlert({
-                            icon: 'warning',
-                            title: 'Missing Information',
-                            text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}`
-                        });
-                        return;
-                    }
-
-                    const primarySide = document.querySelector('input[name="primarySide"]:checked').value;
-                    const brideName = document.getElementById('brideName').value.trim();
-                    const groomName = document.getElementById('groomName').value.trim();
-                    const startDate = document.getElementById('startDate').value;
-                    const endDate = document.getElementById('endDate').value;
-                    
-                    if (new Date(endDate) < new Date(startDate)) {
-                        showAlert({
-                            icon: 'error',
-                            title: 'Invalid Dates',
-                            text: 'End date cannot be earlier than the start date.'
-                        });
-                        return;
-                    }
-
-                    const contactDetails = document.getElementById('contactDetails').value.trim() || null;
-                    const familyDetails = document.getElementById('familyDetails').value.trim() || null;
-
-                    try {
-                        const { error } = await supabase.from('weddings').insert([{ 
-                            primary_side: primarySide,
-                            bride_name: brideName,
-                            groom_name: groomName, 
-                            start_date: startDate,
-                            end_date: endDate,
-                            contact_details: contactDetails,
-                            family_details: familyDetails
-                        }]);
-                        
-                        if (error) throw error;
-                        
-                        modal.close();
-                        window.dispatchEvent(new Event('weddingDataUpdated'));
-                        
-                        const wrapper = document.querySelector('.dashboard');
-                        if(wrapper) loadGlobalDashboardData(wrapper);
-
-                        showAlert({
-                            icon: 'success',
-                            title: 'Added!',
-                            text: 'The wedding celebration has been successfully added.',
-                            timer: 2000
-                        });
-                        
-                    } catch (error) {
-                        showAlert({
-                            icon: 'error',
-                            title: 'Database Error',
-                            text: 'Failed to add wedding: ' + error.message
-                        });
-                    }
-                }
-            }
-        ]
-    });
-
-    setTimeout(() => {
-        const requiredIds = ['brideName', 'groomName', 'startDate', 'endDate', 'contactDetails', 'familyDetails'];
-        requiredIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
-                el.addEventListener('input', () => {
-                    el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
-                });
-            }
-        });
-    }, 50);
-}
-
 function buildWeddingListSection(title, weddingsList) {
     const container = document.createElement("div");
     container.className = "dashboard-section";
@@ -292,7 +156,7 @@ function buildWeddingListSection(title, weddingsList) {
         const emptyDiv = document.createElement("div");
         emptyDiv.className = "dashboard-section__empty";
         emptyDiv.style.textAlign = "center";
-        emptyDiv.textContent = `No ${title.toLowerCase()} found.`;
+        emptyDiv.textContent = `No ${title.toLowerCase()} weddings found.`;
         container.appendChild(emptyDiv);
         return container;
     }
@@ -305,28 +169,57 @@ function buildWeddingListSection(title, weddingsList) {
             ? `${wedding.groom_name} & ${wedding.bride_name}` 
             : `${wedding.bride_name} & ${wedding.groom_name}`;
         
+        let contactsHTML = '';
+        if (wedding.contact_details) {
+            const parts = wedding.contact_details.split(/,\s*/);
+            contactsHTML = parts.map(part => {
+                let name = part, num = '';
+                if (part.includes(' - ')) {
+                    [name, num] = part.split(' - ');
+                }
+                const displayString = num ? `${name} - ${num}` : name;
+                return `
+                <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;">
+                    <i data-lucide="phone" style="width:14px; height:14px;"></i> ${displayString}
+                </div>`;
+            }).join('');
+        }
+
         const cardEl = document.createElement("div");
         cardEl.className = "stat-card";
         cardEl.setAttribute('data-wedding-id', wedding.id);
         
-        cardEl.style.cssText = "cursor: pointer; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between;";
+        cardEl.style.cssText = "cursor: pointer; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 8px; position: relative;";
         
-        cardEl.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <div style="background: var(--color-border); color: var(--color-primary); width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <i data-lucide="heart" style="width: 16px; height: 16px;"></i>
-                </div>
-                <div>
-                    <h3 style="margin: 0; font-size: 0.9rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${displayNames}</h3>
-                    <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: var(--color-text-secondary);"><i data-lucide="calendar" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
+        let cardHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="background: var(--color-border); color: var(--color-primary); width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i data-lucide="heart" style="width: 16px; height: 16px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 0.9rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${displayNames}</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: var(--color-text-secondary);"><i data-lucide="calendar" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
+                    </div>
                 </div>
             </div>
-            <div style="color: var(--color-primary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); padding-left: var(--space-4);">
-                Manage →
+            
+            <div style="border-top: 1px solid var(--color-border); margin-top: 4px; padding-top: 8px;">
+                ${wedding.family_name ? `<div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="home" style="width:14px; height:14px;"></i> ${wedding.family_name}</div>` : ''}
+
+                ${wedding.family_details ? `<div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.family_details}</div>` : ''}
+                
+                ${contactsHTML}
+
+                <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.guests_count || 0} Guests</div>
+
+                <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary);"><i data-lucide="calendar-days" style="width:14px; height:14px;"></i> ${wedding.events_count || 0} Events</div>
             </div>
         `;
 
-        cardEl.addEventListener('click', () => {
+        cardEl.innerHTML = cardHTML;
+
+        cardEl.addEventListener('click', (e) => {
             const weddingId = cardEl.getAttribute('data-wedding-id');
             window.location.hash = `#wedding?id=${weddingId}`;
         });

@@ -9,7 +9,7 @@ const CREATOR_NAV_ITEMS = [
   { id: "settings", label: "Settings", icon: "settings" },
 ];
 
-const OWNER_NAV_ITEMS = [
+const HOST_NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "layout-dashboard" },
   { id: "wedding-website", label: "Wedding Website", icon: "globe" },
   { id: "guests", label: "Guest Management", icon: "users" },
@@ -29,7 +29,7 @@ const GUEST_NAV_ITEMS = [
 function getNavItemsForRole(role) {
   switch (role) {
     case ROLES.CREATOR: return CREATOR_NAV_ITEMS;
-    case ROLES.OWNER: return OWNER_NAV_ITEMS;
+    case ROLES.HOST: return HOST_NAV_ITEMS;
     case ROLES.GUEST: return GUEST_NAV_ITEMS;
     default: return GUEST_NAV_ITEMS;
   }

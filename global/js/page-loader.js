@@ -1,7 +1,6 @@
 import { createSidebar } from '../components/js/sidebar.js';
 import { createHeader } from '../components/js/header.js';
 
-// Clean up the URL bar visually on load without breaking your file path
 if (window.location.pathname.includes('dashboard.html')) {
     window.history.replaceState({}, '', '/dashboard');
 } else if (window.location.pathname.includes('weddings.html')) {
@@ -13,8 +12,8 @@ let activeId = "dashboard";
 
 if (pathname.includes("weddings") || pathname.includes("wedding-detail")) {
     activeId = "weddings";
-} else if (pathname.includes("owners")) {
-    activeId = "owners";
+} else if (pathname.includes("hosts")) {
+    activeId = "hosts";
 } else if (pathname.includes("activity")) {
     activeId = "activity";
 } else if (pathname.includes("settings")) {
@@ -27,11 +26,10 @@ if (sidebarEl) {
         role: "creator",
         activeItemId: activeId,
         onNavigate: (pageId) => {
-            // Use absolute paths from root to prevent path duplication errors
             const pageMap = {
                 dashboard: "/pages/dashboard/html/dashboard.html",
                 weddings: "/pages/weddings/html/weddings.html",
-                owners: "/pages/owners/html/owners.html",
+                hosts: "/pages/hosts/html/hosts.html",
                 activity: "/pages/activity/html/activity.html",
                 settings: "/pages/settings/html/settings.html"
             };

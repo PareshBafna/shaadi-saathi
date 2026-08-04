@@ -16,14 +16,14 @@
         </div>
     </div>
     <script type="module">
-        import { renderWeddingCommandCenter } from '../js/wedding-command-center.js';
+        import { renderWeddingDetails } from '../js/wedding-details.js';
         import '../../../../global/js/page-loader.js';
         
         const urlParams = new URLSearchParams(window.location.search);
         const weddingId = urlParams.get('id');
         
         const contentEl = document.getElementById('content');
-        contentEl.appendChild(renderWeddingCommandCenter(weddingId));
+        contentEl.appendChild(renderWeddingDetails(weddingId));
         
         setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 100);
     </script>
