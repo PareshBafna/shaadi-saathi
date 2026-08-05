@@ -216,7 +216,7 @@ function buildWeddingListSection(title, weddingsList) {
 
         cardEl.addEventListener('click', (e) => {
             const weddingId = cardEl.getAttribute('data-wedding-id');
-            window.location.hash = `#wedding?id=${weddingId}`;
+            window.location.hash = `#wedding-details?id=${weddingId}`;
         });
 
         listContainer.appendChild(cardEl);

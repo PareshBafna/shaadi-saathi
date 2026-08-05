@@ -182,7 +182,7 @@ function filterAndRenderGalleries() {
         card.addEventListener('click', (e) => {
             if(!e.target.closest('.edit-wedding-btn')) {
                 const id = card.getAttribute('data-wedding-id');
-                window.location.hash = `#wedding?id=${id}`;
+                window.location.hash = `#wedding-details?id=${id}`;
             }
         });
     });

@@ -271,24 +271,11 @@ function buildEventItinerarySection(wedding, events) {
     section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
     
     const canEdit = currentUser.role === 'creator' || currentUser.role === 'host';
-    let currentEventView = 'timeline';
 
     const headerRow = document.createElement("div");
     headerRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4);";
 
     let leftHTML = `<h2 style="font-size: 1.25rem; margin: 0;">Events</h2>`; 
-    if (events && events.length > 0) {
-        leftHTML = `
-            <div style="display: flex; gap: 4px; background: var(--color-bg); padding: 4px; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
-                <button id="view-timeline-btn" style="border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; font-size: 13px; font-weight: 500;">
-                    <i data-lucide="align-left" style="width: 14px; height: 14px; margin-right: 6px;"></i> Timeline
-                </button>
-                <button id="view-table-btn" style="border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; font-size: 13px; font-weight: 500;">
-                    <i data-lucide="grid" style="width: 14px; height: 14px; margin-right: 6px;"></i> Cards
-                </button>
-            </div>
-        `;
-    }
 
     let rightHTML = '';
     if (canEdit) {
@@ -344,105 +331,50 @@ function buildEventItinerarySection(wedding, events) {
             return groups;
         }, {});
 
-        let htmlContent = '';
-
-        if (currentEventView === 'timeline') {
-            htmlContent += `<div style="display: flex; flex-direction: column; position: relative; padding-left: 12px; margin-top: 12px;">`;
-            htmlContent += `<div style="position: absolute; left: 16px; top: 12px; bottom: 20px; width: 2px; background: var(--color-border);"></div>`;
+        let htmlContent = `
+            <div style="display: flex; flex-direction: column; position: relative; padding-left: 12px; margin-top: 12px;">
+        `;
+        
+        htmlContent += `<div style="position: absolute; left: 16px; top: 12px; bottom: 20px; width: 2px; background: var(--color-border);"></div>`;
+        
+        Object.entries(groupedEvents).forEach(([dateLabel, dayEvents], groupIdx) => {
+            htmlContent += `
+                <div style="position: relative; margin-top: ${groupIdx === 0 ? '0' : '24px'}; margin-bottom: 16px; display: flex; align-items: center;">
+                    <div style="position: absolute; left: -1.5px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary); border: 2px solid var(--color-white); z-index: 2;"></div>
+                    <h3 style="font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-primary); margin: 0 0 0 24px;">
+                        ${dateLabel}
+                    </h3>
+                </div>
+            `;
             
-            Object.entries(groupedEvents).forEach(([dateLabel, dayEvents], groupIdx) => {
+            dayEvents.forEach(ev => {
+                const editIcon = canEdit ? `<button class="edit-event-btn" data-event-id="${ev.id}" style="background:none; border:none; padding:4px; cursor:pointer; margin-left:auto; color: var(--color-text-muted);" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'"><i data-lucide="edit-2" style="width: 14px; height: 14px; color: currentColor;"></i></button>` : '';
+                
+                // Added "timeline-event-card" class for hover targeting
                 htmlContent += `
-                    <div style="position: relative; margin-top: ${groupIdx === 0 ? '0' : '24px'}; margin-bottom: 16px; display: flex; align-items: center;">
-                        <div style="position: absolute; left: -1.5px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary); border: 2px solid var(--color-white); z-index: 2;"></div>
-                        <h3 style="font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-primary); margin: 0 0 0 24px;">
-                            ${dateLabel}
-                        </h3>
+                    <div class="timeline-event-card" style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
+                        <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.title}</h4>
+                            ${editIcon}
+                        </div>
+                        
+                        <div style="display: flex; gap: 16px; color: var(--color-text-secondary); font-size: var(--font-size-sm); flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.start_time)}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> <span style="line-height: 1.4;">${ev.venue}</span>
+                            </div>
+                        </div>
                     </div>
                 `;
-                
-                dayEvents.forEach(ev => {
-                    const editIcon = canEdit ? `<button class="edit-event-btn" data-event-id="${ev.id}" style="background:none; border:none; padding:4px; cursor:pointer; margin-left:auto;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'"><i data-lucide="edit-2" style="width: 14px; height: 14px; color: currentColor;"></i></button>` : '';
-                    
-                    htmlContent += `
-                        <div style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
-                            <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
-                            
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.title}</h4>
-                                ${editIcon}
-                            </div>
-                            
-                            <div style="display: flex; gap: 16px; color: var(--color-text-secondary); font-size: var(--font-size-sm); flex-wrap: wrap;">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.start_time)}
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> <span style="line-height: 1.4;">${ev.venue}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
             });
-            htmlContent += `</div>`;
-        } else {
-            // Table / Cards View
-            htmlContent += `<div style="display: flex; flex-direction: column; gap: var(--space-6);">`;
-            for (const [dateLabel, dayEvents] of Object.entries(groupedEvents)) {
-                htmlContent += `
-                    <div class="event-date-group">
-                        <h3 style="font-size: 1.1rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0 0 var(--space-4) 0; border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2);">
-                            <i data-lucide="calendar-days" style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px; color: var(--color-primary);"></i>${dateLabel}
-                        </h3>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-5);">
-                `;
-
-                htmlContent += dayEvents.map(ev => {
-                    const editIcon = canEdit ? `<button class="edit-event-btn" data-event-id="${ev.id}" style="background:none; border:none; padding:4px; cursor:pointer; margin-left:auto; color: var(--color-text-muted);" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'"><i data-lucide="edit-2" style="width: 14px; height: 14px; color: currentColor;"></i></button>` : '';
-
-                    return `
-                        <div style="padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); display: flex; flex-direction: column; gap: var(--space-3);">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.title}</h4>
-                                ${editIcon}
-                            </div>
-                            
-                            <div style="display: flex; flex-direction: column; gap: 8px; color: var(--color-text-secondary); font-size: var(--font-size-sm); margin-top: auto;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div style="background: var(--color-border); color: var(--color-primary); width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                        <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
-                                    </div>
-                                    ${formatTime(ev.start_time)}
-                                </div>
-                                <div style="display: flex; align-items: flex-start; gap: 8px;">
-                                    <div style="background: var(--color-border); color: var(--color-primary); width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                        <i data-lucide="map-pin" style="width: 14px; height: 14px;"></i>
-                                    </div>
-                                    <span style="line-height: 1.4; padding-top: 2px;">${ev.venue}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-                htmlContent += `</div></div>`;
-            }
-            htmlContent += `</div>`;
-        }
+        });
+        htmlContent += `</div>`;
 
         content.innerHTML = htmlContent;
-
-        // Button Styling updates based on view
-        const tBtn = document.getElementById('view-timeline-btn');
-        const cBtn = document.getElementById('view-table-btn');
-        if(tBtn && cBtn) {
-            tBtn.style.background = currentEventView === 'timeline' ? 'var(--color-white)' : 'transparent';
-            tBtn.style.boxShadow = currentEventView === 'timeline' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none';
-            tBtn.style.color = currentEventView === 'timeline' ? 'var(--color-primary)' : 'var(--color-text-secondary)';
-            
-            cBtn.style.background = currentEventView === 'table' ? 'var(--color-white)' : 'transparent';
-            cBtn.style.boxShadow = currentEventView === 'table' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none';
-            cBtn.style.color = currentEventView === 'table' ? 'var(--color-primary)' : 'var(--color-text-secondary)';
-        }
 
         if (canEdit) {
             const editBtns = content.querySelectorAll('.edit-event-btn');
@@ -467,11 +399,6 @@ function buildEventItinerarySection(wedding, events) {
         if (addEventMainBtn) {
             addEventMainBtn.addEventListener('click', () => window.openEventModal(wedding.id, wedding.start_date, wedding.end_date));
         }
-
-        const tBtn = document.getElementById('view-timeline-btn');
-        const cBtn = document.getElementById('view-table-btn');
-        if(tBtn) tBtn.addEventListener('click', () => { currentEventView = 'timeline'; renderEventsView(); });
-        if(cBtn) cBtn.addEventListener('click', () => { currentEventView = 'table'; renderEventsView(); });
     }, 0);
 
     return section;
@@ -531,15 +458,38 @@ function buildGuestListSection(wedding, guests, events) {
 
             const cleanPhone = guest.phone ? guest.phone.replace(/[^0-9+]/g, '') : '';
             const hasInvitedEvents = guest.invited_events && guest.invited_events.length > 0;
+            
+            let waCellContent = '';
+            
+            if (guest.phone && hasInvitedEvents) {
+                // Calculate display names dynamically for the message
+                const displayNames = wedding.primary_side === 'groom' 
+                    ? `${wedding.groom_name} & ${wedding.bride_name}` 
+                    : `${wedding.bride_name} & ${wedding.groom_name}`;
+                
+                // Construct the absolute wedding URL safely
+                const baseUrl = "https://shaadi-saathi.pages.dev";
+                const weddingUrl = `${baseUrl}#wedding-details?id=${wedding.id}`;
+                
+                // Build the WhatsApp message template
+                const waMessage = `Jai Jinendra,\n\n${(guest.name || '').toUpperCase()},\n\n${(wedding.family_name || '').toUpperCase()} Family has sent you an invitation for the wedding of *${displayNames}* on *Shaadi Saathi*. Click the link below to view the complete invitation.\n\n${weddingUrl}\n\nAwaiting your gracious presence.\n\nRegards,\n*${wedding.family_details || ''}*\n\n*Shaadi Saathi*`;
+                
+                // Encode the message to safely pass it in the URL
+                const encodedMessage = encodeURIComponent(waMessage);
 
-            const waButton = (guest.phone && hasInvitedEvents) ? `
-                <a href="https://wa.me/${cleanPhone}" target="_blank" onclick="event.stopPropagation();" style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; background:#25D366; color:white; border-radius:50%; text-decoration:none; transition:opacity 0.2s; margin: 0 auto;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" title="WhatsApp">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                </a>
-            ` : '';
-
+                waCellContent = `
+                    <a href="https://wa.me/${cleanPhone}?text=${encodedMessage}" target="_blank" onclick="event.stopPropagation();" style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; background:#25D366; color:white; border-radius:50%; text-decoration:none; transition:opacity 0.2s; margin: 0 auto;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" title="WhatsApp">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                    </a>
+                `;
+            } else if (!guest.phone) {
+                waCellContent = `<div style="text-align: center; color: var(--color-danger); font-size: 0.65rem; font-weight: var(--font-weight-medium); line-height: 1.2;">No Phone<br>Number</div>`;
+            } else {
+                waCellContent = `<div style="text-align: center; color: var(--color-danger); font-size: 0.65rem; font-weight: var(--font-weight-medium); line-height: 1.2;">No Events<br>Invited</div>`;
+            }
+                
             return `
             <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">
                 
@@ -573,7 +523,7 @@ function buildGuestListSection(wedding, guests, events) {
                     </div>
 
                     <div>
-                        ${waButton}
+                        ${waCellContent}
                     </div>
                 </div>
 
