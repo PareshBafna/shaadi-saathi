@@ -171,18 +171,13 @@ function buildWeddingListSection(title, weddingsList) {
         
         let contactsHTML = '';
         if (wedding.contact_details) {
-            const parts = wedding.contact_details.split(/,\s*/);
-            contactsHTML = parts.map(part => {
-                let name = part, num = '';
-                if (part.includes(' - ')) {
-                    [name, num] = part.split(' - ');
-                }
-                const displayString = num ? `${name} - ${num}` : name;
-                return `
-                <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;">
-                    <i data-lucide="phone" style="width:14px; height:14px;"></i> ${displayString}
-                </div>`;
-            }).join('');
+            // Join multiple contacts with a bullet point for a clean, single-line display
+            const inlineContacts = wedding.contact_details.split(/,\s*/).join(', ');
+            
+            contactsHTML = `
+            <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span>${inlineContacts}</span>
+            </div>`;
         }
 
         const cardEl = document.createElement("div");

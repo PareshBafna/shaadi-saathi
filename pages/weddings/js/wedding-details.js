@@ -1,7 +1,6 @@
 import { supabase } from '../../../database/js/api.js';
 import { openModal } from '../../../global/components/js/modal.js';
 import { showAlert } from '../../../global/components/js/alerts.js';
-import { formatWeddingDateRange } from './weddings.js';
 
 // SIMULATED AUTH CONTEXT
 const currentUser = {
@@ -15,7 +14,7 @@ const currentUser = {
 export function renderWeddingDetails(weddingId) {
     const wrapper = document.createElement("div");
     wrapper.style.cssText = "width: 100%; box-sizing: border-box; padding-bottom: var(--space-8);";
-    wrapper.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Loading workspace...</div>`;
+    wrapper.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Loading wedding details...</div>`;
 
     loadCommandCenterData(wrapper, weddingId);
 
@@ -80,8 +79,8 @@ async function loadCommandCenterData(container, weddingId) {
         if (window.lucide) window.lucide.createIcons();
 
     } catch (error) {
-        console.error("Error loading workspace:", error);
-        container.innerHTML = `<div style="color: var(--color-danger); padding: var(--space-8); text-align: center;">Failed to load workspace: ${error.message}</div>`;
+        console.error("Error loading wedding details:", error);
+        container.innerHTML = `<div style="color: var(--color-danger); padding: var(--space-8); text-align: center;">Failed to load wedding details: ${error.message}</div>`;
     }
 }
 
@@ -90,17 +89,40 @@ async function loadCommandCenterData(container, weddingId) {
 // ==========================================
 function buildSpecificHeader(wedding) {
     const header = document.createElement("div");
-    header.style.cssText = "display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-8);";
+    header.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-8);";
     
     const displayNames = wedding.primary_side === 'groom' 
         ? `${wedding.groom_name} & ${wedding.bride_name}` 
         : `${wedding.bride_name} & ${wedding.groom_name}`;
 
+    let hashtagHTML = '';
+    if (wedding.hashtag) {
+        const formattedHashtag = wedding.hashtag.startsWith('#') ? wedding.hashtag : `#${wedding.hashtag}`;
+        hashtagHTML = `<div style="margin-top: var(--space-3);"><span style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 4px 12px; border-radius: 16px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); letter-spacing: 0.5px;">${formattedHashtag}</span></div>`;
+    }
+
+    let instagramHTML = '';
+    if (wedding.instagram) {
+        let igUrl = wedding.instagram.startsWith('http') ? wedding.instagram : `https://instagram.com/${wedding.instagram.replace('@', '')}`;
+        // Using inline SVG to guarantee visibility
+        instagramHTML = `
+            <a href="${igUrl}" target="_blank" style="background: var(--color-border); color: var(--color-primary); width: 44px; height: 44px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" title="Instagram">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+            </a>
+        `;
+    }
+
     header.innerHTML = `
         <div>
             <h1 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;">${displayNames}</h1>
-            <p style="color: var(--color-text-secondary); margin: var(--space-2) 0 var(--space-2) 0; font-size: var(--font-size-base);">Date: <strong style="color: var(--color-primary);">${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</strong></p>
+            <p style="color: var(--color-text-secondary); margin: var(--space-2) 0 0 0; font-size: var(--font-size-base);">Date: <strong style="color: var(--color-primary);">${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</strong></p>
+            ${hashtagHTML}
         </div>
+        ${instagramHTML}
     `;
     return header;
 }
@@ -161,11 +183,12 @@ function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0) {
     bottomGrid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-6);";
 
     let bottomCardsHTML = '';
+    let contactRowsHTML = '';
 
     // Render Contact Details as a list with Call Buttons
     if (wedding.contact_details) {
         const parts = wedding.contact_details.split(/[,;]\s*/);
-        const contactRowsHTML = parts.map(part => {
+        contactRowsHTML += parts.map(part => {
             let name = part, num = '';
             if (part.includes(' - ')) {
                 [name, num] = part.split(' - ');
@@ -189,7 +212,10 @@ function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0) {
                 </div>`;
             }
         }).join('');
+    }
 
+    // Wrap Contacts if data exists
+    if (contactRowsHTML) {
         bottomCardsHTML += `
         <div class="stat-card" style="padding: var(--space-5); display: flex; flex-direction: column; justify-content: center; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg);">
             <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0; font-weight: var(--font-weight-medium);">Contact Details</p>
@@ -804,6 +830,39 @@ window.openEditEventModal = function(weddingId, minDate, maxDate, ev) {
         });
     }, 50);
 };
+
+export function formatWeddingDateRange(startIso, endIso) {
+    if (!startIso || !endIso) return "Dates TBD";
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    
+    const sDay = start.getDate();
+    const eDay = end.getDate();
+    
+    const getSuffix = (day) => {
+        if (day > 3 && day < 21) return 'th';
+        switch (day % 10) {
+            case 1: return "st";
+            case 2: return "nd";
+            case 3: return "rd";
+            default: return "th";
+        }
+    };
+
+    const sMonth = start.toLocaleString("en-IN", { month: "short" });
+    const eMonth = end.toLocaleString("en-IN", { month: "short" });
+    const year = start.getFullYear();
+
+    if (startIso === endIso) {
+        return `${sDay}${getSuffix(sDay)} ${start.toLocaleString("en-IN", { month: "long" })}, ${year}`;
+    }
+    
+    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+        return `${sDay}${getSuffix(sDay)} - ${eDay}${getSuffix(eDay)} ${start.toLocaleString("en-IN", { month: "long" })}, ${year}`;
+    }
+    
+    return `${sDay}${getSuffix(sDay)} ${sMonth} - ${eDay}${getSuffix(eDay)} ${eMonth}, ${year}`;
+}
 
 window.openGuestModal = function(weddingId, events = []) {
     const eventCheckboxes = events.length > 0 ? events.map(ev => `
