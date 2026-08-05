@@ -288,7 +288,11 @@ function forceStyleModalButtons() {
             btn.onmouseout = () => btn.style.opacity = '1';
             btn.setAttribute('data-styled', 'true');
         } else if (txt === 'Delete' && !btn.hasAttribute('data-styled')) {
-            btn.style.cssText = 'background: #dc2626; color: #ffffff; border: 1px solid #dc2626; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; transition: opacity 0.2s;';
+            btn.style.cssText = 'background: #dc2626; color: #ffffff; border: 1px solid #dc2626; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; transition: opacity 0.2s; margin-right: auto;';
+            if (btn.parentElement) {
+                btn.parentElement.style.display = 'flex';
+                btn.parentElement.style.width = '100%';
+            }
             btn.onmouseover = () => btn.style.opacity = '0.85';
             btn.onmouseout = () => btn.style.opacity = '1';
             btn.setAttribute('data-styled', 'true');
@@ -694,8 +698,7 @@ window.openEditWeddingModal = function(wedding) {
     const modal = openModal({
         title: "Edit Wedding",
         content: formHTML,
-        actions: [
-            { label: "Cancel", variant: "ghost" },
+        actions: [            
             {
                 label: "Delete",
                 variant: "danger",
@@ -725,6 +728,7 @@ window.openEditWeddingModal = function(wedding) {
                     }
                 }
             },
+            { label: "Cancel", variant: "ghost" },
             { 
                 label: "Edit", 
                 variant: "primary", 
@@ -869,8 +873,13 @@ window.openEditWeddingModal = function(wedding) {
         if (editStartEl && editEndEl) {
             editStartEl.addEventListener('change', () => {
                 if (editStartEl.value) {
+                    editEndEl.disabled = false;
                     editEndEl.min = editStartEl.value;
                     editEndEl.value = ''; // clear end date when start changes
+                    editEndEl.style.borderColor = 'red';
+                } else {
+                    editEndEl.disabled = true;
+                    editEndEl.value = '';
                     editEndEl.style.borderColor = 'red';
                 }
             });

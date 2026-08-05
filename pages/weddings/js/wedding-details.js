@@ -98,19 +98,27 @@ function buildSpecificHeader(wedding) {
     let hashtagHTML = '';
     if (wedding.hashtag) {
         const formattedHashtag = wedding.hashtag.startsWith('#') ? wedding.hashtag : `#${wedding.hashtag}`;
-        hashtagHTML = `<div style="margin-top: var(--space-3);"><span style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 4px 12px; border-radius: 16px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); letter-spacing: 0.5px;">${formattedHashtag}</span></div>`;
+        hashtagHTML = `<span style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 4px 12px; border-radius: 16px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); letter-spacing: 0.5px;">${formattedHashtag}</span>`;
     }
 
     let instagramHTML = '';
     if (wedding.instagram) {
         let igUrl = wedding.instagram.startsWith('http') ? wedding.instagram : `https://instagram.com/${wedding.instagram.replace('@', '')}`;
-        // Using inline SVG to guarantee visibility
         instagramHTML = `
-            <a href="${igUrl}" target="_blank" style="background: var(--color-border); color: var(--color-primary); width: 44px; height: 44px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" title="Instagram">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+            <a href="${igUrl}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" title="Instagram">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="url(#ig-grad)"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line>
+                    <defs>
+                        <radialGradient id="ig-grad" cx="30%" cy="107%" r="150%" fx="30%" fy="107%">
+                            <stop offset="0%" stop-color="#fdf497" />
+                            <stop offset="5%" stop-color="#fdf497" />
+                            <stop offset="45%" stop-color="#fd5949" />
+                            <stop offset="60%" stop-color="#d6249f" />
+                            <stop offset="90%" stop-color="#285AEB" />
+                        </radialGradient>
+                    </defs>
                 </svg>
             </a>
         `;
@@ -120,9 +128,11 @@ function buildSpecificHeader(wedding) {
         <div>
             <h1 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;">${displayNames}</h1>
             <p style="color: var(--color-text-secondary); margin: var(--space-2) 0 0 0; font-size: var(--font-size-base);">Date: <strong style="color: var(--color-primary);">${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</strong></p>
-            ${hashtagHTML}
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: var(--space-3);">
+                ${hashtagHTML}
+                ${instagramHTML}
+            </div>
         </div>
-        ${instagramHTML}
     `;
     return header;
 }
@@ -261,81 +271,137 @@ function buildEventItinerarySection(wedding, events) {
     section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
     
     const canEdit = currentUser.role === 'creator' || currentUser.role === 'host';
+    let currentEventView = 'timeline';
 
-    if (canEdit) {
-        const headerRow = document.createElement("div");
-        headerRow.style.cssText = "display: flex; justify-content: center; margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4);";
+    const headerRow = document.createElement("div");
+    headerRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4);";
 
-        const addBtn = document.createElement("button");
-        addBtn.innerHTML = `<i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Event`;
-        addBtn.style.cssText = "background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center;";
-        addBtn.onclick = () => openEventModal(wedding.id, wedding.start_date, wedding.end_date);
-        
-        headerRow.appendChild(addBtn);
-        section.appendChild(headerRow);
+    let leftHTML = `<h2 style="font-size: 1.25rem; margin: 0;">Events</h2>`; 
+    if (events && events.length > 0) {
+        leftHTML = `
+            <div style="display: flex; gap: 4px; background: var(--color-bg); padding: 4px; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                <button id="view-timeline-btn" style="border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; font-size: 13px; font-weight: 500;">
+                    <i data-lucide="align-left" style="width: 14px; height: 14px; margin-right: 6px;"></i> Timeline
+                </button>
+                <button id="view-table-btn" style="border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; font-size: 13px; font-weight: 500;">
+                    <i data-lucide="grid" style="width: 14px; height: 14px; margin-right: 6px;"></i> Cards
+                </button>
+            </div>
+        `;
     }
 
-    const content = document.createElement("div");
+    let rightHTML = '';
+    if (canEdit) {
+        rightHTML = `
+            <button id="add-event-main-btn" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center;">
+                <i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Event
+            </button>
+        `;
+    }
     
-    if (!events || events.length === 0) {
-        content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No events scheduled yet.</div>`;
-    } else {
-        content.style.cssText = "display: flex; flex-direction: column; gap: var(--space-6);";
-        
-        const sortedEvents = [...events].sort((a, b) => {
-            const timeA = new Date(a.start_time || a.date).getTime();
-            const timeB = new Date(b.start_time || b.date).getTime();
-            return timeA - timeB;
-        });
+    headerRow.innerHTML = `
+        <div style="flex: 1; display: flex; justify-content: flex-start;">${leftHTML}</div>
+        <div style="flex: 1; display: flex; justify-content: center;">${rightHTML}</div>
+        <div style="flex: 1; display: flex; justify-content: flex-end;"></div>
+    `;
+    section.appendChild(headerRow);
 
+    const content = document.createElement("div");
+    section.appendChild(content);
+
+    const formatTime = (timeStr) => {
+        if (!timeStr) return '';
+        const d = new Date(timeStr);
+        if (!isNaN(d)) {
+            let h = d.getHours();
+            const m = String(d.getMinutes()).padStart(2, '0');
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+        } else {
+            const timePart = timeStr.includes('T') ? timeStr.split('T')[1] : timeStr;
+            const [hoursStr, minutesStr] = timePart.split(':');
+            let h = parseInt(hoursStr, 10);
+            const m = minutesStr || '00';
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+        }
+    };
+
+    function renderEventsView() {
+        if (!events || events.length === 0) {
+            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No events scheduled yet.</div>`;
+            return;
+        }
+        
+        const sortedEvents = [...events].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
         const groupedEvents = sortedEvents.reduce((groups, ev) => {
             const dateObj = new Date(ev.date);
             const dateString = isNaN(dateObj) ? ev.date : dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-            
             if (!groups[dateString]) groups[dateString] = [];
             groups[dateString].push(ev);
             return groups;
         }, {});
 
         let htmlContent = '';
-        
-        for (const [dateLabel, dayEvents] of Object.entries(groupedEvents)) {
-            htmlContent += `
-                <div class="event-date-group">
-                    <h3 style="font-size: 1.1rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0 0 var(--space-4) 0; border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2);">
-                        <i data-lucide="calendar-days" style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px; color: var(--color-primary);"></i>${dateLabel}
-                    </h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-5);">
-            `;
 
-            htmlContent += dayEvents.map(ev => {
-                const timeString = ev.start_time ? (() => {
-                    const d = new Date(ev.start_time);
-                    if (!isNaN(d)) {
-                        let h = d.getHours();
-                        const m = String(d.getMinutes()).padStart(2, '0');
-                        const ampm = h >= 12 ? 'PM' : 'AM';
-                        h = h % 12 || 12;
-                        return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
-                    } else {
-                        const timePart = ev.start_time.includes('T') ? ev.start_time.split('T')[1] : ev.start_time;
-                        const [hoursStr, minutesStr] = timePart.split(':');
-                        let h = parseInt(hoursStr, 10);
-                        const m = minutesStr || '00';
-                        const ampm = h >= 12 ? 'PM' : 'AM';
-                        h = h % 12 || 12;
-                        return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
-                    }
-                })() : '';
-
-                const cardClass = canEdit ? 'event-card' : '';
-                const cursorStyle = canEdit ? 'cursor: pointer;' : 'cursor: default;';
-                const hoverStyle = canEdit ? `onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.05)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';"` : '';
-                const editIcon = canEdit ? `<i data-lucide="edit-2" style="width: 14px; height: 14px; color: var(--color-text-muted);"></i>` : '';
-
-                return `
-                        <div class="${cardClass}" data-event-id="${ev.id}" style="padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); display: flex; flex-direction: column; gap: var(--space-3); transition: transform 0.2s ease, box-shadow 0.2s ease; ${cursorStyle}" ${hoverStyle}>
+        if (currentEventView === 'timeline') {
+            htmlContent += `<div style="display: flex; flex-direction: column; position: relative; padding-left: 12px; margin-top: 12px;">`;
+            htmlContent += `<div style="position: absolute; left: 16px; top: 12px; bottom: 20px; width: 2px; background: var(--color-border);"></div>`;
+            
+            Object.entries(groupedEvents).forEach(([dateLabel, dayEvents], groupIdx) => {
+                htmlContent += `
+                    <div style="position: relative; margin-top: ${groupIdx === 0 ? '0' : '24px'}; margin-bottom: 16px; display: flex; align-items: center;">
+                        <div style="position: absolute; left: -1.5px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary); border: 2px solid var(--color-white); z-index: 2;"></div>
+                        <h3 style="font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-primary); margin: 0 0 0 24px;">
+                            ${dateLabel}
+                        </h3>
+                    </div>
+                `;
+                
+                dayEvents.forEach(ev => {
+                    const editIcon = canEdit ? `<button class="edit-event-btn" data-event-id="${ev.id}" style="background:none; border:none; padding:4px; cursor:pointer; margin-left:auto;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'"><i data-lucide="edit-2" style="width: 14px; height: 14px; color: currentColor;"></i></button>` : '';
+                    
+                    htmlContent += `
+                        <div style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
+                            <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
                             
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.title}</h4>
+                                ${editIcon}
+                            </div>
+                            
+                            <div style="display: flex; gap: 16px; color: var(--color-text-secondary); font-size: var(--font-size-sm); flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.start_time)}
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> <span style="line-height: 1.4;">${ev.venue}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+            htmlContent += `</div>`;
+        } else {
+            // Table / Cards View
+            htmlContent += `<div style="display: flex; flex-direction: column; gap: var(--space-6);">`;
+            for (const [dateLabel, dayEvents] of Object.entries(groupedEvents)) {
+                htmlContent += `
+                    <div class="event-date-group">
+                        <h3 style="font-size: 1.1rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0 0 var(--space-4) 0; border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2);">
+                            <i data-lucide="calendar-days" style="width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px; color: var(--color-primary);"></i>${dateLabel}
+                        </h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-5);">
+                `;
+
+                htmlContent += dayEvents.map(ev => {
+                    const editIcon = canEdit ? `<button class="edit-event-btn" data-event-id="${ev.id}" style="background:none; border:none; padding:4px; cursor:pointer; margin-left:auto; color: var(--color-text-muted);" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'"><i data-lucide="edit-2" style="width: 14px; height: 14px; color: currentColor;"></i></button>` : '';
+
+                    return `
+                        <div style="padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); display: flex; flex-direction: column; gap: var(--space-3);">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                 <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.title}</h4>
                                 ${editIcon}
@@ -346,9 +412,8 @@ function buildEventItinerarySection(wedding, events) {
                                     <div style="background: var(--color-border); color: var(--color-primary); width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                         <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
                                     </div>
-                                    ${timeString}
+                                    ${formatTime(ev.start_time)}
                                 </div>
-                                
                                 <div style="display: flex; align-items: flex-start; gap: 8px;">
                                     <div style="background: var(--color-border); color: var(--color-primary); width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                         <i data-lucide="map-pin" style="width: 14px; height: 14px;"></i>
@@ -356,29 +421,59 @@ function buildEventItinerarySection(wedding, events) {
                                     <span style="line-height: 1.4; padding-top: 2px;">${ev.venue}</span>
                                 </div>
                             </div>
-                            
                         </div>
-                `;
-            }).join('');
-
-            htmlContent += `</div></div>`;
+                    `;
+                }).join('');
+                htmlContent += `</div></div>`;
+            }
+            htmlContent += `</div>`;
         }
-        
+
         content.innerHTML = htmlContent;
 
+        // Button Styling updates based on view
+        const tBtn = document.getElementById('view-timeline-btn');
+        const cBtn = document.getElementById('view-table-btn');
+        if(tBtn && cBtn) {
+            tBtn.style.background = currentEventView === 'timeline' ? 'var(--color-white)' : 'transparent';
+            tBtn.style.boxShadow = currentEventView === 'timeline' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none';
+            tBtn.style.color = currentEventView === 'timeline' ? 'var(--color-primary)' : 'var(--color-text-secondary)';
+            
+            cBtn.style.background = currentEventView === 'table' ? 'var(--color-white)' : 'transparent';
+            cBtn.style.boxShadow = currentEventView === 'table' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none';
+            cBtn.style.color = currentEventView === 'table' ? 'var(--color-primary)' : 'var(--color-text-secondary)';
+        }
+
         if (canEdit) {
-            const eventCards = content.querySelectorAll('.event-card');
-            eventCards.forEach(card => {
-                card.addEventListener('click', () => {
-                    const eventId = card.getAttribute('data-event-id');
+            const editBtns = content.querySelectorAll('.edit-event-btn');
+            editBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const eventId = btn.getAttribute('data-event-id');
                     const ev = events.find(e => e.id === eventId);
                     if(ev) window.openEditEventModal(wedding.id, wedding.start_date, wedding.end_date, ev);
                 });
             });
         }
+
+        if (window.lucide) window.lucide.createIcons();
     }
-    
-    section.appendChild(content);
+
+    // Initial render
+    setTimeout(() => {
+        renderEventsView();
+
+        const addEventMainBtn = document.getElementById('add-event-main-btn');
+        if (addEventMainBtn) {
+            addEventMainBtn.addEventListener('click', () => window.openEventModal(wedding.id, wedding.start_date, wedding.end_date));
+        }
+
+        const tBtn = document.getElementById('view-timeline-btn');
+        const cBtn = document.getElementById('view-table-btn');
+        if(tBtn) tBtn.addEventListener('click', () => { currentEventView = 'timeline'; renderEventsView(); });
+        if(cBtn) cBtn.addEventListener('click', () => { currentEventView = 'table'; renderEventsView(); });
+    }, 0);
+
     return section;
 }
 
@@ -412,9 +507,9 @@ function buildGuestListSection(wedding, guests, events) {
     if (!guests || guests.length === 0) {
         content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No guests added yet.</div>`;
     } else {
-        const sortedGuests = [...guests].sort((a, b) => a.name.localeCompare(b.name));
+        const sortedGuests = [...guests].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
         
-        const gridTemplate = "32px 32px 50px 1fr 1fr 1fr"; 
+        const gridTemplate = "32px 32px 50px 1.5fr 1fr 1fr 60px"; 
 
         let listHTML = `
             <div style="display: grid; grid-template-columns: ${gridTemplate}; align-items: center; padding: 0 var(--space-4) var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-2); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); gap: 12px;">
@@ -424,6 +519,7 @@ function buildGuestListSection(wedding, guests, events) {
                 <div>Name</div>
                 <div>Phone Number</div>
                 <div>Events Count</div>
+                <div style="text-align: center;">WhatsApp</div>
             </div>
         `;
 
@@ -432,6 +528,17 @@ function buildGuestListSection(wedding, guests, events) {
             const eventsTags = guestEvents.length > 0 
                 ? guestEvents.map(e => `<span style="background: var(--color-border); padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="calendar" style="width:12px; height:12px;"></i> ${e.title}</span>`).join('')
                 : `<span style="color: var(--color-text-muted); font-size: 0.8rem; font-style: italic;">No events assigned</span>`;
+
+            const cleanPhone = guest.phone ? guest.phone.replace(/[^0-9+]/g, '') : '';
+            const hasInvitedEvents = guest.invited_events && guest.invited_events.length > 0;
+
+            const waButton = (guest.phone && hasInvitedEvents) ? `
+                <a href="https://wa.me/${cleanPhone}" target="_blank" onclick="event.stopPropagation();" style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; background:#25D366; color:white; border-radius:50%; text-decoration:none; transition:opacity 0.2s; margin: 0 auto;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" title="WhatsApp">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                </a>
+            ` : '';
 
             return `
             <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">
@@ -463,6 +570,10 @@ function buildGuestListSection(wedding, guests, events) {
                     
                     <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
                         ${guest.invited_events?.length || 0} Invited
+                    </div>
+
+                    <div>
+                        ${waButton}
                     </div>
                 </div>
 
@@ -540,7 +651,11 @@ function forceStyleModalButtons() {
             btn.onmouseout = () => btn.style.opacity = '1';
             btn.setAttribute('data-styled', 'true');
         } else if (txt === 'Delete' && !btn.hasAttribute('data-styled')) {
-            btn.style.cssText = 'background: #dc2626; color: #ffffff; border: 1px solid #dc2626; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; transition: opacity 0.2s;';
+            btn.style.cssText = 'background: #dc2626; color: #ffffff; border: 1px solid #dc2626; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; transition: opacity 0.2s; margin-right: auto;';
+            if (btn.parentElement) {
+                btn.parentElement.style.display = 'flex';
+                btn.parentElement.style.width = '100%';
+            }
             btn.onmouseover = () => btn.style.opacity = '0.85';
             btn.onmouseout = () => btn.style.opacity = '1';
             btn.setAttribute('data-styled', 'true');
@@ -715,8 +830,7 @@ window.openEditEventModal = function(weddingId, minDate, maxDate, ev) {
     const modal = openModal({
         title: "Edit Event",
         content: formHTML,
-        actions: [
-            { label: "Cancel", variant: "ghost" },
+        actions: [            
             {
                 label: "Delete",
                 variant: "danger", 
@@ -746,6 +860,7 @@ window.openEditEventModal = function(weddingId, minDate, maxDate, ev) {
                     }
                 }
             },
+            { label: "Cancel", variant: "ghost" },
             { 
                 label: "Edit", 
                 variant: "primary", 
@@ -1002,8 +1117,7 @@ window.openEditGuestModal = function(weddingId, guest, events = []) {
     const modal = openModal({
         title: "Edit Guest",
         content: formHTML,
-        actions: [
-            { label: "Cancel", variant: "ghost" },
+        actions: [            
             {
                 label: "Delete",
                 variant: "danger", 
@@ -1033,6 +1147,7 @@ window.openEditGuestModal = function(weddingId, guest, events = []) {
                     }
                 }
             },
+            { label: "Cancel", variant: "ghost" },
             { 
                 label: "Edit", 
                 variant: "primary", 
