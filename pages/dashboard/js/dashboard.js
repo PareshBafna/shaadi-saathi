@@ -37,8 +37,15 @@ async function loadGlobalDashboardData(section) {
         } else if (error) {
             throw error;
         }
+
+        // Fetch Hosts to display on cards
+        const { data: hostsData, error: hostsError } = await supabase.from('wedding_hosts').select('*');
+        if (hostsError && hostsError.code !== '42P01') throw hostsError;
         
         for (let wedding of weddings) {
+            // Attach hosts
+            wedding.hosts = hostsData ? hostsData.filter(h => h.wedding_id === wedding.id) : [];
+
             const { count: eventsCount } = await supabase
                 .from('events')
                 .select('*', { count: 'exact', head: true })
@@ -169,14 +176,20 @@ function buildWeddingListSection(title, weddingsList) {
             ? `${wedding.groom_name} & ${wedding.bride_name}` 
             : `${wedding.bride_name} & ${wedding.groom_name}`;
         
-        let contactsHTML = '';
-        if (wedding.contact_details) {
-            // Join multiple contacts with a bullet point for a clean, single-line display
-            const inlineContacts = wedding.contact_details.split(/,\s*/).join(', ');
+        let hostsHTML = '';
+        if (wedding.hosts && wedding.hosts.length > 0) {
+            // Sort hosts alphabetically by name
+            const sortedHosts = [...wedding.hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+            const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
             
-            contactsHTML = `
+            hostsHTML = `
             <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span>${inlineContacts}</span>
+                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span>${inlineHosts}</span>
+            </div>`;
+        } else {
+            hostsHTML = `
+            <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span style="font-style: italic;">No hosts added</span>
             </div>`;
         }
 
@@ -204,7 +217,7 @@ function buildWeddingListSection(title, weddingsList) {
 
                 ${wedding.family_details ? `<div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.family_details}</div>` : ''}
                 
-                ${contactsHTML}
+                ${hostsHTML}
 
                 <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.guests_count || 0} Guests</div>
 

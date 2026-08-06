@@ -39,6 +39,11 @@ async function loadCommandCenterData(container, weddingId) {
         if (weddingError) throw weddingError;
 
         let eventsQuery = supabase.from('events').select('*').eq('wedding_id', weddingId);
+        
+        // Fetch Hosts
+        const { data: hosts, error: hostsError } = await supabase.from('wedding_hosts').select('*').eq('wedding_id', weddingId);
+        if (hostsError && hostsError.code !== '42P01') throw hostsError; // Ignore if table doesn't exist yet
+
         const { data: guests, error: guestsError } = await supabase.from('guests').select('*').eq('wedding_id', weddingId);
         if (guestsError) throw guestsError;
 
@@ -68,10 +73,13 @@ async function loadCommandCenterData(container, weddingId) {
         
         container.appendChild(buildSpecificHeader(wedding));
         
-        const statsSection = buildSpecificStats(wedding, filteredEvents.length, guests?.length || 0);
+        const statsSection = buildSpecificStats(wedding, filteredEvents.length, guests?.length || 0, hosts);
         if (statsSection) container.appendChild(statsSection);
         
         container.appendChild(buildEventItinerarySection(wedding, filteredEvents));
+
+        const hostSection = buildHostListSection(wedding, hosts);
+        if (hostSection) container.appendChild(hostSection);
 
         const guestSection = buildGuestListSection(wedding, guests, allEvents);
         if (guestSection) container.appendChild(guestSection);
@@ -140,7 +148,7 @@ function buildSpecificHeader(wedding) {
 // ==========================================
 // 2. STATS SECTION (Family Row Above, Rest Below)
 // ==========================================
-function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0) {
+function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0, hosts = []) {
     const isOwnerOrCreator = currentUser.role === 'creator' || currentUser.role === 'host';
 
     const formatWithNewlines = (text) => {
@@ -188,50 +196,36 @@ function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0) {
         container.appendChild(topRow);
     }
 
-    // Bottom Row: Contact Details, Guests, Events Grid
+    // Bottom Row: Host Details, Guests, Events Grid
     const bottomGrid = document.createElement("div");
     bottomGrid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-6);";
 
     let bottomCardsHTML = '';
-    let contactRowsHTML = '';
+    let hostRowsHTML = '';
 
-    // Render Contact Details as a list with Call Buttons
-    if (wedding.contact_details) {
-        const parts = wedding.contact_details.split(/[,;]\s*/);
-        contactRowsHTML += parts.map(part => {
-            let name = part, num = '';
-            if (part.includes(' - ')) {
-                [name, num] = part.split(' - ');
-            } else if (part.includes('(') && part.includes(')')) {
-                name = part.substring(0, part.indexOf('(')).trim();
-                num = part.substring(part.indexOf('(') + 1, part.indexOf(')')).trim();
-            }
-
-            if (num) {
-                return `
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border);">
-                    <span style="color: var(--color-text-primary); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold);">${name} - ${num}</span>
-                    <a href="tel:${num.replace(/[^0-9+]/g, '')}" style="background: var(--color-border); color: var(--color-primary); width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" title="Call ${name}">
-                        <i data-lucide="phone" style="width: 18px; height: 18px;"></i>
-                    </a>
-                </div>`;
-            } else {
-                return `
-                <div style="margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border);">
-                    <span style="color: var(--color-text-primary); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold);">${name}</span>
-                </div>`;
-            }
+    if (hosts && hosts.length > 0) {
+        // Sort hosts alphabetically by name
+        const sortedHosts = [...hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+        
+        hostRowsHTML = sortedHosts.map(host => {
+            const cleanNum = host.phone ? host.phone.replace(/[^0-9+]/g, '') : '';
+            return `
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border);">
+                <span style="color: var(--color-text-primary); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold);">${host.name} - ${host.phone}</span>
+                <a href="tel:${cleanNum}" style="background: var(--color-border); color: var(--color-primary); width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" title="Call ${host.name}">
+                    <i data-lucide="phone" style="width: 18px; height: 18px;"></i>
+                </a>
+            </div>`;
         }).join('');
+    } else {
+        hostRowsHTML = `<div style="margin-top: var(--space-3); padding-top: var(--space-3); color: var(--color-text-secondary); font-size: var(--font-size-sm);">No hosts added yet.</div>`;
     }
 
-    // Wrap Contacts if data exists
-    if (contactRowsHTML) {
-        bottomCardsHTML += `
-        <div class="stat-card" style="padding: var(--space-5); display: flex; flex-direction: column; justify-content: center; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg);">
-            <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0; font-weight: var(--font-weight-medium);">Contact Details</p>
-            ${contactRowsHTML}
-        </div>`;
-    }
+    bottomCardsHTML += `
+    <div class="stat-card" style="padding: var(--space-5); display: flex; flex-direction: column; justify-content: center; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg);">
+        <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0; font-weight: var(--font-weight-medium);">Host Details</p>
+        ${hostRowsHTML}
+    </div>`;
 
     if (isOwnerOrCreator) {
         bottomCardsHTML += `
@@ -277,9 +271,9 @@ function buildEventItinerarySection(wedding, events) {
 
     let leftHTML = `<h2 style="font-size: 1.25rem; margin: 0;">Events</h2>`; 
 
-    let rightHTML = '';
+    let centerHTML = '';
     if (canEdit) {
-        rightHTML = `
+        centerHTML = `
             <button id="add-event-main-btn" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center;">
                 <i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Event
             </button>
@@ -288,7 +282,7 @@ function buildEventItinerarySection(wedding, events) {
     
     headerRow.innerHTML = `
         <div style="flex: 1; display: flex; justify-content: flex-start;">${leftHTML}</div>
-        <div style="flex: 1; display: flex; justify-content: center;">${rightHTML}</div>
+        <div style="flex: 1; display: flex; justify-content: center;">${centerHTML}</div>
         <div style="flex: 1; display: flex; justify-content: flex-end;"></div>
     `;
     section.appendChild(headerRow);
@@ -350,7 +344,6 @@ function buildEventItinerarySection(wedding, events) {
             dayEvents.forEach(ev => {
                 const editIcon = canEdit ? `<button class="edit-event-btn" data-event-id="${ev.id}" style="background:none; border:none; padding:4px; cursor:pointer; margin-left:auto; color: var(--color-text-muted);" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'"><i data-lucide="edit-2" style="width: 14px; height: 14px; color: currentColor;"></i></button>` : '';
                 
-                // Added "timeline-event-card" class for hover targeting
                 htmlContent += `
                     <div class="timeline-event-card" style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
                         <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
@@ -405,37 +398,296 @@ function buildEventItinerarySection(wedding, events) {
 }
 
 // ==========================================
+// HOST SECTION LOGIC (with duplicate phone validation)
+// ==========================================
+window.openHostModal = async function(weddingId, host = null) {
+    const formHTML = `
+        <form id="hostForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
+            <div>
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Host Name *</label>
+                <input type="text" id="hostName" value="${host ? host.name.replace(/"/g, '&quot;') : ''}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+            </div>
+            <div>
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Phone Number *</label>
+                <input type="text" id="hostPhone" value="${host ? host.phone.replace(/"/g, '&quot;') : ''}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+            </div>
+        </form>
+    `;
+
+    const actions = [
+        { label: "Cancel", variant: "ghost" },
+        { 
+            label: host ? "Edit" : "Add", 
+            variant: "primary", 
+            closesModal: false,
+            onClick: async () => {
+                const requiredFields = [
+                    { id: 'hostName', name: "Host Name" },
+                    { id: 'hostPhone', name: "Phone Number" }
+                ];
+
+                let isValid = true; 
+                let firstEmpty = null;
+
+                requiredFields.forEach(field => {
+                    const el = document.getElementById(field.id);
+                    if (!el.value.trim()) { 
+                        el.style.borderColor = "red"; 
+                        isValid = false; 
+                        if(!firstEmpty) firstEmpty = field.name; 
+                    } else { 
+                        el.style.borderColor = "green"; 
+                    }
+                });
+
+                if (!isValid) {
+                    showAlert({ icon: 'warning', title: 'Missing Information', text: `Please fill out: ${firstEmpty}` });
+                    return;
+                }
+
+                const phoneInput = document.getElementById('hostPhone').value.trim();
+                const cleanedPhone = phoneInput.replace(/[^0-9+]/g, '');
+
+                try {
+                    const { data: existingHosts, error: fetchErr } = await supabase
+                        .from('wedding_hosts')
+                        .select('*')
+                        .eq('wedding_id', weddingId);
+                    
+                    if (fetchErr) throw fetchErr;
+
+                    const duplicate = existingHosts.find(h => h.phone === cleanedPhone && (!host || h.id !== host.id));
+                    if (duplicate) {
+                        showAlert({ icon: 'error', title: 'Duplicate Phone', text: 'Phone number is already in use' });
+                        return;
+                    }
+
+                    const payload = {
+                        wedding_id: weddingId,
+                        name: document.getElementById('hostName').value.trim(),
+                        phone: phoneInput
+                    };
+
+                    if (host) {
+                        const { error } = await supabase.from('wedding_hosts').update(payload).eq('id', host.id);
+                        if (error) throw error;
+                    } else {
+                        const { error } = await supabase.from('wedding_hosts').insert([payload]);
+                        if (error) throw error;
+                    }
+
+                    modal.close();
+                    window.dispatchEvent(new Event('weddingDataUpdated')); 
+                    showAlert({ icon: 'success', title: host ? 'Updated!' : 'Added!', text: 'Host saved successfully.', timer: 2000 });
+                } catch (error) {
+                    showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                }
+            }
+        }
+    ];
+
+    if (host) {
+        actions.unshift({
+            label: "Delete",
+            variant: "danger", 
+            closesModal: false,
+            onClick: async () => {
+                const result = await Swal.fire({
+                    title: 'Are you sure?',
+                    text: "Do you really want to remove this host?",
+                    icon: 'question', 
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, remove them!'
+                });
+
+                if (result.isConfirmed) {
+                    try {
+                        const { error } = await supabase.from('wedding_hosts').delete().eq('id', host.id);
+                        if (error) throw error;
+                        
+                        modal.close();
+                        window.dispatchEvent(new Event('weddingDataUpdated')); 
+                        showAlert({ icon: 'success', title: 'Removed!', text: 'Host has been removed.', timer: 2000 });
+                    } catch (error) {
+                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                    }
+                }
+            }
+        });
+    }
+
+    const modal = openModal({
+        title: host ? "Edit Host" : "Add New Host",
+        content: formHTML,
+        actions: actions
+    });
+
+    setTimeout(() => {
+        forceStyleModalButtons();
+        ['hostName', 'hostPhone'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                el.addEventListener('input', () => {
+                    el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                });
+            }
+        });
+    }, 50);
+};
+
+function buildHostListSection(wedding, hosts) {
+    const isHostOrCreator = currentUser.role === 'creator' || currentUser.role === 'host' || (hosts && hosts.some(h => h.phone === currentUser.phone));
+    if (!isHostOrCreator) return null;
+
+    const section = document.createElement("div");
+    section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
+
+    const header = document.createElement("div");
+    header.style.cssText = "display: flex; justify-content: center; align-items: center; margin-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4);";
+    
+    header.innerHTML = `
+        <button onclick="openHostModal('${wedding.id}')" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.5rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+            <i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Host
+        </button>
+    `;
+    section.appendChild(header);
+
+    const content = document.createElement("div");
+
+    if (!hosts || hosts.length === 0) {
+        content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No hosts added yet.</div>`;
+    } else {
+        let listHTML = `
+            <div style="display: grid; grid-template-columns: 32px 50px 1.5fr 1fr; align-items: center; padding: 0 var(--space-4) var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-2); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); gap: 12px;">
+                <div></div> 
+                <div>S.No</div>
+                <div>Name</div>
+                <div>Phone Number</div>
+            </div>
+        `;
+        
+        // Sort hosts alphabetically by name
+        const sortedHosts = [...hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+        
+        sortedHosts.forEach((host, index) => {
+            const hostJson = JSON.stringify(host).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            listHTML += `
+            <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">
+                <div style="display: grid; grid-template-columns: 32px 50px 1.5fr 1fr; align-items: center; padding: var(--space-3) var(--space-4); transition: background 0.2s ease; gap: 12px;" onmouseover="this.style.background='var(--color-border)';" onmouseout="this.style.background='transparent';">
+                    
+                    <button onclick="openHostModal('${wedding.id}', JSON.parse('${hostJson}'))" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
+                        <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
+                    </button>
+
+                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">
+                        ${index + 1}
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; overflow: hidden;">
+                        <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${host.name}</h4>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> ${host.phone}
+                    </div>
+
+                </div>
+            </div>
+            `;
+        });
+        content.innerHTML = listHTML;
+    }
+    section.appendChild(content);
+
+    return section;
+}
+
+// ==========================================
 // 4. GUEST LIST SECTION (Hosts/Creators Only)
 // ==========================================
 function buildGuestListSection(wedding, guests, events) {
     const isOwnerOrCreator = currentUser.role === 'creator' || currentUser.role === 'host';
     if (!isOwnerOrCreator) return null;
 
+    // Store current events globally so the Excel functions can read them
+    window.__currentEvents = events || [];
+
     const section = document.createElement("div");
     section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
 
+    // State for Pagination and Search
+    let currentPage = 1;
+    const guestsPerPage = 10; 
+    let searchQuery = '';
+
     const controlsRow = document.createElement("div");
-    controlsRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4);";
+    controlsRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4); flex-wrap: wrap; gap: 12px;";
     
+    // UI Layout: Left (Sample/Import) | Center (Guest) | Right (Search)
     controlsRow.innerHTML = `
-        <div style="flex: 1; display: flex; justify-content: flex-start;">
-            <button onclick="triggerCSVImport('${wedding.id}')" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center;"><i data-lucide="upload" style="width:16px; height:16px; margin-right:4px;"></i> Import Guests</button>
+        <!-- Left Section: Sample & Import Buttons -->
+        <div style="flex: 1 1 0; display: flex; gap: 8px; min-width: 200px;">
+            <button onclick="downloadSampleExcel()" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; font-weight: var(--font-weight-medium); transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                <i data-lucide="download" style="width:16px; height:16px; margin-right:4px;"></i> Sample
+            </button>
+            
+            <button onclick="triggerCSVImport('${wedding.id}')" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; font-weight: var(--font-weight-medium); transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                <i data-lucide="upload" style="width:16px; height:16px; margin-right:4px;"></i> Import
+            </button>
         </div>
-        <div style="flex: 1; display: flex; justify-content: center;">
-            <button id="addGuestBtnTrigger" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center;"><i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Guest</button>
+
+        <!-- Center Section: Guest Button -->
+        <div style="flex: 1 1 0; display: flex; justify-content: center; min-width: 150px;">
+            <button id="addGuestBtnTrigger" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.5rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                <i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Guest
+            </button>
         </div>
-        <div style="flex: 1; display: flex; justify-content: flex-end;">
-            <button onclick="downloadSampleExcel()" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center;"><i data-lucide="download" style="width:16px; height:16px; margin-right:4px;"></i> Sample File</button>
+
+        <!-- Right Section: Search Bar -->
+        <div style="flex: 1 1 0; display: flex; justify-content: flex-end; min-width: 200px;">
+            <div style="position: relative; display: flex; align-items: center; width: 100%; max-width: 300px;">
+                <i data-lucide="search" style="position: absolute; left: 10px; width: 16px; height: 16px; color: var(--color-text-muted);"></i>
+                <input type="text" id="guestSearchInput" placeholder="Search by name or phone..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
+            </div>
         </div>
     `;
     section.appendChild(controlsRow);
 
     const content = document.createElement("div");
-    if (!guests || guests.length === 0) {
-        content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No guests added yet.</div>`;
-    } else {
-        const sortedGuests = [...guests].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
-        
+    section.appendChild(content);
+
+    // Render function handling Search and Pagination
+    function renderGuests() {
+        const filteredGuests = (guests || []).filter(g => {
+            const query = searchQuery.toLowerCase();
+            const nameMatch = (g.name || '').toLowerCase().includes(query);
+            const phoneMatch = (g.phone || '').toLowerCase().includes(query);
+            return nameMatch || phoneMatch;
+        });
+
+        const sortedGuests = filteredGuests.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+
+        const totalPages = Math.ceil(sortedGuests.length / guestsPerPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const startIndex = (currentPage - 1) * guestsPerPage;
+        const paginatedGuests = sortedGuests.slice(startIndex, startIndex + guestsPerPage);
+
+        if (!guests || guests.length === 0) {
+            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No guests added yet.</div>`;
+            if (window.lucide) window.lucide.createIcons();
+            return;
+        }
+
+        if (paginatedGuests.length === 0) {
+            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No guests match your search.</div>`;
+            if (window.lucide) window.lucide.createIcons();
+            return;
+        }
+
         const gridTemplate = "32px 32px 50px 1.5fr 1fr 1fr 60px"; 
 
         let listHTML = `
@@ -450,7 +702,8 @@ function buildGuestListSection(wedding, guests, events) {
             </div>
         `;
 
-        listHTML += sortedGuests.map((guest, index) => {
+        listHTML += paginatedGuests.map((guest, index) => {
+            const globalIndex = startIndex + index + 1; // Show correct overall S.No
             const guestEvents = events ? events.filter(e => guest.invited_events?.includes(e.id)) : [];
             const eventsTags = guestEvents.length > 0 
                 ? guestEvents.map(e => `<span style="background: var(--color-border); padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="calendar" style="width:12px; height:12px;"></i> ${e.title}</span>`).join('')
@@ -462,19 +715,20 @@ function buildGuestListSection(wedding, guests, events) {
             let waCellContent = '';
             
             if (guest.phone && hasInvitedEvents) {
-                // Calculate display names dynamically for the message
                 const displayNames = wedding.primary_side === 'groom' 
                     ? `${wedding.groom_name} & ${wedding.bride_name}` 
                     : `${wedding.bride_name} & ${wedding.groom_name}`;
                 
-                // Construct the absolute wedding URL safely
-                const baseUrl = "https://shaadi-saathi.pages.dev";
-                const weddingUrl = `${baseUrl}#wedding-details?id=${wedding.id}`;
+                const weddingUrl = `https://shaadi-saathi.pages.dev/#wedding-details?id=${wedding.id}`;
                 
-                // Build the WhatsApp message template
-                const waMessage = `Jai Jinendra,\n\n${(guest.name || '').toUpperCase()},\n\n${(wedding.family_name || '').toUpperCase()} Family has sent you an invitation for the wedding of *${displayNames}* on *Shaadi Saathi*. Click the link below to view the complete invitation.\n\n${weddingUrl}\n\nAwaiting your gracious presence.\n\nRegards,\n*${wedding.family_details || ''}*\n\n*Shaadi Saathi*`;
+                const sortedGuestEvents = [...guestEvents].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
+                const eventsListText = sortedGuestEvents.map(ev => {
+                    const evDate = new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    return `• ${ev.title} (${evDate})`;
+                }).join('\n');
+
+                const waMessage = `Jai Jinendra,\n\n*${(guest.name || '').toUpperCase()}*,\n\n*${(wedding.family_name || '').toUpperCase()}* Family has sent you an invitation for the wedding of *${displayNames}* on *_Shaadi Saathi_*.\n\nYou are cordially invited to the following events:\n${eventsListText}\n\nClick the link below to view the complete invitation and event details:\n${weddingUrl}\n\nAwaiting your gracious presence.\n\nRegards,\n*${wedding.family_details || ''}*\n\n*_Shaadi Saathi_*`;
                 
-                // Encode the message to safely pass it in the URL
                 const encodedMessage = encodeURIComponent(waMessage);
 
                 waCellContent = `
@@ -504,13 +758,10 @@ function buildGuestListSection(wedding, guests, events) {
                     </button>
 
                     <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">
-                        ${index + 1}
+                        ${globalIndex}
                     </div>
                     
-                    <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
-                        <div style="background: var(--color-white); border: 1px solid var(--color-border); color: var(--color-primary); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; flex-shrink: 0;">
-                            ${guest.name.charAt(0).toUpperCase()}
-                        </div>
+                    <div style="display: flex; align-items: center; overflow: hidden;">
                         <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${guest.name}</h4>
                     </div>
                     
@@ -538,8 +789,33 @@ function buildGuestListSection(wedding, guests, events) {
             `;
         }).join('');
 
+        // Footer & Pagination Controls (Always show info, conditionally show buttons)
+        listHTML += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border);">
+                <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+                    Showing ${startIndex + 1} to ${Math.min(startIndex + guestsPerPage, sortedGuests.length)} of ${sortedGuests.length} guests
+                </div>
+        `;
+
+        if (totalPages > 1) {
+            listHTML += `
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === 1 ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
+
+                    <span style="font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-medium); padding: 0 8px;">Page ${currentPage} of ${totalPages}</span>
+
+                    <button class="pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === totalPages ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                </div>
+            `;
+        } else {
+            // Keep flex spacing consistent if buttons are hidden
+            listHTML += `<div></div>`; 
+        }
+
+        listHTML += `</div>`;
         content.innerHTML = listHTML;
 
+        // Re-attach event listeners after rendering
         setTimeout(() => {
             const editBtns = content.querySelectorAll('.edit-guest-btn');
             editBtns.forEach(btn => {
@@ -569,13 +845,32 @@ function buildGuestListSection(wedding, guests, events) {
                 });
             });
 
+            const pageBtns = content.querySelectorAll('.pagination-btn');
+            pageBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (btn.hasAttribute('disabled')) return;
+                    currentPage = parseInt(btn.getAttribute('data-page'));
+                    renderGuests();
+                });
+            });
+
             if (window.lucide) window.lucide.createIcons();
         }, 0);
     }
     
-    section.appendChild(content);
-
+    // Initial Render & Setup Input Listeners
     setTimeout(() => {
+        renderGuests();
+
+        const searchInput = document.getElementById('guestSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                currentPage = 1; // Reset to page 1 on new search
+                renderGuests();
+            });
+        }
+
         const trigger = document.getElementById('addGuestBtnTrigger');
         if(trigger) trigger.addEventListener('click', () => window.openGuestModal(wedding.id, events));
     }, 0);
@@ -930,7 +1225,10 @@ export function formatWeddingDateRange(startIso, endIso) {
 }
 
 window.openGuestModal = function(weddingId, events = []) {
-    const eventCheckboxes = events.length > 0 ? events.map(ev => `
+    // Sort events for modal view exactly like timeline
+    const sortedModalEvents = [...events].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
+    
+    const eventCheckboxes = sortedModalEvents.length > 0 ? sortedModalEvents.map(ev => `
         <label style="display: flex; align-items: center; gap: 8px; font-size: var(--font-size-sm); color: var(--color-text-primary); cursor: pointer;">
             <input type="checkbox" name="guest_events" value="${ev.id}" style="accent-color: var(--color-primary); cursor: pointer;">
             ${ev.title} (${new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
@@ -990,17 +1288,29 @@ window.openGuestModal = function(weddingId, events = []) {
                         return;
                     }
 
+                    const phoneInput = document.getElementById('guestPhone').value.trim();
+                    const cleanedPhone = phoneInput.replace(/[^0-9+]/g, '');
+
                     try {
+                        const { data: existingGuests, error: fetchErr } = await supabase.from('guests').select('*').eq('wedding_id', weddingId);
+                        if (fetchErr) throw fetchErr;
+
+                        if (existingGuests.some(g => g.phone === cleanedPhone)) {
+                            showAlert({ icon: 'error', title: 'Duplicate Phone', text: 'Phone number is already in use' });
+                            return;
+                        }
+
                         const { data: newGuestData, error: insertError } = await supabase.from('guests').insert([{ 
                             wedding_id: weddingId,
                             name: document.getElementById('guestName').value.trim(),
-                            phone: document.getElementById('guestPhone').value.trim(),
+                            phone: phoneInput,
                             invite_code: generateInviteCode()
                         }]).select().single();
                         
                         if (insertError) throw insertError;
 
-                        const selectedEvents = Array.from(document.querySelectorAll('input[name="guest_events"]:checked')).map(cb => ({
+                        // Target the specific form to prevent querying checkboxes from hidden modals
+                        const selectedEvents = Array.from(document.getElementById('createGuestForm').querySelectorAll('input[name="guest_events"]:checked')).map(cb => ({
                             event_id: cb.value,
                             guest_id: newGuestData.id
                         }));
@@ -1038,7 +1348,10 @@ window.openGuestModal = function(weddingId, events = []) {
 window.openEditGuestModal = function(weddingId, guest, events = []) {
     const invitedList = guest.invited_events || [];
     
-    const eventCheckboxes = events.length > 0 ? events.map(ev => `
+    // Sort events for modal view exactly like timeline
+    const sortedModalEvents = [...events].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
+    
+    const eventCheckboxes = sortedModalEvents.length > 0 ? sortedModalEvents.map(ev => `
         <label style="display: flex; align-items: center; gap: 8px; font-size: var(--font-size-sm); color: var(--color-text-primary); cursor: pointer;">
             <input type="checkbox" name="guest_events" value="${ev.id}" ${invitedList.includes(ev.id) ? 'checked' : ''} style="accent-color: var(--color-primary); cursor: pointer;">
             ${ev.title} (${new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
@@ -1127,17 +1440,30 @@ window.openEditGuestModal = function(weddingId, guest, events = []) {
                         return;
                     }
 
+                    const phoneInput = document.getElementById('editGuestPhone').value.trim();
+                    const cleanedPhone = phoneInput.replace(/[^0-9+]/g, '');
+
                     try {
+                        const { data: existingGuests, error: fetchErr } = await supabase.from('guests').select('*').eq('wedding_id', weddingId);
+                        if (fetchErr) throw fetchErr;
+
+                        if (existingGuests.some(g => g.phone === cleanedPhone && g.id !== guest.id)) {
+                            showAlert({ icon: 'error', title: 'Duplicate Phone', text: 'Phone number is already in use' });
+                            return;
+                        }
+
                         const { error } = await supabase.from('guests').update({ 
                             name: document.getElementById('editGuestName').value.trim(),
-                            phone: document.getElementById('editGuestPhone').value.trim()
+                            phone: phoneInput
                         }).eq('id', guest.id);
                         
                         if (error) throw error;
 
-                        await supabase.from('event_guests').delete().eq('guest_id', guest.id);
+                        const { error: deleteError } = await supabase.from('event_guests').delete().eq('guest_id', guest.id);
+                        if (deleteError) throw deleteError;
 
-                        const selectedEvents = Array.from(document.querySelectorAll('input[name="guest_events"]:checked')).map(cb => ({
+                        // Target the specific form to prevent querying checkboxes from hidden modals
+                        const selectedEvents = Array.from(document.getElementById('editGuestForm').querySelectorAll('input[name="guest_events"]:checked')).map(cb => ({
                             event_id: cb.value,
                             guest_id: guest.id
                         }));
@@ -1151,7 +1477,7 @@ window.openEditGuestModal = function(weddingId, guest, events = []) {
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
                         showAlert({ icon: 'success', title: 'Updated!', text: 'Guest details updated successfully.', timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'DatabaseError', text: error.message });
+                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }
@@ -1173,14 +1499,205 @@ window.openEditGuestModal = function(weddingId, guest, events = []) {
 };
 
 window.downloadSampleExcel = function() {
-    const csvContent = "data:text/csv;charset=utf-8,Guest Name,Phone Number,Dietary Requirements\nJohn Doe,1234567890,Vegetarian\nJane Smith,0987654321,None";
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "Sample File.xlsx");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (typeof XLSX === 'undefined') {
+        showAlert({ icon: 'error', title: 'Library Missing', text: 'Excel library failed to load. Please refresh the page.' });
+        return;
+    }
+
+    const events = window.__currentEvents || [];
+    
+    // Sort events by date and time to match the timeline view
+    const sortedEvents = [...events].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
+    const eventTitles = sortedEvents.map(e => e.title);
+    
+    // 1. Define Headers
+    const headers = ["Name", "Phone Number", ...eventTitles];
+    
+    // 2. Generate 50 Sample Rows dynamically
+    const sampleRows = [];
+    const firstNames = ["Aarav", "Vihaan", "Aditya", "Sai", "Arjun", "Siddharth", "Rohan", "Kabir", "Dhruv", "Aryan", "Ananya", "Diya", "Isha", "Kavya", "Mira", "Neha", "Pooja", "Riya", "Sanya", "Tara", "Rahul", "Sonal", "Darshana", "Chandra", "Amit", "Sumit", "Vikram", "Sneha", "Karan", "Priya", "Anjali", "Ravi", "Suresh", "Ramesh", "Deepa", "Prakash", "Anita", "Sunil", "Geeta", "Mohit"];
+    const lastNames = ["Bafna", "Jain", "Shah", "Patel", "Mehta", "Desai", "Parekh", "Kothari", "Doshi", "Gandhi", "Sharma", "Verma", "Gupta", "Malhotra", "Singh", "Chopra"];
+    
+    const usedPhones = new Set();
+
+    for (let i = 0; i < 50; i++) {
+        // Generate Name
+        const fName = firstNames[Math.floor(Math.random() * firstNames.length)];
+        const lName = lastNames[Math.floor(Math.random() * lastNames.length)];
+        const name = `${fName} ${lName}`;
+        
+        // Generate Unique Phone
+        let phone;
+        do {
+            phone = "9" + Math.floor(100000000 + Math.random() * 900000000).toString();
+        } while (usedPhones.has(phone));
+        usedPhones.add(phone);
+
+        const row = [name, phone];
+        
+        // Randomly assign invitations
+        const invType = Math.random();
+        let selectedIndexes = [];
+        
+        if (invType < 0.33) {
+            // Invited to ALL events
+            selectedIndexes = sortedEvents.map((_, idx) => idx);
+        } else if (invType < 0.66) {
+            // Invited to ONE random event
+            if (sortedEvents.length > 0) {
+                selectedIndexes = [Math.floor(Math.random() * sortedEvents.length)];
+            }
+        } else {
+            // Invited to SOME events (e.g., 2 random)
+            if (sortedEvents.length > 0) {
+                let count = Math.min(2, sortedEvents.length);
+                while (selectedIndexes.length < count) {
+                    let r = Math.floor(Math.random() * sortedEvents.length);
+                    if (!selectedIndexes.includes(r)) selectedIndexes.push(r);
+                }
+            }
+        }
+
+        // Add 'Y' for selected events, leave blank for others
+        sortedEvents.forEach((_, idx) => {
+            row.push(selectedIndexes.includes(idx) ? "Y" : "");
+        });
+
+        sampleRows.push(row);
+    }
+
+    const excelData = [headers, ...sampleRows];
+
+    // 3. Create Workbook & Worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+    // Apply Styles & Column Widths
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    
+    ws['!cols'] = [
+        { wch: 25 }, // Name
+        { wch: 15 }, // Phone
+        ...sortedEvents.map(() => ({ wch: 18 })) // Event Columns
+    ];
+
+    // Apply Header Styling (Soft Guidance - Colors and Bold)
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellRef = XLSX.utils.encode_cell({c: C, r: 0});
+        if (!ws[cellRef]) continue;
+        
+        ws[cellRef].s = {
+            fill: { fgColor: { rgb: "FFF2CC" } }, // Subtle Yellow
+            font: { bold: true, color: { rgb: "000000" } }
+        };
+    }
+
+    XLSX.utils.book_append_sheet(wb, ws, "Guest List");
+
+    // 4. Download
+    XLSX.writeFile(wb, "Sample_Guest_Import_50.xlsx");
+};
+
+window.triggerCSVImport = function(weddingId) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx, .xls';
+    
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Parse Excel sheet to JSON array
+                const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                if (rows.length === 0) throw new Error("The Excel file is empty.");
+
+                Swal.fire({ 
+                    title: 'Importing Guests...', 
+                    text: 'Please wait while we sync your guests with the database.', 
+                    allowOutsideClick: false, 
+                    didOpen: () => Swal.showLoading() 
+                });
+
+                const events = window.__currentEvents || [];
+                
+                // Fetch existing guests to check for duplicates by phone number
+                const { data: existingGuests, error: fetchErr } = await supabase.from('guests').select('*').eq('wedding_id', weddingId);
+                if (fetchErr) throw fetchErr;
+
+                const seenPhones = new Set();
+
+                for (const row of rows) {
+                    const name = row['Name']?.toString().trim();
+                    let phone = row['Phone Number']?.toString().trim();
+                    
+                    if (!name || !phone) continue; 
+
+                    // Clean phone string
+                    phone = phone.replace(/[^0-9+]/g, '');
+
+                    if (seenPhones.has(phone)) {
+                        continue;
+                    }
+                    seenPhones.add(phone);
+
+                    let guestId;
+                    const existingGuest = existingGuests.find(g => g.phone === phone);
+
+                    if (existingGuest) {
+                        // UPDATE EXISTING: Modify Name
+                        const { error: updErr } = await supabase.from('guests').update({ name: name }).eq('id', existingGuest.id);
+                        if (updErr) throw updErr;
+                        guestId = existingGuest.id;
+                        
+                        // Clear old event mappings to start fresh
+                        await supabase.from('event_guests').delete().eq('guest_id', guestId);
+                    } else {
+                        // INSERT NEW GUEST
+                        const { data: newGuest, error: insErr } = await supabase.from('guests').insert([{ 
+                            wedding_id: weddingId, 
+                            name: name, 
+                            phone: phone, 
+                            invite_code: generateInviteCode() 
+                        }]).select().single();
+                        if (insErr) throw insErr;
+                        guestId = newGuest.id;
+                    }
+
+                    // Map events based on 'Y' value in respective dynamic columns
+                    const eventMappings = [];
+                    for (const ev of events) {
+                        const val = row[ev.title]?.toString().trim().toUpperCase();
+                        if (val === 'Y' || val === 'YES') {
+                            eventMappings.push({ event_id: ev.id, guest_id: guestId });
+                        }
+                    }
+
+                    if (eventMappings.length > 0) {
+                        const { error: mapErr } = await supabase.from('event_guests').insert(eventMappings);
+                        if (mapErr && mapErr.code !== '42P01') throw mapErr;
+                    }
+                }
+
+                Swal.fire({ icon: 'success', title: 'Import Complete!', text: 'Guests have been successfully updated and imported.' }).then(() => {
+                    window.dispatchEvent(new Event('weddingDataUpdated'));
+                });
+
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Import Failed', text: err.message });
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+    input.click();
 };
 
 window.openCSVImportModal = function(weddingId) {

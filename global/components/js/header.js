@@ -5,6 +5,8 @@ export function createHeader(options = {}) {
   const {
     pageTitle = "",
     user = { name: "", role: "guest" },
+    isVerified = true,
+    verifyLink = "",
     notificationCount = 0,
     onNotificationsClick = () => {},
     onProfileClick = () => {},
@@ -15,7 +17,7 @@ export function createHeader(options = {}) {
   header.classList.add("header");
 
   header.appendChild(buildHeaderLeft({ pageTitle, onMobileMenuClick }));
-  header.appendChild(buildHeaderRight({ user, notificationCount, onNotificationsClick, onProfileClick }));
+  header.appendChild(buildHeaderRight({ user, isVerified, verifyLink, notificationCount, onNotificationsClick, onProfileClick }));
 
   return header;
 }
@@ -27,7 +29,6 @@ function buildHeaderLeft({ pageTitle, onMobileMenuClick }) {
   const menuBtn = document.createElement("button");
   menuBtn.type = "button";
   menuBtn.classList.add("header__menu-btn");
-  menuBtn.setAttribute("aria-label", "Open navigation menu");
   menuBtn.innerHTML = `<i data-lucide="menu"></i>`;
   menuBtn.addEventListener("click", onMobileMenuClick);
 
@@ -41,9 +42,22 @@ function buildHeaderLeft({ pageTitle, onMobileMenuClick }) {
   return left;
 }
 
-function buildHeaderRight({ user, notificationCount, onNotificationsClick, onProfileClick }) {
+function buildHeaderRight({ user, isVerified, verifyLink, notificationCount, onNotificationsClick, onProfileClick }) {
   const right = document.createElement("div");
   right.classList.add("header__right");
+  right.style.cssText = "display: flex; align-items: center; gap: var(--space-4);";
+
+  // INJECT WHATSAPP VERIFY BUTTON IF UNVERIFIED
+  if (!isVerified && verifyLink) {
+    const verifyBtn = document.createElement("a");
+    verifyBtn.href = verifyLink;
+    verifyBtn.target = "_blank";
+    verifyBtn.style.cssText = "background: #25D366; color: white; padding: 6px 12px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); display: flex; align-items: center; gap: 6px; transition: opacity 0.2s;";
+    verifyBtn.onmouseover = () => verifyBtn.style.opacity = '0.9';
+    verifyBtn.onmouseout = () => verifyBtn.style.opacity = '1';
+    verifyBtn.innerHTML = `<i data-lucide="message-circle" style="width: 16px; height: 16px;"></i> Verify Account`;
+    right.appendChild(verifyBtn);
+  }
 
   right.appendChild(buildNotificationsButton({ notificationCount, onNotificationsClick }));
   right.appendChild(buildProfile({ user, onProfileClick }));

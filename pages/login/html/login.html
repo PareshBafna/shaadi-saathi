@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Register - Shaadi Saathi</title>
+    <style>
+        body { background: #f8fafc; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .auth-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .tabs { display: flex; border-bottom: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 10px; background: none; border: none; font-weight: bold; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #0f172a; border-bottom-color: #0f172a; }
+        .form-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+        input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
+        input:focus { border-color: #0f172a; }
+        .submit-btn { width: 100%; padding: 12px; background: #0f172a; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <div class="tabs">
+            <button id="tab-login" class="tab-btn active">Log In</button>
+            <button id="tab-register" class="tab-btn">Register</button>
+        </div>
+
+        <div id="login-form" class="form-group">
+            <input type="tel" id="login-phone" placeholder="Phone Number *" required>
+            <input type="password" id="login-password" placeholder="Password *">
+            <div style="text-align: center; font-size: 12px; color: #64748b; margin: 4px 0;">— OR IF INVITED BY HOST —</div>
+            <input type="text" id="login-invite-code" placeholder="Host Invite Code">
+            <button id="btn-login" class="submit-btn">Log In</button>
+        </div>
+
+        <div id="register-form" class="form-group" style="display: none;">
+            <input type="text" id="reg-name" placeholder="Full Name *" required>
+            <input type="tel" id="reg-phone" placeholder="Phone Number *" required>
+            <input type="password" id="reg-password" placeholder="Create Password *" required>
+            <button id="btn-register" class="submit-btn">Create Account</button>
+        </div>
+    </div>
+    <script type="module" src="./login.js"></script>
+</body>
+</html>

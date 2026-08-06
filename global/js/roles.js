@@ -1,17 +1,17 @@
 export const ROLES = {
   CREATOR: "creator",
-  OWNER: "owner",
+  HOST: "host",
   GUEST: "guest"
 };
 
 export const ROLE_LABELS = {
   creator: "Creator",
-  owner: "Owner",
+  host: "Host",
   guest: "Guest"
 };
 
 export const ROLE_TONES = {
   creator: "primary",
-  owner: "info",
+  host: "info",
   guest: "neutral"
 };

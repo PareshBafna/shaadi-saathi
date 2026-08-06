@@ -10,7 +10,7 @@ if (window.location.pathname.includes('dashboard.html')) {
 const pathname = window.location.pathname;
 let activeId = "dashboard";
 
-if (pathname.includes("weddings") || pathname.includes("wedding-detail")) {
+if (pathname.includes("weddings") || pathname.includes("wedding-details")) {
     activeId = "weddings";
 } else if (pathname.includes("hosts")) {
     activeId = "hosts";

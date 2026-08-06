@@ -97,9 +97,16 @@ async function loadWeddingsData(container) {
         const { data, error } = await supabase.from('weddings').select('*');
         if (error) throw error;
         
+        // Fetch Hosts to display on cards
+        const { data: hostsData, error: hostsError } = await supabase.from('wedding_hosts').select('*');
+        if (hostsError && hostsError.code !== '42P01') throw hostsError;
+        
         allWeddings = data || [];
 
         for (let wedding of allWeddings) {
+            // Attach hosts to the wedding object
+            wedding.hosts = hostsData ? hostsData.filter(h => h.wedding_id === wedding.id) : [];
+
             let eventsQuery = supabase.from('events').select('*', { count: 'exact' }).eq('wedding_id', wedding.id);
             
             if (currentUser.role === 'guest') {
@@ -118,10 +125,8 @@ async function loadWeddingsData(container) {
             }
 
             const { count: eventsCount } = await eventsQuery;
-            const { count: guestsCount } = await supabase.from('guests').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
 
             wedding.events_count = eventsCount || 0;
-            wedding.guests_count = guestsCount || 0;
         }
 
         filterAndRenderGalleries();
@@ -225,11 +230,20 @@ function buildGallerySection(title, weddings) {
             ? `${wedding.groom_name} & ${wedding.bride_name}` 
             : `${wedding.bride_name} & ${wedding.groom_name}`;
 
-        let contactsHTML = '';
-        if (wedding.contact_details) {
-            contactsHTML = `
+        let hostsHTML = '';
+        if (wedding.hosts && wedding.hosts.length > 0) {
+            // Sort hosts alphabetically by name
+            const sortedHosts = [...wedding.hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+            const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
+            
+            hostsHTML = `
             <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; flex-wrap: wrap;">
-                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span>${wedding.contact_details}</span>
+                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span>${inlineHosts}</span>
+            </div>`;
+        } else {
+            hostsHTML = `
+            <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; flex-wrap: wrap;">
+                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span style="font-style: italic;">No hosts added</span>
             </div>`;
         }
 
@@ -253,9 +267,7 @@ function buildGallerySection(title, weddings) {
 
                 ${wedding.family_details ? `<div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.family_details}</div>` : ''}
                 
-                ${contactsHTML}
-
-                <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.guests_count || 0} Guests</div>
+                ${hostsHTML}
 
                 <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary);"><i data-lucide="calendar-days" style="width:14px; height:14px;"></i> ${wedding.events_count || 0} Events</div>
             </div>
@@ -296,41 +308,6 @@ function forceStyleModalButtons() {
             btn.onmouseover = () => btn.style.opacity = '0.85';
             btn.onmouseout = () => btn.style.opacity = '1';
             btn.setAttribute('data-styled', 'true');
-        }
-    });
-}
-
-function validateContactInputs() {
-    ['1', '2', '3'].forEach(rowNum => {
-        const nameEl = document.getElementById('contactName' + rowNum);
-        const numEl = document.getElementById('contactNum' + rowNum);
-        if (nameEl && numEl) {
-            nameEl.addEventListener('input', () => {
-                if (rowNum === '1') {
-                    nameEl.style.borderColor = nameEl.value.trim() === '' ? 'red' : 'green';
-                } else {
-                    if (nameEl.value.trim() || numEl.value.trim()) {
-                        nameEl.style.borderColor = nameEl.value.trim() === '' ? 'red' : 'green';
-                        numEl.style.borderColor = numEl.value.trim() === '' ? 'red' : 'green';
-                    } else {
-                        nameEl.style.borderColor = 'var(--color-border)';
-                        numEl.style.borderColor = 'var(--color-border)';
-                    }
-                }
-            });
-            numEl.addEventListener('input', () => {
-                if (rowNum === '1') {
-                    numEl.style.borderColor = numEl.value.trim() === '' ? 'red' : 'green';
-                } else {
-                    if (nameEl.value.trim() || numEl.value.trim()) {
-                        nameEl.style.borderColor = nameEl.value.trim() === '' ? 'red' : 'green';
-                        numEl.style.borderColor = numEl.value.trim() === '' ? 'red' : 'green';
-                    } else {
-                        nameEl.style.borderColor = 'var(--color-border)';
-                        numEl.style.borderColor = 'var(--color-border)';
-                    }
-                }
-            });
         }
     });
 }
@@ -399,22 +376,6 @@ export function openCreateWeddingModal() {
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Details *</label>
                 <input type="text" id="familyDetails" required placeholder="e.g., The Bafna & Sharma Families" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
             </div>
-
-            <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Contact Details *</label>
-                <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-2);">
-                    <input type="text" id="contactName1" required placeholder="Contact Name 1 *" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                    <input type="text" id="contactNum1" required placeholder="Contact Number 1 *" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
-                <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-2);">
-                    <input type="text" id="contactName2" placeholder="Contact Name 2 (Optional)" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                    <input type="text" id="contactNum2" placeholder="Contact Number 2 (Optional)" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
-                <div style="display: flex; gap: var(--space-2);">
-                    <input type="text" id="contactName3" placeholder="Contact Name 3 (Optional)" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                    <input type="text" id="contactNum3" placeholder="Contact Number 3 (Optional)" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
-            </div>
         </form>
     `;
 
@@ -451,30 +412,6 @@ export function openCreateWeddingModal() {
                         }
                     });
 
-                    // Validate Contacts manually
-                    const c1Name = document.getElementById('contactName1');
-                    const c1Num = document.getElementById('contactNum1');
-                    const c2Name = document.getElementById('contactName2');
-                    const c2Num = document.getElementById('contactNum2');
-                    const c3Name = document.getElementById('contactName3');
-                    const c3Num = document.getElementById('contactNum3');
-
-                    let contactValid = true;
-                    let contactMissing = [];
-
-                    if (!c1Name.value.trim()) { c1Name.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 1 Name"); } else { c1Name.style.borderColor = "green"; }
-                    if (!c1Num.value.trim()) { c1Num.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 1 Number"); } else { c1Num.style.borderColor = "green"; }
-
-                    if (c2Name.value.trim() || c2Num.value.trim()) {
-                        if (!c2Name.value.trim()) { c2Name.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 2 Name"); } else { c2Name.style.borderColor = "green"; }
-                        if (!c2Num.value.trim()) { c2Num.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 2 Number"); } else { c2Num.style.borderColor = "green"; }
-                    }
-
-                    if (c3Name.value.trim() || c3Num.value.trim()) {
-                        if (!c3Name.value.trim()) { c3Name.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 3 Name"); } else { c3Name.style.borderColor = "green"; }
-                        if (!c3Num.value.trim()) { c3Num.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 3 Number"); } else { c3Num.style.borderColor = "green"; }
-                    }
-
                     const startDate = document.getElementById('startDate').value;
                     const endDate = document.getElementById('endDate').value;
                     
@@ -502,17 +439,6 @@ export function openCreateWeddingModal() {
                         return;
                     }
 
-                    if (!contactValid) {
-                        showAlert({ icon: 'warning', title: 'Missing Contact Info', text: `Please complete contact details for: ${contactMissing.join(', ')}` });
-                        return;
-                    }
-
-                    let contactsArray = [];
-                    contactsArray.push(`${c1Name.value.trim()} - ${c1Num.value.trim()}`);
-                    if (c2Name.value.trim() && c2Num.value.trim()) contactsArray.push(`${c2Name.value.trim()} - ${c2Num.value.trim()}`);
-                    if (c3Name.value.trim() && c3Num.value.trim()) contactsArray.push(`${c3Name.value.trim()} - ${c3Num.value.trim()}`);
-                    const finalContactDetails = contactsArray.join(', ');
-
                     const primarySide = document.querySelector('input[name="primarySide"]:checked').value;
                     const brideName = document.getElementById('brideName').value.trim();
                     const groomName = document.getElementById('groomName').value.trim();
@@ -531,7 +457,6 @@ export function openCreateWeddingModal() {
                             end_date: endDate,
                             family_name: familyName,
                             family_details: familyDetails,
-                            contact_details: finalContactDetails,
                             hashtag: hashtagVal,
                             instagram: instagramVal
                         }]);
@@ -560,13 +485,6 @@ export function openCreateWeddingModal() {
                 el.addEventListener('input', () => { el.style.borderColor = el.value.trim() === '' ? 'red' : 'green'; });
             }
         });
-        
-        ['contactName1', 'contactNum1'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
-        });
-        
-        validateContactInputs();
 
         // End Date Enabling Logic
         const startEl = document.getElementById('startDate');
@@ -602,23 +520,6 @@ window.openEditWeddingModal = function(wedding) {
     }
 
     const todayStr = getLocalTodayString();
-
-    // Parse existing contact details
-    let cNames = ['', '', ''];
-    let cNums = ['', '', ''];
-    if (wedding.contact_details) {
-        const parts = wedding.contact_details.split(/,\s*/);
-        parts.forEach((part, i) => {
-            if (i < 3) {
-                let name = part, num = '';
-                if (part.includes(' - ')) {
-                    [name, num] = part.split(' - ');
-                }
-                cNames[i] = name.trim();
-                cNums[i] = num ? num.trim() : '';
-            }
-        });
-    }
 
     const formHTML = `
         <form id="editWeddingForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3); overflow-y: auto; max-height: 60vh; padding-right: 5px;">
@@ -675,22 +576,6 @@ window.openEditWeddingModal = function(wedding) {
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Details *</label>
                 <input type="text" id="editFamilyDetails" value="${(wedding.family_details || '').replace(/"/g, '&quot;')}" required placeholder="e.g., The Bafna & Sharma Families" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-            </div>
-
-            <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Contact Details *</label>
-                <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-2);">
-                    <input type="text" id="contactName1" value="${cNames[0].replace(/"/g, '&quot;')}" required placeholder="Contact Name 1 *" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                    <input type="text" id="contactNum1" value="${cNums[0].replace(/"/g, '&quot;')}" required placeholder="Contact Number 1 *" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
-                <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-2);">
-                    <input type="text" id="contactName2" value="${cNames[1].replace(/"/g, '&quot;')}" placeholder="Contact Name 2 (Optional)" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                    <input type="text" id="contactNum2" value="${cNums[1].replace(/"/g, '&quot;')}" placeholder="Contact Number 2 (Optional)" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
-                <div style="display: flex; gap: var(--space-2);">
-                    <input type="text" id="contactName3" value="${cNames[2].replace(/"/g, '&quot;')}" placeholder="Contact Name 3 (Optional)" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                    <input type="text" id="contactNum3" value="${cNums[2].replace(/"/g, '&quot;')}" placeholder="Contact Number 3 (Optional)" style="flex:1; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
             </div>
         </form>
     `;
@@ -757,30 +642,6 @@ window.openEditWeddingModal = function(wedding) {
                         }
                     });
 
-                    // Validate Contacts manually
-                    const c1Name = document.getElementById('contactName1');
-                    const c1Num = document.getElementById('contactNum1');
-                    const c2Name = document.getElementById('contactName2');
-                    const c2Num = document.getElementById('contactNum2');
-                    const c3Name = document.getElementById('contactName3');
-                    const c3Num = document.getElementById('contactNum3');
-
-                    let contactValid = true;
-                    let contactMissing = [];
-
-                    if (!c1Name.value.trim()) { c1Name.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 1 Name"); } else { c1Name.style.borderColor = "green"; }
-                    if (!c1Num.value.trim()) { c1Num.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 1 Number"); } else { c1Num.style.borderColor = "green"; }
-
-                    if (c2Name.value.trim() || c2Num.value.trim()) {
-                        if (!c2Name.value.trim()) { c2Name.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 2 Name"); } else { c2Name.style.borderColor = "green"; }
-                        if (!c2Num.value.trim()) { c2Num.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 2 Number"); } else { c2Num.style.borderColor = "green"; }
-                    }
-
-                    if (c3Name.value.trim() || c3Num.value.trim()) {
-                        if (!c3Name.value.trim()) { c3Name.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 3 Name"); } else { c3Name.style.borderColor = "green"; }
-                        if (!c3Num.value.trim()) { c3Num.style.borderColor = "red"; contactValid = false; contactMissing.push("Contact 3 Number"); } else { c3Num.style.borderColor = "green"; }
-                    }
-
                     const startDate = document.getElementById('editStartDate').value;
                     const endDate = document.getElementById('editEndDate').value;
 
@@ -808,17 +669,6 @@ window.openEditWeddingModal = function(wedding) {
                         return;
                     }
 
-                    if (!contactValid) {
-                        showAlert({ icon: 'warning', title: 'Missing Contact Info', text: `Please complete contact details for: ${contactMissing.join(', ')}` });
-                        return;
-                    }
-
-                    let contactsArray = [];
-                    contactsArray.push(`${c1Name.value.trim()} - ${c1Num.value.trim()}`);
-                    if (c2Name.value.trim() && c2Num.value.trim()) contactsArray.push(`${c2Name.value.trim()} - ${c2Num.value.trim()}`);
-                    if (c3Name.value.trim() && c3Num.value.trim()) contactsArray.push(`${c3Name.value.trim()} - ${c3Num.value.trim()}`);
-                    const finalContactDetails = contactsArray.join(', ');
-
                     const hashtagVal = document.getElementById('editWeddingHashtag').value.trim();
                     const instagramVal = document.getElementById('editWeddingInstagram').value.trim();
 
@@ -831,7 +681,6 @@ window.openEditWeddingModal = function(wedding) {
                             end_date: endDate,
                             family_name: document.getElementById('editFamilyName').value.trim(),
                             family_details: document.getElementById('editFamilyDetails').value.trim(),
-                            contact_details: finalContactDetails,
                             hashtag: hashtagVal,
                             instagram: instagramVal
                         }).eq('id', wedding.id);
@@ -859,13 +708,6 @@ window.openEditWeddingModal = function(wedding) {
                 el.addEventListener('input', () => { el.style.borderColor = el.value.trim() === '' ? 'red' : 'green'; });
             }
         });
-        
-        ['contactName1', 'contactNum1'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
-        });
-        
-        validateContactInputs();
 
         // End Date Enabling Logic
         const editStartEl = document.getElementById('editStartDate');

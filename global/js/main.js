@@ -1,73 +1,152 @@
-import { createSidebar } from '../components/js/sidebar.js';
-import { createHeader } from '../components/js/header.js';
-import { renderDashboard } from '../../pages/dashboard/js/dashboard.js';
-import { renderWeddings } from '../../pages/weddings/js/weddings.js';
-import { renderWeddingDetails } from '../../pages/weddings/js/wedding-details.js';
-import { renderSample } from '../../pages/sample/js/sample.js'; // IMPORT ADDED
+import { validateSession, getWhatsAppVerificationLink, logoutUser } from '../global/components/js/auth.js';
+import { createSidebar } from '../global/components/js/sidebar.js';
+import { createHeader } from '../global/components/js/header.js';
 
-const routes = {
-    '': renderDashboard,
-    'dashboard': renderDashboard,
-    'weddings': renderWeddings,
-    'wedding': (params) => renderWeddingDetails(params.id),
-    'hosts': renderDashboard, 
-    'sample': renderSample // ROUTE ADDED
-};
+import { renderDashboard } from '../pages/dashboard/js/dashboard.js';
+import { renderWeddings } from '../pages/weddings/js/weddings.js';
+import { renderWeddingDetails } from '../pages/wedding-details/js/wedding-details.js';
 
-function router() {
-    const hash = window.location.hash.replace('#', '');
-    const [route, queryString] = hash.split('?');
-    const searchParams = new URLSearchParams(queryString);
-    const id = searchParams.get('id');
-
-    let renderFunc = routes[route] || routes['dashboard'];
-    let activeId = route || 'dashboard'; // Ensure the active ID highlights the correct sidebar item
-
-    if (route.includes('weddings') || route.includes('wedding')) activeId = 'weddings';
-
-    // Mount Sidebar
-    const sidebarEl = document.getElementById("sidebar");
-    if (sidebarEl && !sidebarEl.hasChildNodes()) {
-        sidebarEl.replaceWith(createSidebar({
-            role: "creator", // For now, passing creator. Future: pass dynamic role (Creator/Host/Guest)
-            activeItemId: activeId,
-            onNavigate: (pageId) => {
-                window.location.hash = `#${pageId}`;
-            }
-        }));
-    } else {
-        updateActiveSidebarItem(activeId);
-    }
-
-    // Mount Header
-    const headerEl = document.getElementById("header");
-    if (headerEl && !headerEl.hasChildNodes()) {
-        headerEl.replaceWith(createHeader({
-            pageTitle: "", 
-            user: { name: "Paresh Bafna", role: "creator" },
-            notificationCount: 2,
-            onMobileMenuClick: () => document.querySelector(".sidebar")?.classList.toggle("sidebar--open")
-        }));
-    }
-
-    // Render Page Content
-    const contentEl = document.getElementById("content");
-    contentEl.innerHTML = "";
+// ==========================================
+// 1. ASYNC AUTH GUARD & INITIALIZATION
+// ==========================================
+document.addEventListener("DOMContentLoaded", async () => {
+    // Show a quick loading state while checking database
+    document.body.style.opacity = '0.5'; 
     
-    const pageContent = renderFunc({ id });
-    contentEl.appendChild(pageContent);
+    const user = await validateSession();
 
-    setTimeout(() => {
-        if (window.lucide) window.lucide.createIcons();
-    }, 50);
-}
+    document.body.style.opacity = '1';
 
-function updateActiveSidebarItem(activeId) {
-    document.querySelectorAll('.sidebar__nav-link').forEach(link => {
-        const isMatch = link.getAttribute('data-page-id') === activeId;
-        link.classList.toggle('sidebar__nav-link--active', isMatch);
+    if (!user) {
+        // SWAL Non-Closable Popup for missing/invalid session
+        Swal.fire({
+            title: 'Authentication Required',
+            text: 'No logged in user details found. Please re-login.',
+            icon: 'warning',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showCancelButton: false,
+            confirmButtonText: 'Login',
+            confirmButtonColor: '#0f172a'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.replace('/login.html');
+            }
+        });
+        return; // Stop execution
+    }
+
+    // Role-based redirection IF they just visit the root website (no specific hash)
+    if (!window.location.hash || window.location.hash === '#' || window.location.hash === '#/') {
+        window.location.hash = user.role === 'creator' ? '#dashboard' : '#weddings';
+    }
+
+    // Proceed to load the app
+    initApp();
+});
+
+// ==========================================
+// 2. LAYOUT INITIALIZATION
+// ==========================================
+function initApp() {
+    const sidebar = createSidebar({
+        userRole: window.currentUser.role,
+        onLogout: logoutUser
     });
+    
+    const layout = document.getElementById("layout");
+    if(layout) layout.prepend(sidebar);
+
+    let headerContainer = document.getElementById("header-container");
+    if (!headerContainer) {
+        headerContainer = document.createElement("div");
+        headerContainer.id = "header-container";
+        const mainContent = document.getElementById("main-content");
+        if (mainContent) mainContent.parentNode.insertBefore(headerContainer, mainContent);
+    }
+
+    window.addEventListener("hashchange", router);
+    router(); 
 }
 
-window.addEventListener('hashchange', router);
-window.addEventListener('DOMContentLoaded', router);
+// ==========================================
+// 3. ROUTER LOGIC
+// ==========================================
+function router() {
+    if (!window.currentUser) return;
+
+    const hash = window.location.hash || (window.currentUser.role === 'creator' ? '#dashboard' : '#weddings');
+    const [route, queryString] = hash.split('?');
+    const params = new URLSearchParams(queryString || '');
+    
+    const contentEl = document.getElementById("main-content");
+    if (!contentEl) return;
+    
+    contentEl.innerHTML = ""; 
+    
+    let pageTitle = "Dashboard";
+    let renderFunc = renderDashboard;
+    let pageArgs = null;
+
+    if (route === "#dashboard") {
+        pageTitle = "Dashboard";
+        renderFunc = renderDashboard;
+    } else if (route === "#weddings") {
+        pageTitle = "Weddings";
+        renderFunc = renderWeddings;
+    } else if (route === "#wedding-details") {
+        pageTitle = "Wedding Details";
+        renderFunc = renderWeddingDetails;
+        pageArgs = params.get('id');
+    }
+
+    updateHeader(pageTitle);
+
+    // ==========================================
+    // 4. WHATSAPP VERIFICATION BLOCKER
+    // ==========================================
+    if (!window.currentUser.is_verified) {
+        contentEl.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; text-align: center; padding: 20px;">
+                <i data-lucide="shield-alert" style="width: 48px; height: 48px; color: var(--color-danger); margin-bottom: 16px;"></i>
+                <h2 style="margin: 0 0 8px 0; color: var(--color-text-primary);">Account Verification Required</h2>
+                <p style="color: var(--color-text-secondary); max-width: 400px; line-height: 1.5;">
+                    To ensure the privacy of our weddings, please verify your phone number. 
+                    Click the green <strong>Verify Account</strong> button in the header above to send us an automated WhatsApp message.
+                </p>
+            </div>
+        `;
+    } else {
+        const pageNode = renderFunc(pageArgs);
+        if (pageNode) contentEl.appendChild(pageNode);
+    }
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+}
+
+// ==========================================
+// 5. HEADER UPDATER
+// ==========================================
+function updateHeader(title) {
+    if (!window.currentUser) return;
+
+    const headerContainer = document.getElementById("header-container");
+    if (!headerContainer) return;
+
+    const oldHeader = headerContainer.querySelector("header");
+    
+    const newHeader = createHeader({
+        pageTitle: title, 
+        user: window.currentUser,
+        isVerified: window.currentUser.is_verified,
+        verifyLink: window.currentUser.is_verified ? "" : getWhatsAppVerificationLink(window.currentUser.verification_code, window.currentUser.name),
+        notificationCount: 2,
+        onMobileMenuClick: () => document.querySelector(".sidebar")?.classList.toggle("sidebar--open")
+    });
+
+    if (oldHeader) {
+        oldHeader.replaceWith(newHeader);
+    } else {
+        headerContainer.appendChild(newHeader);
+    }
+}
