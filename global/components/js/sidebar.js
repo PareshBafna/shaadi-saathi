@@ -3,27 +3,23 @@ import { ROLES } from "../../js/roles.js";
 const CREATOR_NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "layout-dashboard" },
   { id: "weddings", label: "Weddings", icon: "heart" },
-  { id: "hosts", label: "Manage Hosts", icon: "users" },
-  { id: "activity", label: "Activity Log", icon: "history" },
-  { id: "sample", label: "Sample View", icon: "eye" },
-  { id: "settings", label: "Settings", icon: "settings" },
+  { id: "manage-users", label: "Manage Users", icon: "users" },
+  { id: "hosts", label: "Manage Hosts", icon: "user-check" },
+  { id: "web-invites", label: "Web Invites", icon: "mail" },
+  { id: "sample", label: "Sample Wedding", icon: "eye" },
+  { id: "profile", label: "Profile", icon: "user" },
 ];
 
 const HOST_NAV_ITEMS = [
-  { id: "dashboard", label: "Dashboard", icon: "layout-dashboard" },
-  { id: "wedding-website", label: "Wedding Website", icon: "globe" },
-  { id: "guests", label: "Guest Management", icon: "users" },
-  { id: "invitations", label: "Invitations", icon: "mail" },
-  { id: "events", label: "Events", icon: "calendar" },
-  { id: "gallery", label: "Gallery", icon: "image" },
-  { id: "activity", label: "Activity Log", icon: "history" },
-  { id: "settings", label: "Settings", icon: "settings" },
+  { id: "weddings", label: "Weddings", icon: "heart" },
+  { id: "sample", label: "Sample Wedding", icon: "eye" },
+  { id: "profile", label: "Profile", icon: "user" },
 ];
 
 const GUEST_NAV_ITEMS = [
-  { id: "invitation-inbox", label: "Invitation Inbox", icon: "inbox" },
-  { id: "current-events", label: "Current Events", icon: "calendar-clock" },
-  { id: "past-events", label: "Past Events", icon: "archive" },
+  { id: "weddings", label: "Weddings", icon: "heart" },
+  { id: "sample", label: "Sample Wedding", icon: "eye" },
+  { id: "profile", label: "Profile", icon: "user" },
 ];
 
 function getNavItemsForRole(role) {

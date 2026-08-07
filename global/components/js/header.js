@@ -1,140 +1,125 @@
-import { createBadge } from "./badge.js";
-import { ROLE_LABELS, ROLE_TONES } from "../../js/roles.js";
-
 export function createHeader(options = {}) {
-  const {
-    pageTitle = "",
-    user = { name: "", role: "guest" },
-    isVerified = true,
-    verifyLink = "",
-    notificationCount = 0,
-    onNotificationsClick = () => {},
-    onProfileClick = () => {},
-    onMobileMenuClick = () => {},
-  } = options;
+    const {
+        user = { name: 'Guest', role: 'guest' },
+        isVerified = false,
+        verifyLink = '',
+        notificationCount = 0,
+        onMobileMenuClick = () => {}
+    } = options;
 
-  const header = document.createElement("header");
-  header.classList.add("header");
+    const header = document.createElement('header');
+    
+    // Main header layout: 3 equal flex columns to ensure perfect centering
+    header.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--space-4, 16px) var(--space-6, 24px);
+        background: transparent;
+        border-bottom: 1px solid var(--color-border, #332222);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        width: 100%;
+        box-sizing: border-box;
+    `;
 
-  header.appendChild(buildHeaderLeft({ pageTitle, onMobileMenuClick }));
-  header.appendChild(buildHeaderRight({ user, isVerified, verifyLink, notificationCount, onNotificationsClick, onProfileClick }));
+    // 1. LEFT SECTION (Mobile menu toggle if needed, title removed)
+    const leftSection = document.createElement('div');
+    leftSection.style.cssText = `display: flex; align-items: center; flex: 1;`;
+    
+    // Hidden by default on desktop, can be shown via CSS media queries
+    const mobileToggle = document.createElement('button');
+    mobileToggle.classList.add('mobile-menu-btn');
+    mobileToggle.style.cssText = `background: none; border: none; color: inherit; cursor: pointer; display: none;`; 
+    mobileToggle.innerHTML = `<i data-lucide="menu"></i>`;
+    mobileToggle.addEventListener('click', onMobileMenuClick);
+    leftSection.appendChild(mobileToggle);
 
-  return header;
-}
 
-function buildHeaderLeft({ pageTitle, onMobileMenuClick }) {
-  const left = document.createElement("div");
-  left.classList.add("header__left");
+    // 2. CENTER SECTION (Verify Button)
+    const centerSection = document.createElement('div');
+    centerSection.style.cssText = `display: flex; justify-content: center; align-items: center; flex: 1;`;
 
-  const menuBtn = document.createElement("button");
-  menuBtn.type = "button";
-  menuBtn.classList.add("header__menu-btn");
-  menuBtn.innerHTML = `<i data-lucide="menu"></i>`;
-  menuBtn.addEventListener("click", onMobileMenuClick);
+    if (!isVerified) {
+        const verifyBtn = document.createElement('a');
+        verifyBtn.href = verifyLink;
+        verifyBtn.target = "_blank";
+        verifyBtn.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #ef4444; /* Changed to red */
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: opacity 0.2s;
+        `;
+        verifyBtn.onmouseover = () => verifyBtn.style.opacity = '0.9';
+        verifyBtn.onmouseout = () => verifyBtn.style.opacity = '1';
+        verifyBtn.innerHTML = `<i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i> Verify Account`;
+        centerSection.appendChild(verifyBtn);
+    }
 
-  const title = document.createElement("h1");
-  title.classList.add("header__title");
-  title.textContent = pageTitle;
 
-  left.appendChild(menuBtn);
-  left.appendChild(title);
+    // 3. RIGHT SECTION (Notifications & Profile)
+    const rightSection = document.createElement('div');
+    rightSection.style.cssText = `display: flex; align-items: center; justify-content: flex-end; gap: 24px; flex: 1;`;
 
-  return left;
-}
+    // Notifications
+    const notifWrapper = document.createElement('div');
+    notifWrapper.style.cssText = `position: relative; cursor: pointer; display: flex; align-items: center;`;
+    notifWrapper.innerHTML = `<i data-lucide="bell" style="color: var(--color-text-secondary, #a1a1aa); width: 20px; height: 20px;"></i>`;
+    
+    if (notificationCount > 0) {
+        const badge = document.createElement('span');
+        badge.textContent = notificationCount;
+        badge.style.cssText = `
+            position: absolute; top: -6px; right: -6px;
+            background: #ef4444; color: white;
+            font-size: 0.65rem; font-weight: bold;
+            border-radius: 50%; width: 16px; height: 16px;
+            display: flex; align-items: center; justify-content: center;
+        `;
+        notifWrapper.appendChild(badge);
+    }
+    rightSection.appendChild(notifWrapper);
 
-function buildHeaderRight({ user, isVerified, verifyLink, notificationCount, onNotificationsClick, onProfileClick }) {
-  const right = document.createElement("div");
-  right.classList.add("header__right");
-  right.style.cssText = "display: flex; align-items: center; gap: var(--space-4);";
+    // Profile Details
+    const profileInfo = document.createElement('div');
+    profileInfo.style.cssText = `display: flex; align-items: center; gap: 12px;`;
+    
+    // Avatar
+    const avatar = document.createElement('div');
+    avatar.style.cssText = `
+        width: 36px; height: 36px;
+        background: #d4af37; color: #1a0f0f;
+        border-radius: 50%; display: flex;
+        align-items: center; justify-content: center;
+        font-weight: bold; font-size: 0.875rem;
+    `;
+    const initials = (user.name || 'Guest').split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
+    avatar.textContent = initials;
 
-  // INJECT WHATSAPP VERIFY BUTTON IF UNVERIFIED
-  if (!isVerified && verifyLink) {
-    const verifyBtn = document.createElement("a");
-    verifyBtn.href = verifyLink;
-    verifyBtn.target = "_blank";
-    verifyBtn.style.cssText = "background: #25D366; color: white; padding: 6px 12px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); display: flex; align-items: center; gap: 6px; transition: opacity 0.2s;";
-    verifyBtn.onmouseover = () => verifyBtn.style.opacity = '0.9';
-    verifyBtn.onmouseout = () => verifyBtn.style.opacity = '1';
-    verifyBtn.innerHTML = `<i data-lucide="message-circle" style="width: 16px; height: 16px;"></i> Verify Account`;
-    right.appendChild(verifyBtn);
-  }
+    // Text details
+    const userDetails = document.createElement('div');
+    userDetails.style.cssText = `display: flex; flex-direction: column; text-align: left;`;
+    userDetails.innerHTML = `
+        <span style="font-weight: 600; font-size: 0.875rem; color: var(--color-text-primary, #fff); line-height: 1.2;">${user.name}</span>
+        <span style="font-size: 0.7rem; color: var(--color-text-secondary, #a1a1aa); text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2; margin-top: 2px;">${user.role}</span>
+    `;
 
-  right.appendChild(buildNotificationsButton({ notificationCount, onNotificationsClick }));
-  right.appendChild(buildProfile({ user, onProfileClick }));
+    profileInfo.appendChild(avatar);
+    profileInfo.appendChild(userDetails);
+    rightSection.appendChild(profileInfo);
 
-  return right;
-}
+    // Append all sections to header
+    header.appendChild(leftSection);
+    header.appendChild(centerSection);
+    header.appendChild(rightSection);
 
-function buildNotificationsButton({ notificationCount, onNotificationsClick }) {
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.classList.add("header__notifications-btn");
-  btn.setAttribute("aria-label", `Notifications${notificationCount > 0 ? ` (${notificationCount} unread)` : ""}`);
-
-  const icon = document.createElement("i");
-  icon.setAttribute("data-lucide", "bell");
-  btn.appendChild(icon);
-
-  if (notificationCount > 0) {
-    const countBadge = document.createElement("span");
-    countBadge.classList.add("header__notification-count");
-    countBadge.textContent = notificationCount > 9 ? "9+" : String(notificationCount);
-    btn.appendChild(countBadge);
-  }
-
-  btn.addEventListener("click", onNotificationsClick);
-  return btn;
-}
-
-function buildProfile({ user, onProfileClick }) {
-  const profile = document.createElement("button");
-  profile.type = "button";
-  profile.classList.add("header__profile");
-  profile.setAttribute("aria-label", `Open profile menu for ${user.name}`);
-
-  profile.appendChild(buildAvatar(user));
-
-  const textWrap = document.createElement("div");
-  textWrap.classList.add("header__profile-text");
-
-  const nameEl = document.createElement("span");
-  nameEl.classList.add("header__profile-name");
-  nameEl.textContent = user.name;
-  textWrap.appendChild(nameEl);
-
-  const roleBadge = createBadge({
-    label: ROLE_LABELS[user.role] || user.role,
-    tone: ROLE_TONES[user.role] || "neutral",
-  });
-  textWrap.appendChild(roleBadge);
-
-  profile.appendChild(textWrap);
-  profile.addEventListener("click", onProfileClick);
-
-  return profile;
-}
-
-function buildAvatar(user) {
-  if (user.avatarUrl) {
-    const img = document.createElement("img");
-    img.classList.add("header__avatar");
-    img.src = user.avatarUrl;
-    img.alt = user.name;
-    return img;
-  }
-
-  const fallback = document.createElement("div");
-  fallback.classList.add("header__avatar", "header__avatar--fallback");
-  fallback.textContent = getInitials(user.name);
-  return fallback;
-}
-
-function getInitials(name) {
-  if (!name) return "?";
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("");
+    return header;
 }

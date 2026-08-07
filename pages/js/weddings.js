@@ -4,20 +4,28 @@ import { showAlert } from '../../global/components/js/alerts.js';
 
 let allWeddings = [];
 
-// SIMULATED AUTH CONTEXT
-const currentUser = {
-    id: "creator_paresh",
-    role: "creator" // 'creator', 'host', or 'guest'
-};
-
 function getLocalTodayString() {
     const today = new Date();
     return today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 }
 
+// Helper to strictly determine if the current user can edit a specific wedding
+function canEditWedding(wedding) {
+    const user = window.currentUser;
+    if (!user) return false;
+    if (user.role === 'creator') return true;
+    if (user.role === 'host') {
+        // Check if the current user's ID exists in the wedding's hosts list
+        return wedding.hosts && wedding.hosts.some(h => h.user_id === user.id);
+    }
+    return false;
+}
+
 export function renderWeddings() {
+    const userRole = window.currentUser?.role || 'guest';
+
     const wrapper = document.createElement('section');
-    wrapper.className = "weddings-page-wrapper"; // SCOPED CSS CLASS
+    wrapper.className = "weddings-page-wrapper"; 
     wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
 
     // ==========================================
@@ -41,7 +49,8 @@ export function renderWeddings() {
 
     const centerContainer = document.createElement('div');
     
-    if (currentUser.role === 'creator') {
+    // STRICT RULE: Only Creators can add weddings
+    if (userRole === 'creator') {
         const createBtn = document.createElement("button");
         createBtn.innerHTML = `<i data-lucide="plus" style="width:16px; height:16px; margin-right:4px; vertical-align:middle;"></i> Wedding`;
         createBtn.style.cssText = "background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display:flex; align-items:center; transition: opacity 0.2s;";
@@ -93,25 +102,26 @@ function startOfDay(date) {
 }
 
 async function loadWeddingsData(container) {
+    const userRole = window.currentUser?.role || 'guest';
+    const userPhone = window.currentUser?.phone || '';
+
     container.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading weddings...</div>`;
     try {
         const { data, error } = await supabase.from('weddings').select('*');
         if (error) throw error;
         
-        // Fetch Hosts to display on cards
         const { data: hostsData, error: hostsError } = await supabase.from('wedding_hosts').select('*');
         if (hostsError && hostsError.code !== '42P01') throw hostsError;
         
         allWeddings = data || [];
 
         for (let wedding of allWeddings) {
-            // Attach hosts to the wedding object
             wedding.hosts = hostsData ? hostsData.filter(h => h.wedding_id === wedding.id) : [];
 
             let eventsQuery = supabase.from('events').select('*', { count: 'exact' }).eq('wedding_id', wedding.id);
             
-            if (currentUser.role === 'guest') {
-                const { data: guestData } = await supabase.from('guests').select('id').eq('wedding_id', wedding.id).eq('phone', currentUser.phone || '').single();
+            if (userRole === 'guest') {
+                const { data: guestData } = await supabase.from('guests').select('id').eq('wedding_id', wedding.id).eq('phone', userPhone).single();
                 if (guestData) {
                     const { data: eventGuests } = await supabase.from('event_guests').select('event_id').eq('guest_id', guestData.id);
                     const invitedEventIds = eventGuests ? eventGuests.map(eg => eg.event_id) : [];
@@ -126,7 +136,6 @@ async function loadWeddingsData(container) {
             }
 
             const { count: eventsCount } = await eventsQuery;
-
             wedding.events_count = eventsCount || 0;
         }
 
@@ -193,22 +202,21 @@ function filterAndRenderGalleries() {
         });
     });
 
-    if (currentUser.role === 'creator') {
-        container.querySelectorAll('.edit-wedding-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const card = e.target.closest('.gallery-card');
-                const weddingId = card.getAttribute('data-wedding-id');
-                const wedding = allWeddings.find(w => w.id === weddingId);
-                
-                if (window.openEditWeddingModal && wedding) {
-                    window.openEditWeddingModal(wedding);
-                } else {
-                    showAlert({ icon: 'info', title: 'Edit Mode', text: 'Edit Wedding Modal coming soon!' });
-                }
-            });
+    // Attach edit listeners to any generated edit buttons
+    container.querySelectorAll('.edit-wedding-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const card = e.target.closest('.gallery-card');
+            const weddingId = card.getAttribute('data-wedding-id');
+            const wedding = allWeddings.find(w => w.id === weddingId);
+            
+            if (window.openEditWeddingModal && wedding) {
+                window.openEditWeddingModal(wedding);
+            } else {
+                showAlert({ icon: 'info', title: 'Edit Mode', text: 'Edit Wedding Modal coming soon!' });
+            }
         });
-    }
+    });
 
     if (window.lucide) window.lucide.createIcons();
 }
@@ -219,7 +227,8 @@ function buildGallerySection(title, weddings) {
     const listItems = weddings.map(wedding => {
         let editBtnHTML = '';
 
-        if (currentUser.role === 'creator') {
+        // Only show edit button if the user has permission for THIS specific wedding
+        if (canEditWedding(wedding)) {
             editBtnHTML = `
                 <button class="edit-wedding-btn" style="position: absolute; right: var(--space-3); top: 1.25rem; background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'">
                     <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
@@ -233,7 +242,6 @@ function buildGallerySection(title, weddings) {
 
         let hostsHTML = '';
         if (wedding.hosts && wedding.hosts.length > 0) {
-            // Sort hosts alphabetically by name
             const sortedHosts = [...wedding.hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
             const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
             
@@ -314,8 +322,11 @@ function forceStyleModalButtons() {
 }
 
 export function openCreateWeddingModal() {
-    if (currentUser.role !== 'creator') {
-        showAlert({ icon: 'error', title: 'Access Denied', text: 'Only creators can add weddings.' });
+    const userRole = window.currentUser?.role || 'guest';
+    
+    // STRICT RULE: Only Creators can add weddings
+    if (userRole !== 'creator') {
+        showAlert({ icon: 'error', title: 'Access Denied', text: 'Only creators have permission to add new weddings.' });
         return;
     }
 
@@ -416,7 +427,6 @@ export function openCreateWeddingModal() {
                     const startDate = document.getElementById('startDate').value;
                     const endDate = document.getElementById('endDate').value;
                     
-                    // Date Validation First
                     if (startDate) {
                         const startOnlyDate = new Date(startDate + 'T00:00:00');
                         const todayOnlyDate = new Date(getLocalTodayString() + 'T00:00:00');
@@ -487,7 +497,6 @@ export function openCreateWeddingModal() {
             }
         });
 
-        // End Date Enabling Logic
         const startEl = document.getElementById('startDate');
         const endEl = document.getElementById('endDate');
         if (startEl && endEl) {
@@ -495,7 +504,7 @@ export function openCreateWeddingModal() {
                 if (startEl.value) {
                     endEl.disabled = false;
                     endEl.min = startEl.value;
-                    endEl.value = ''; // clear end date when start changes
+                    endEl.value = ''; 
                     endEl.style.borderColor = 'red';
                 } else {
                     endEl.disabled = true;
@@ -515,8 +524,11 @@ export function openCreateWeddingModal() {
 }
 
 window.openEditWeddingModal = function(wedding) {
-    if (currentUser.role !== 'creator') {
-        showAlert({ icon: 'error', title: 'Access Denied', text: 'Only creators can edit weddings.' });
+    const userRole = window.currentUser?.role || 'guest';
+    
+    // Check if user is a creator OR explicitly assigned as a host to this wedding
+    if (!canEditWedding(wedding)) {
+        showAlert({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to edit this wedding.' });
         return;
     }
 
@@ -581,122 +593,129 @@ window.openEditWeddingModal = function(wedding) {
         </form>
     `;
 
-    const modal = openModal({
-        title: "Edit Wedding",
-        content: formHTML,
-        actions: [            
-            {
-                label: "Delete",
-                variant: "danger",
-                closesModal: false,
-                onClick: async () => {
-                    const result = await Swal.fire({
-                        title: 'Are you sure?',
-                        text: "Do you really want to delete this wedding? All events and guests will be permanently removed.",
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonColor: '#dc2626',
-                        cancelButtonColor: '#6b7280',
-                        confirmButtonText: 'Yes, delete it!'
-                    });
+    // Dynamically build actions based on role
+    const modalActions = [];
 
-                    if (result.isConfirmed) {
-                        try {
-                            const { error } = await supabase.from('weddings').delete().eq('id', wedding.id);
-                            if (error) throw error;
-                            
-                            modal.close();
-                            window.dispatchEvent(new Event('weddingDataUpdated')); 
-                            showAlert({ icon: 'success', title: 'Deleted!', text: 'The wedding has been removed.', timer: 2000 });
-                        } catch (error) {
-                            showAlert({ icon: 'error', title: 'Database Error', text: error.message });
-                        }
-                    }
-                }
-            },
-            { label: "Cancel", variant: "ghost" },
-            { 
-                label: "Edit", 
-                variant: "primary", 
-                closesModal: false,
-                onClick: async () => {
-                    const fields = [
-                        { id: 'editBrideName', name: "Bride's Name" },
-                        { id: 'editGroomName', name: "Groom's Name" },
-                        { id: 'editStartDate', name: "Start Date" },
-                        { id: 'editEndDate', name: "End Date" },
-                        { id: 'editFamilyName', name: "Family Name" },
-                        { id: 'editFamilyDetails', name: "Family Details" }
-                    ];
+    // STRICT RULE: Only Creators can delete
+    if (userRole === 'creator') {
+        modalActions.push({
+            label: "Delete",
+            variant: "danger",
+            closesModal: false,
+            onClick: async () => {
+                const result = await Swal.fire({
+                    title: 'Are you sure?',
+                    text: "Do you really want to delete this wedding? All events and guests will be permanently removed.",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete it!'
+                });
 
-                    let isValid = true;
-                    let firstEmptyField = null;
-
-                    fields.forEach(field => {
-                        const el = document.getElementById(field.id);
-                        if (!el.value.trim()) {
-                            el.style.borderColor = "red";
-                            isValid = false;
-                            if (!firstEmptyField) firstEmptyField = field.name;
-                        } else {
-                            el.style.borderColor = "green";
-                        }
-                    });
-
-                    const startDate = document.getElementById('editStartDate').value;
-                    const endDate = document.getElementById('editEndDate').value;
-
-                    // Date Validation First
-                    if (startDate) {
-                        const startOnlyDate = new Date(startDate + 'T00:00:00');
-                        const todayOnlyDate = new Date(getLocalTodayString() + 'T00:00:00');
-                        if (startOnlyDate < todayOnlyDate && startDate !== wedding.start_date) {
-                            document.getElementById('editStartDate').style.borderColor = "red";
-                            showAlert({ icon: 'error', title: 'Invalid Date', text: 'Start date cannot be changed to a past date.' });
-                            return;
-                        }
-                    }
-
-                    if (startDate && endDate) {
-                        if (new Date(endDate) < new Date(startDate)) {
-                            document.getElementById('editEndDate').style.borderColor = "red";
-                            showAlert({ icon: 'error', title: 'Invalid Dates', text: 'End date cannot be earlier than the start date.' });
-                            return;
-                        }
-                    }
-
-                    if (!isValid) {
-                        showAlert({ icon: 'warning', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
-                        return;
-                    }
-
-                    const hashtagVal = document.getElementById('editWeddingHashtag').value.trim();
-                    const instagramVal = document.getElementById('editWeddingInstagram').value.trim();
-
+                if (result.isConfirmed) {
                     try {
-                        const { error } = await supabase.from('weddings').update({
-                            primary_side: document.querySelector('input[name="editPrimarySide"]:checked').value,
-                            bride_name: document.getElementById('editBrideName').value.trim(),
-                            groom_name: document.getElementById('editGroomName').value.trim(),
-                            start_date: startDate,
-                            end_date: endDate,
-                            family_name: document.getElementById('editFamilyName').value.trim(),
-                            family_details: document.getElementById('editFamilyDetails').value.trim(),
-                            hashtag: hashtagVal,
-                            instagram: instagramVal
-                        }).eq('id', wedding.id);
-                        
+                        const { error } = await supabase.from('weddings').delete().eq('id', wedding.id);
                         if (error) throw error;
                         
                         modal.close();
-                        window.dispatchEvent(new Event('weddingDataUpdated'));
-                        showAlert({ icon: 'success', title: 'Updated!', text: 'Wedding details updated successfully.', timer: 2000 });
+                        window.dispatchEvent(new Event('weddingDataUpdated')); 
+                        showAlert({ icon: 'success', title: 'Deleted!', text: 'The wedding has been removed.', timer: 2000 });
                     } catch (error) {
                         showAlert({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }
-        ]
+        });
+    }
+
+    modalActions.push({ label: "Cancel", variant: "ghost" });
+    
+    modalActions.push({ 
+        label: "Edit", 
+        variant: "primary", 
+        closesModal: false,
+        onClick: async () => {
+            const fields = [
+                { id: 'editBrideName', name: "Bride's Name" },
+                { id: 'editGroomName', name: "Groom's Name" },
+                { id: 'editStartDate', name: "Start Date" },
+                { id: 'editEndDate', name: "End Date" },
+                { id: 'editFamilyName', name: "Family Name" },
+                { id: 'editFamilyDetails', name: "Family Details" }
+            ];
+
+            let isValid = true;
+            let firstEmptyField = null;
+
+            fields.forEach(field => {
+                const el = document.getElementById(field.id);
+                if (!el.value.trim()) {
+                    el.style.borderColor = "red";
+                    isValid = false;
+                    if (!firstEmptyField) firstEmptyField = field.name;
+                } else {
+                    el.style.borderColor = "green";
+                }
+            });
+
+            const startDate = document.getElementById('editStartDate').value;
+            const endDate = document.getElementById('editEndDate').value;
+
+            if (startDate) {
+                const startOnlyDate = new Date(startDate + 'T00:00:00');
+                const todayOnlyDate = new Date(getLocalTodayString() + 'T00:00:00');
+                if (startOnlyDate < todayOnlyDate && startDate !== wedding.start_date) {
+                    document.getElementById('editStartDate').style.borderColor = "red";
+                    showAlert({ icon: 'error', title: 'Invalid Date', text: 'Start date cannot be changed to a past date.' });
+                    return;
+                }
+            }
+
+            if (startDate && endDate) {
+                if (new Date(endDate) < new Date(startDate)) {
+                    document.getElementById('editEndDate').style.borderColor = "red";
+                    showAlert({ icon: 'error', title: 'Invalid Dates', text: 'End date cannot be earlier than the start date.' });
+                    return;
+                }
+            }
+
+            if (!isValid) {
+                showAlert({ icon: 'warning', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
+                return;
+            }
+
+            const hashtagVal = document.getElementById('editWeddingHashtag').value.trim();
+            const instagramVal = document.getElementById('editWeddingInstagram').value.trim();
+
+            try {
+                const { error } = await supabase.from('weddings').update({
+                    primary_side: document.querySelector('input[name="editPrimarySide"]:checked').value,
+                    bride_name: document.getElementById('editBrideName').value.trim(),
+                    groom_name: document.getElementById('editGroomName').value.trim(),
+                    start_date: startDate,
+                    end_date: endDate,
+                    family_name: document.getElementById('editFamilyName').value.trim(),
+                    family_details: document.getElementById('editFamilyDetails').value.trim(),
+                    hashtag: hashtagVal,
+                    instagram: instagramVal
+                }).eq('id', wedding.id);
+                
+                if (error) throw error;
+                
+                modal.close();
+                window.dispatchEvent(new Event('weddingDataUpdated'));
+                showAlert({ icon: 'success', title: 'Updated!', text: 'Wedding details updated successfully.', timer: 2000 });
+            } catch (error) {
+                showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+            }
+        }
+    });
+
+    const modal = openModal({
+        title: "Edit Wedding",
+        content: formHTML,
+        actions: modalActions
     });
 
     setTimeout(() => {
@@ -710,7 +729,6 @@ window.openEditWeddingModal = function(wedding) {
             }
         });
 
-        // End Date Enabling Logic
         const editStartEl = document.getElementById('editStartDate');
         const editEndEl = document.getElementById('editEndDate');
         if (editStartEl && editEndEl) {
@@ -718,7 +736,7 @@ window.openEditWeddingModal = function(wedding) {
                 if (editStartEl.value) {
                     editEndEl.disabled = false;
                     editEndEl.min = editStartEl.value;
-                    editEndEl.value = ''; // clear end date when start changes
+                    editEndEl.value = ''; 
                     editEndEl.style.borderColor = 'red';
                 } else {
                     editEndEl.disabled = true;
