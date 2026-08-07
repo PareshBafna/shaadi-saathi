@@ -15,21 +15,23 @@ export function getWhatsAppVerificationLink(verificationCode, name) {
     return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
-// Check local storage AND database for a valid session
 export async function validateSession() {
-    const storedId = localStorage.getItem('shaadi_user_id');
+    const storedId = localStorage.getItem('ss_user_id');
     
-    if (!storedId) return null;
+    if (!storedId || storedId === 'undefined' || storedId === 'null') {
+        localStorage.removeItem('ss_user_id');
+        return null;
+    }
 
-    // Verify against database to ensure user still exists and get latest role
+    // Updated: Querying the new 'users' table
     const { data: user, error } = await supabase
-        .from('user_profiles')
+        .from('users')
         .select('*')
         .eq('id', storedId)
-        .single();
+        .maybeSingle();
 
     if (error || !user) {
-        localStorage.removeItem('shaadi_user_id');
+        localStorage.removeItem('ss_user_id');
         return null;
     }
 
@@ -37,21 +39,29 @@ export async function validateSession() {
     return user;
 }
 
-export async function registerUser({ name, phone, password }) {
+export async function registerUser({ name, phone, pin }) {
+    if (!/^\d{4}$/.test(pin)) {
+        throw new Error("PIN must be exactly 4 digits.");
+    }
+
     const cleanedPhone = cleanPhoneNumber(phone);
     
+    // Updated: Querying the new 'users' table
     const { data: existingUser } = await supabase
-        .from('user_profiles')
-        .select('id').eq('phone', cleanedPhone).single();
+        .from('users')
+        .select('id')
+        .eq('phone', cleanedPhone)
+        .maybeSingle(); 
 
     if (existingUser) throw new Error("Phone number is already registered. Please log in.");
 
+    // Updated: Inserting into 'users' table and using the 'pin' column
     const { data: newUser, error } = await supabase
-        .from('user_profiles')
+        .from('users')
         .insert([{
             name: name.trim(),
             phone: cleanedPhone,
-            password: password.trim(), 
+            pin: pin, 
             role: 'guest',
             is_verified: false,
             verification_code: generateVerificationCode()
@@ -61,41 +71,33 @@ export async function registerUser({ name, phone, password }) {
 
     if (error) throw error;
     
-    localStorage.setItem('shaadi_user_id', newUser.id);
+    localStorage.setItem('ss_user_id', newUser.id);
     return newUser;
 }
 
-export async function loginUser({ phone, password, inviteCode }) {
+export async function loginUser({ phone, pin }) {
     const cleanedPhone = cleanPhoneNumber(phone);
 
+    // Updated: Querying the new 'users' table
     const { data: user, error } = await supabase
-        .from('user_profiles')
+        .from('users')
         .select('*')
         .eq('phone', cleanedPhone)
-        .single();
+        .maybeSingle();
 
     if (error || !user) throw new Error("User not found. Please register first.");
 
-    if (inviteCode) {
-        const { data: guestMatch } = await supabase
-            .from('guests').select('id')
-            .eq('phone', cleanedPhone).eq('invite_code', inviteCode.trim().toUpperCase()).single();
-
-        if (guestMatch) {
-            await supabase.from('user_profiles').update({ is_verified: true }).eq('id', user.id);
-            user.is_verified = true;
-        } else {
-            throw new Error("Invalid Invite Code for this phone number.");
-        }
-    } else {
-        if (user.password !== password.trim()) throw new Error("Incorrect password.");
+    // Updated: Checking against the new 'pin' column
+    if (user.pin !== pin) {
+        throw new Error("Incorrect PIN. Please try again.");
     }
 
-    localStorage.setItem('shaadi_user_id', user.id);
+    localStorage.setItem('ss_user_id', user.id);
     return user;
 }
 
 export function logoutUser() {
-    localStorage.removeItem('shaadi_user_id');
-    window.location.replace('/login.html');
+    localStorage.removeItem('ss_user_id');
+    window.location.replace('/index.html#login');
+    window.location.reload();
 }

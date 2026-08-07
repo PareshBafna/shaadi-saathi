@@ -1,6 +1,6 @@
-import { supabase } from '../../../database/js/api.js';
-import { openModal } from '../../../global/components/js/modal.js';
-import { showAlert } from '../../../global/components/js/alerts.js';
+import { supabase } from '../../database/js/api.js';
+import { openModal } from '../../global/components/js/modal.js';
+import { showAlert } from '../../global/components/js/alerts.js';
 
 let allWeddings = [];
 
@@ -17,13 +17,14 @@ function getLocalTodayString() {
 
 export function renderWeddings() {
     const wrapper = document.createElement('section');
-    wrapper.className = "weddings-directory";
+    wrapper.className = "weddings-page-wrapper"; // SCOPED CSS CLASS
     wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
 
     // ==========================================
     // 1. CONTROL BAR
     // ==========================================
     const controls = document.createElement('div');
+    controls.className = "weddings-control-bar";
     controls.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); background: var(--color-white); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border);";
 
     const sortContainer = document.createElement('div');

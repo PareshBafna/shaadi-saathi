@@ -1,6 +1,5 @@
-import { supabase } from '../../../database/js/api.js';
-import { openCreateWeddingModal } from '../../weddings/js/weddings.js';
-import { showAlert } from '../../../global/components/js/alerts.js';
+import { supabase } from '../../database/js/api.js';
+import { showAlert } from '../../global/components/js/alerts.js';
 
 // SIMULATED AUTH CONTEXT
 const currentUser = {

@@ -1,6 +1,6 @@
-import { supabase } from '../../../database/js/api.js';
-import { openModal } from '../../../global/components/js/modal.js';
-import { showAlert } from '../../../global/components/js/alerts.js';
+import { supabase } from '../../database/js/api.js';
+import { openModal } from '../../global/components/js/modal.js';
+import { showAlert } from '../../global/components/js/alerts.js';
 
 // SIMULATED AUTH CONTEXT
 const currentUser = {
@@ -13,6 +13,7 @@ const currentUser = {
 // ==========================================
 export function renderWeddingDetails(weddingId) {
     const wrapper = document.createElement("div");
+    wrapper.className = "wedding-details-wrapper"; // SCOPED CSS CLASS
     wrapper.style.cssText = "width: 100%; box-sizing: border-box; padding-bottom: var(--space-8);";
     wrapper.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Loading wedding details...</div>`;
 
