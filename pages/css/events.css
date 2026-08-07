@@ -1,0 +1,108 @@
+/* Container for the vertical line */
+.timeline-container {
+    position: relative;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: var(--space-10) 0;
+}
+
+.timeline-container::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    background-color: var(--color-primary);
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    margin-left: -2px;
+}
+
+/* Individual event items */
+.timeline-item {
+    padding: 10px 40px;
+    position: relative;
+    background-color: inherit;
+    width: 50%;
+    box-sizing: border-box;
+}
+
+.timeline-item.left { left: 0; }
+.timeline-item.right { left: 50%; }
+
+/* The circle on the timeline */
+.timeline-dot {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    right: -10px;
+    background-color: var(--color-white);
+    border: 4px solid var(--color-primary);
+    border-radius: var(--radius-full);
+    top: 20px;
+    z-index: 1;
+}
+
+.timeline-item.right .timeline-dot {
+    left: -10px;
+}
+
+/* The actual card content */
+.timeline-content {
+    padding: var(--space-6);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    background: var(--color-bg-muted);
+    transition: transform var(--transition-base), border-color var(--transition-base);
+}
+
+.timeline-content:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-primary);
+}
+
+.event-date {
+    display: inline-block;
+    font-size: var(--font-size-sm);
+    color: var(--color-primary);
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: var(--font-weight-semibold);
+}
+
+.event-title {
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-3);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+}
+
+.event-detail-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-2);
+}
+
+/* Responsive Mobile Layout */
+@media screen and (max-width: 768px) {
+    .timeline-container::after {
+        left: 31px;
+    }
+    
+    .timeline-item {
+        width: 100%;
+        padding-left: 70px;
+        padding-right: 25px;
+    }
+    
+    .timeline-item.right { left: 0; }
+    
+    .timeline-item.left .timeline-dot, 
+    .timeline-item.right .timeline-dot {
+        left: 21px;
+    }
+}

@@ -1,34 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shaadi Saathi — From Invitation to Celebration</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shaadi Saathi</title>
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="src/assets/icons/favicon.ico" />
+    <!-- Global Styles (CRUCIAL for your variables) -->
+    <link rel="stylesheet" href="./global/css/global.css">
 
-  <!-- Master Stylesheet (imports all component/layout/page CSS) -->
-  <link rel="stylesheet" href="src/css/styles.css" />
+    <!-- Page Specific Stylesheets -->
+    <link rel="stylesheet" href="./pages/css/login.css">
+    <link rel="stylesheet" href="./pages/css/weddings.css">
+    <link rel="stylesheet" href="./pages/css/wedding-details.css">
 
-  <!-- Google Fonts: Inter (body) + Playfair Display (headings) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
-    rel="stylesheet"
-  />
+    <!-- Third Party Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Essential reset to ensure the layout takes the full screen */
+        body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; background-color: var(--color-bg, #f8fafc); }
+    </style>
 </head>
 <body>
 
-  <!-- App Mount Point -->
-  <div id="app"></div>
+    <!-- Main Layout Container -->
+    <div id="layout" style="display: flex; min-height: 100vh;">
+        
+        <!-- The sidebar will be prepended here by main.js -->
+        
+        <div style="flex-grow: 1; display: flex; flex-direction: column; width: 100%;">
+            <!-- The header-container is injected here by main.js -->
+            
+            <!-- The router injects page components here -->
+            <main id="main-content" style="flex-grow: 1; padding: 20px;">
+                <!-- Content dynamically loads here -->
+            </main>
+        </div>
+    </div>
 
-  <!-- Lucide Icons (must load before main.js runs its first createIcons() call) -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- App Entry Point -->
-  <script type="module" src="src/core/main.js"></script>
-
+    <!-- Application Entry Point -->
+    <script type="module" src="./global/js/main.js"></script>
 </body>
 </html>

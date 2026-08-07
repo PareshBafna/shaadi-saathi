@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Hosts - Shaadi Saathi</title>
+    <link rel="stylesheet" href="../../../../global/css/global.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-container" id="app">
+        <aside id="sidebar"></aside>
+        <div class="main-wrapper">
+            <header id="header"></header>
+            <main id="content" class="content-area"></main>
+        </div>
+    </div>
+    <script type="module">
+        import { renderHosts } from '../js/hosts.js';
+        import '../../../../global/js/page-loader.js';
+        
+        const contentEl = document.getElementById('content');
+        contentEl.appendChild(renderHosts());
+        
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 100);
+    </script>
+</body>
+</html>
