@@ -3,6 +3,7 @@ import { ROLES } from "../../js/roles.js";
 const CREATOR_NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "layout-dashboard" },
   { id: "weddings", label: "Weddings", icon: "heart" },
+  { id: 'calendar', label: 'Calendar', icon: 'calendar' },
   { id: "manage-users", label: "Manage Users", icon: "users" },
   { id: "hosts", label: "Manage Hosts", icon: "user-check" },
   { id: "web-invites", label: "Web Invites", icon: "mail" },
@@ -12,12 +13,14 @@ const CREATOR_NAV_ITEMS = [
 
 const HOST_NAV_ITEMS = [
   { id: "weddings", label: "Weddings", icon: "heart" },
+  { id: 'calendar', label: 'Calendar', icon: 'calendar' },
   { id: "sample", label: "Sample Wedding", icon: "eye" },
   { id: "profile", label: "Profile", icon: "user" },
 ];
 
 const GUEST_NAV_ITEMS = [
   { id: "weddings", label: "Weddings", icon: "heart" },
+  { id: 'calendar', label: 'Calendar', icon: 'calendar' },
   { id: "sample", label: "Sample Wedding", icon: "eye" },
   { id: "profile", label: "Profile", icon: "user" },
 ];

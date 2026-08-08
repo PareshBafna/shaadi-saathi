@@ -1,125 +1,100 @@
-export function createHeader(options = {}) {
-    const {
-        user = { name: 'Guest', role: 'guest' },
-        isVerified = false,
-        verifyLink = '',
-        notificationCount = 0,
-        onMobileMenuClick = () => {}
-    } = options;
+export function createHeader(props) {
+    const { pageTitle, user, isVerified, verifyLink, notificationCount, onMobileMenuClick } = props;
 
-    const header = document.createElement('header');
+    const header = document.createElement("header");
+    header.className = "global-header";
+    header.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--color-bg); border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 10;";
+
+    // Time-based greeting helper
+    function getTimeBasedGreeting(name) {
+        const hour = new Date().getHours();
+        const firstName = name ? name.split(' ')[0] : 'Guest';
+        
+        if (hour >= 5 && hour < 12) return `Good Morning, ${firstName}`;
+        if (hour >= 12 && hour < 17) return `Good Afternoon, ${firstName}`;
+        if (hour >= 17 && hour < 22) return `Good Evening, ${firstName}`;
+        return `Welcome Back, ${firstName}`;
+    }
+
+    const greeting = getTimeBasedGreeting(user?.name);
+
+    // Left Section: Mobile Menu Toggle + Greeting
+    const leftSection = document.createElement("div");
+    leftSection.style.cssText = "display: flex; align-items: center; gap: var(--space-4);";
     
-    // Main header layout: 3 equal flex columns to ensure perfect centering
-    header.style.cssText = `
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: var(--space-4, 16px) var(--space-6, 24px);
-        background: transparent;
-        border-bottom: 1px solid var(--color-border, #332222);
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        width: 100%;
-        box-sizing: border-box;
-    `;
-
-    // 1. LEFT SECTION (Mobile menu toggle if needed, title removed)
-    const leftSection = document.createElement('div');
-    leftSection.style.cssText = `display: flex; align-items: center; flex: 1;`;
+    const mobileMenuBtn = document.createElement("button");
+    mobileMenuBtn.className = "mobile-menu-btn";
+    mobileMenuBtn.innerHTML = `<i data-lucide="menu" style="width: 24px; height: 24px; color: var(--color-text-primary);"></i>`;
+    mobileMenuBtn.style.cssText = "background: none; border: none; cursor: pointer; display: none;"; 
+    if (onMobileMenuClick) {
+        mobileMenuBtn.addEventListener('click', onMobileMenuClick);
+    }
     
-    // Hidden by default on desktop, can be shown via CSS media queries
-    const mobileToggle = document.createElement('button');
-    mobileToggle.classList.add('mobile-menu-btn');
-    mobileToggle.style.cssText = `background: none; border: none; color: inherit; cursor: pointer; display: none;`; 
-    mobileToggle.innerHTML = `<i data-lucide="menu"></i>`;
-    mobileToggle.addEventListener('click', onMobileMenuClick);
-    leftSection.appendChild(mobileToggle);
+    const titleEl = document.createElement("h2");
+    titleEl.style.cssText = "font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;";
+    titleEl.textContent = greeting;
 
+    leftSection.appendChild(mobileMenuBtn);
+    leftSection.appendChild(titleEl);
 
-    // 2. CENTER SECTION (Verify Button)
-    const centerSection = document.createElement('div');
-    centerSection.style.cssText = `display: flex; justify-content: center; align-items: center; flex: 1;`;
+    // Right Section: Verify Btn + Notifications + Profile
+    const rightSection = document.createElement("div");
+    rightSection.style.cssText = "display: flex; align-items: center; gap: var(--space-4);";
 
+    // DO NOT show Verify Account button if user is verified
     if (!isVerified) {
-        const verifyBtn = document.createElement('a');
-        verifyBtn.href = verifyLink;
+        const verifyBtn = document.createElement("a");
+        verifyBtn.href = verifyLink || "#";
         verifyBtn.target = "_blank";
-        verifyBtn.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background-color: #ef4444; /* Changed to red */
-            color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: opacity 0.2s;
-        `;
+        verifyBtn.style.cssText = "background: var(--color-danger); color: white; padding: 0.5rem 1rem; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: flex; align-items: center; gap: 8px; transition: opacity 0.2s;";
+        verifyBtn.innerHTML = `<i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i> Verify Account`;
         verifyBtn.onmouseover = () => verifyBtn.style.opacity = '0.9';
         verifyBtn.onmouseout = () => verifyBtn.style.opacity = '1';
-        verifyBtn.innerHTML = `<i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i> Verify Account`;
-        centerSection.appendChild(verifyBtn);
+        rightSection.appendChild(verifyBtn);
     }
 
-
-    // 3. RIGHT SECTION (Notifications & Profile)
-    const rightSection = document.createElement('div');
-    rightSection.style.cssText = `display: flex; align-items: center; justify-content: flex-end; gap: 24px; flex: 1;`;
-
-    // Notifications
-    const notifWrapper = document.createElement('div');
-    notifWrapper.style.cssText = `position: relative; cursor: pointer; display: flex; align-items: center;`;
-    notifWrapper.innerHTML = `<i data-lucide="bell" style="color: var(--color-text-secondary, #a1a1aa); width: 20px; height: 20px;"></i>`;
+    const notifWrapper = document.createElement("div");
+    notifWrapper.style.cssText = "position: relative; cursor: pointer; padding: var(--space-2); color: var(--color-text-secondary); transition: color 0.2s; display: flex; align-items: center; justify-content: center;";
+    notifWrapper.onmouseover = () => notifWrapper.style.color = 'var(--color-primary)';
+    notifWrapper.onmouseout = () => notifWrapper.style.color = 'var(--color-text-secondary)';
     
-    if (notificationCount > 0) {
-        const badge = document.createElement('span');
-        badge.textContent = notificationCount;
-        badge.style.cssText = `
-            position: absolute; top: -6px; right: -6px;
-            background: #ef4444; color: white;
-            font-size: 0.65rem; font-weight: bold;
-            border-radius: 50%; width: 16px; height: 16px;
-            display: flex; align-items: center; justify-content: center;
-        `;
-        notifWrapper.appendChild(badge);
-    }
+    notifWrapper.innerHTML = `
+        <i data-lucide="bell" style="width: 20px; height: 20px;"></i>
+        ${notificationCount > 0 ? `<span style="position: absolute; top: 0px; right: 0px; background: var(--color-danger); color: white; font-size: 0.65rem; font-weight: bold; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--color-bg);">${notificationCount}</span>` : ''}
+    `;
     rightSection.appendChild(notifWrapper);
 
-    // Profile Details
-    const profileInfo = document.createElement('div');
-    profileInfo.style.cssText = `display: flex; align-items: center; gap: 12px;`;
+    const profileWrapper = document.createElement("div");
+    profileWrapper.style.cssText = "display: flex; align-items: center; gap: var(--space-3); margin-left: var(--space-2);";
     
-    // Avatar
-    const avatar = document.createElement('div');
-    avatar.style.cssText = `
-        width: 36px; height: 36px;
-        background: #d4af37; color: #1a0f0f;
-        border-radius: 50%; display: flex;
-        align-items: center; justify-content: center;
-        font-weight: bold; font-size: 0.875rem;
+    const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U';
+    
+    profileWrapper.innerHTML = `
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--color-primary); color: var(--color-text-on-accent); display: flex; align-items: center; justify-content: center; font-weight: var(--font-weight-bold); font-size: var(--font-size-sm);">
+            ${initials}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            <span style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); line-height: 1.2;">${user?.name || 'Guest'}</span>
+            <span style="font-size: 0.65rem; font-weight: var(--font-weight-medium); color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.5px;">${user?.role || 'GUEST'}</span>
+        </div>
     `;
-    const initials = (user.name || 'Guest').split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
-    avatar.textContent = initials;
+    
+    rightSection.appendChild(profileWrapper);
 
-    // Text details
-    const userDetails = document.createElement('div');
-    userDetails.style.cssText = `display: flex; flex-direction: column; text-align: left;`;
-    userDetails.innerHTML = `
-        <span style="font-weight: 600; font-size: 0.875rem; color: var(--color-text-primary, #fff); line-height: 1.2;">${user.name}</span>
-        <span style="font-size: 0.7rem; color: var(--color-text-secondary, #a1a1aa); text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2; margin-top: 2px;">${user.role}</span>
-    `;
-
-    profileInfo.appendChild(avatar);
-    profileInfo.appendChild(userDetails);
-    rightSection.appendChild(profileInfo);
-
-    // Append all sections to header
     header.appendChild(leftSection);
-    header.appendChild(centerSection);
     header.appendChild(rightSection);
+
+    // CSS injection for the mobile menu button visibility
+    if (!document.getElementById('header-mobile-css')) {
+        const style = document.createElement('style');
+        style.id = 'header-mobile-css';
+        style.textContent = `
+            @media (max-width: 768px) {
+                .mobile-menu-btn { display: flex !important; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
 
     return header;
 }

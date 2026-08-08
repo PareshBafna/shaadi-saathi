@@ -11,13 +11,18 @@ function getLocalTodayString() {
 
 // Helper to strictly determine if the current user can edit a specific wedding
 function canEditWedding(wedding) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(wedding.end_date);
+    end.setHours(0, 0, 0, 0);
+    
+    // Lock editing if the wedding is archived
+    if (end.getTime() < today.getTime()) return false;
+
     const user = window.currentUser;
     if (!user) return false;
     if (user.role === 'creator') return true;
-    if (user.role === 'host') {
-        // Check if the current user's ID exists in the wedding's hosts list
-        return wedding.hosts && wedding.hosts.some(h => h.user_id === user.id);
-    }
+    if (wedding.hosts && wedding.hosts.some(h => h.user_id === user.id)) return true;
     return false;
 }
 
@@ -104,24 +109,84 @@ function startOfDay(date) {
 async function loadWeddingsData(container) {
     const userRole = window.currentUser?.role || 'guest';
     const userPhone = window.currentUser?.phone || '';
+    const userId = window.currentUser?.id || '';
+    const isCreator = userRole === 'creator';
 
     container.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading weddings...</div>`;
+    
     try {
-        const { data, error } = await supabase.from('weddings').select('*');
+        let accessibleWeddingIds = [];
+
+        // 1. If not a creator, find which weddings this user is allowed to see first
+        if (!isCreator) {
+            const [hostRes, wUserRes, guestRes] = await Promise.all([
+                supabase.from('wedding_hosts').select('wedding_id').eq('user_id', userId),
+                supabase.from('wedding_users').select('wedding_id').eq('user_id', userId),
+                supabase.from('guests').select('wedding_id').eq('phone', userPhone)
+            ]);
+
+            const hostIds = hostRes.data ? hostRes.data.map(h => h.wedding_id) : [];
+            const wUserIds = wUserRes.data ? wUserRes.data.map(u => u.wedding_id) : [];
+            const guestIds = guestRes.data ? guestRes.data.map(g => g.wedding_id) : [];
+
+            accessibleWeddingIds = [...new Set([...hostIds, ...wUserIds, ...guestIds])];
+
+            // If they have no associations, stop early and render empty
+            if (accessibleWeddingIds.length === 0) {
+                allWeddings = [];
+                filterAndRenderGalleries();
+                return;
+            }
+        }
+
+        // 2. Fetch only the permitted weddings
+        let weddingsQuery = supabase.from('weddings').select('*');
+        if (!isCreator) {
+            weddingsQuery = weddingsQuery.in('id', accessibleWeddingIds);
+        }
+        
+        const { data: rawWeddings, error } = await weddingsQuery;
         if (error) throw error;
         
-        const { data: hostsData, error: hostsError } = await supabase.from('wedding_hosts').select('*');
-        if (hostsError && hostsError.code !== '42P01') throw hostsError;
-        
-        allWeddings = data || [];
+        // 3. Fetch dependencies
+        const { data: allSysUsers, error: sysUsersErr } = await supabase.from('users').select('id, name, phone');
+        if (sysUsersErr) throw sysUsersErr;
 
-        for (let wedding of allWeddings) {
-            wedding.hosts = hostsData ? hostsData.filter(h => h.wedding_id === wedding.id) : [];
+        let hostsQuery = supabase.from('wedding_hosts').select('*');
+        let wUsersQuery = supabase.from('wedding_users').select('*');
+        
+        if (!isCreator) {
+            hostsQuery = hostsQuery.in('wedding_id', accessibleWeddingIds);
+            wUsersQuery = wUsersQuery.in('wedding_id', accessibleWeddingIds);
+        }
+
+        const { data: hostsData, error: hostsError } = await hostsQuery;
+        if (hostsError && hostsError.code !== '42P01') throw hostsError;
+
+        const { data: wUsersData, error: wUsersError } = await wUsersQuery;
+        if (wUsersError && wUsersError.code !== '42P01') throw wUsersError;
+        
+        let accessibleWeddings = [];
+
+        // 4. Build objects and calculate event counts for the permitted weddings
+        for (let wedding of (rawWeddings || [])) {
+            const rawHosts = hostsData ? hostsData.filter(h => h.wedding_id === wedding.id) : [];
+            wedding.hosts = rawHosts.map(h => {
+                const u = allSysUsers.find(u => u.id === h.user_id) || {};
+                return { ...h, name: u.name, phone: u.phone };
+            });
+
+            wedding.wedding_users = wUsersData ? wUsersData.filter(u => u.wedding_id === wedding.id) : [];
 
             let eventsQuery = supabase.from('events').select('*', { count: 'exact' }).eq('wedding_id', wedding.id);
             
-            if (userRole === 'guest') {
-                const { data: guestData } = await supabase.from('guests').select('id').eq('wedding_id', wedding.id).eq('phone', userPhone).single();
+            const isHost = wedding.hosts.some(h => h.user_id === userId);
+            const isWUser = wedding.wedding_users.some(u => u.user_id === userId);
+            
+            const canViewAll = isCreator || isHost || isWUser;
+
+            if (!canViewAll) {
+                const { data: guestData } = await supabase.from('guests').select('id').eq('wedding_id', wedding.id).eq('phone', userPhone).maybeSingle();
                 if (guestData) {
                     const { data: eventGuests } = await supabase.from('event_guests').select('event_id').eq('guest_id', guestData.id);
                     const invitedEventIds = eventGuests ? eventGuests.map(eg => eg.event_id) : [];
@@ -137,8 +202,10 @@ async function loadWeddingsData(container) {
 
             const { count: eventsCount } = await eventsQuery;
             wedding.events_count = eventsCount || 0;
+            accessibleWeddings.push(wedding);
         }
 
+        allWeddings = accessibleWeddings;
         filterAndRenderGalleries();
     } catch (error) {
         console.error('[DEBUG ERROR] Failed to load weddings directory:', error);
@@ -185,6 +252,7 @@ function filterAndRenderGalleries() {
         return;
     }
 
+    // --- THE FIX: Include the Archived section in the UI render ---
     container.innerHTML = `
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: var(--space-6); width: 100%; align-items: start;">
             ${buildGallerySection("In Progress", inProgress)}
@@ -202,7 +270,6 @@ function filterAndRenderGalleries() {
         });
     });
 
-    // Attach edit listeners to any generated edit buttons
     container.querySelectorAll('.edit-wedding-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();

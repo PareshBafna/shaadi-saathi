@@ -1,24 +1,20 @@
 import { supabase } from '../../database/js/api.js';
 import { showAlert } from '../../global/components/js/alerts.js';
 
-// SIMULATED AUTH CONTEXT
-const currentUser = {
-    id: "creator_paresh",
-    role: "creator" // 'creator', 'host', or 'guest'
-};
-
 // ==========================================
 // MAIN RENDER FUNCTION
 // ==========================================
 export function renderDashboard() {
+    const curUser = window.currentUser || { role: 'guest' };
     const wrapper = document.createElement('section');
     wrapper.className = "dashboard";
+    wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
 
-    if (currentUser.role !== 'creator') {
+    if (curUser.role !== 'creator') {
         return wrapper; 
     }
 
-    wrapper.innerHTML = `<div class="dashboard-section__empty" style="text-align: center;">Loading dashboard...</div>`;
+    wrapper.innerHTML = `<div class="dashboard-section__empty" style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading dashboard...</div>`;
 
     loadGlobalDashboardData(wrapper);
     return wrapper;
@@ -27,6 +23,7 @@ export function renderDashboard() {
 // ==========================================
 // ASYNC DATA FETCHER
 // ==========================================
+// Inside pages/js/dashboard.js
 async function loadGlobalDashboardData(section) {
     try {
         let weddings = [];
@@ -37,23 +34,23 @@ async function loadGlobalDashboardData(section) {
             throw error;
         }
 
-        // Fetch Hosts to display on cards
+        // --- THE FIX: Fetch Users alongside Hosts ---
+        const { data: allSysUsers, error: sysUsersErr } = await supabase.from('users').select('id, name, phone');
+        if (sysUsersErr) throw sysUsersErr;
+
         const { data: hostsData, error: hostsError } = await supabase.from('wedding_hosts').select('*');
         if (hostsError && hostsError.code !== '42P01') throw hostsError;
         
         for (let wedding of weddings) {
-            // Attach hosts
-            wedding.hosts = hostsData ? hostsData.filter(h => h.wedding_id === wedding.id) : [];
+            // Attach hosts AND map their names from allSysUsers
+            const rawHosts = hostsData ? hostsData.filter(h => h.wedding_id === wedding.id) : [];
+            wedding.hosts = rawHosts.map(h => {
+                const u = allSysUsers.find(u => u.id === h.user_id) || {};
+                return { ...h, name: u.name, phone: u.phone };
+            });
 
-            const { count: eventsCount } = await supabase
-                .from('events')
-                .select('*', { count: 'exact', head: true })
-                .eq('wedding_id', wedding.id);
-
-            const { count: guestsCount } = await supabase
-                .from('guests')
-                .select('*', { count: 'exact', head: true })
-                .eq('wedding_id', wedding.id);
+            const { count: eventsCount } = await supabase.from('events').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
+            const { count: guestsCount } = await supabase.from('guests').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
 
             wedding.events_count = eventsCount || 0;
             wedding.guests_count = guestsCount || 0;
@@ -93,12 +90,15 @@ async function loadGlobalDashboardData(section) {
 
         const inProgressSection = buildWeddingListSection("In Progress", inProgressWeddings);
         const upcomingSection = buildWeddingListSection("Upcoming", upcomingWeddings);
+        const archivedSection = buildWeddingListSection("Archived", archivedWeddings);
         
         inProgressSection.style.marginBottom = "0";
         upcomingSection.style.marginBottom = "0";
+        archivedSection.style.marginBottom = "0";
 
         listsWrapper.appendChild(inProgressSection);
         listsWrapper.appendChild(upcomingSection);
+        listsWrapper.appendChild(archivedSection);
 
         section.appendChild(listsWrapper);
         section.appendChild(buildRecentActivitySection());
@@ -109,21 +109,29 @@ async function loadGlobalDashboardData(section) {
 
     } catch (error) {
         console.error('[DEBUG ERROR] Failed to load dashboard data:', error);
-        section.innerHTML = `<div class="dashboard-section" style="border-color: var(--color-danger);"><span style="color: var(--color-danger);">Failed to load data: ${error.message}</span></div>`;
+        section.innerHTML = `<div class="dashboard-section" style="border-color: var(--color-danger); padding: var(--space-5);"><span style="color: var(--color-danger);">Failed to load data: ${error.message}</span></div>`;
     }
 }
 
 function buildStatsGrid(stats) {
     const grid = document.createElement("div");
     grid.className = "dashboard__stats";
+    // ADDED GRID CSS FIX HERE
+    grid.style.cssText = `
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+        gap: var(--space-6); 
+        margin-bottom: var(--space-8);
+        width: 100%;
+    `;
     grid.innerHTML = stats.map(s => `
-        <div class="stat-card" style="padding: var(--space-4); display: flex; align-items: center; justify-content: space-between;">
+        <div class="stat-card" style="background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; align-items: center; justify-content: space-between;">
             <div class="dashboard__stat-card">
-                <p class="card__subtitle">${s.label}</p>
-                <p class="card__title" style="margin: 0; color: var(--color-text-primary);">${s.value}</p>
+                <p class="card__subtitle" style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0; font-weight: var(--font-weight-medium);">${s.label}</p>
+                <p class="card__title" style="color: var(--color-text-primary); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); margin: 4px 0 0 0;">${s.value}</p>
             </div>
-            <div style="background: var(--color-border); color: var(--color-primary); width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <i data-lucide="${s.icon}" style="width: 18px; height: 18px;"></i>
+            <div style="background: var(--color-border); color: var(--color-primary); width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i data-lucide="${s.icon}" style="width: 20px; height: 20px;"></i>
             </div>
         </div>
     `).join('');
@@ -139,9 +147,10 @@ function startOfDay(date) {
 function buildRecentActivitySection() {
     const section = document.createElement("div");
     section.className = "dashboard-section";
+    section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);";
     section.innerHTML = `
-        <h2>Recent Activity</h2>
-        <div class="dashboard-section__empty" style="text-align: center;">
+        <h2 style="font-size: 1.25rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0 0 var(--space-4) 0;">Recent Activity</h2>
+        <div class="dashboard-section__empty" style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">
             No recent activity logs recorded.
         </div>
     `;
@@ -151,17 +160,17 @@ function buildRecentActivitySection() {
 function buildWeddingListSection(title, weddingsList) {
     const container = document.createElement("div");
     container.className = "dashboard-section";
-    container.style.cssText = "width: 100%; margin-bottom: var(--space-6);"; 
+    container.style.cssText = "width: 100%; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);"; 
 
     const heading = document.createElement("h2");
     heading.textContent = title;
-    heading.style.marginBottom = "var(--space-4)";
+    heading.style.cssText = "font-size: 1.25rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;";
     container.appendChild(heading);
 
     if (!weddingsList || weddingsList.length === 0) {
         const emptyDiv = document.createElement("div");
         emptyDiv.className = "dashboard-section__empty";
-        emptyDiv.style.textAlign = "center";
+        emptyDiv.style.cssText = "text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);";
         emptyDiv.textContent = `No ${title.toLowerCase()} weddings found.`;
         container.appendChild(emptyDiv);
         return container;
@@ -188,7 +197,7 @@ function buildWeddingListSection(title, weddingsList) {
         } else {
             hostsHTML = `
             <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span style="font-style: italic;">No hosts added</span>
+                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span style="font-style: italic;">No wedding hosts added</span>
             </div>`;
         }
 
@@ -196,7 +205,9 @@ function buildWeddingListSection(title, weddingsList) {
         cardEl.className = "stat-card";
         cardEl.setAttribute('data-wedding-id', wedding.id);
         
-        cardEl.style.cssText = "cursor: pointer; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 8px; position: relative;";
+        cardEl.style.cssText = "cursor: pointer; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 8px; position: relative; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.1s ease; background: var(--color-bg);";
+        cardEl.onmouseover = () => cardEl.style.transform = 'translateY(-2px)';
+        cardEl.onmouseout = () => cardEl.style.transform = 'translateY(0)';
         
         let cardHTML = `
             <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
@@ -205,8 +216,8 @@ function buildWeddingListSection(title, weddingsList) {
                         <i data-lucide="heart" style="width: 16px; height: 16px;"></i>
                     </div>
                     <div>
-                        <h3 style="margin: 0; font-size: 0.9rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${displayNames}</h3>
-                        <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: var(--color-text-secondary);"><i data-lucide="calendar" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
+                        <h3 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${displayNames}</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--color-text-secondary);"><i data-lucide="calendar" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
                     </div>
                 </div>
             </div>

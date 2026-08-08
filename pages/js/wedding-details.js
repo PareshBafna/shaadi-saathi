@@ -11,11 +11,11 @@ export function renderWeddingDetails(weddingId) {
     wrapper.style.cssText = "width: 100%; box-sizing: border-box; padding-bottom: var(--space-8);";
     wrapper.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Loading wedding details...</div>`;
 
-    loadCommandCenterData(wrapper, weddingId);
+    loadWeddingData(wrapper, weddingId);
 
     const updateHandler = () => {
         if (document.body.contains(wrapper)) {
-            loadCommandCenterData(wrapper, weddingId);
+            loadWeddingData(wrapper, weddingId);
         } else {
             window.removeEventListener('weddingDataUpdated', updateHandler);
         }
@@ -28,7 +28,7 @@ export function renderWeddingDetails(weddingId) {
 // ==========================================
 // ASYNC DATA FETCHER & PERMISSION HIERARCHY
 // ==========================================
-async function loadCommandCenterData(container, weddingId) {
+async function loadWeddingData(container, weddingId) {
     try {
         const curUser = window.currentUser || { role: 'guest' };
 
@@ -60,8 +60,15 @@ async function loadCommandCenterData(container, weddingId) {
         const isHost = hosts.some(h => h.user_id === curUser.id);
         const isWeddingUser = wUsers.some(w => w.user_id === curUser.id);
         
-        const canConfig = isCreator || isHost; // Can Add/Edit/Delete (Hosts handle everything except themselves)
-        const canViewAll = isCreator || isHost || isWeddingUser; // Can view all guests, all events, full stats
+        const todayTime = new Date();
+        todayTime.setHours(0, 0, 0, 0);
+        const endDateTime = new Date(wedding.end_date);
+        endDateTime.setHours(0, 0, 0, 0);
+        const isArchived = endDateTime.getTime() < todayTime.getTime();
+
+        // If archived, force canConfig to false locking ALL modification buttons
+        const canConfig = (isCreator || isHost) && !isArchived; 
+        const canViewAll = isCreator || isHost || isWeddingUser; 
 
         // Store context globally for modal operations
         window.__weddingContext = {
@@ -413,33 +420,68 @@ function buildEventItinerarySection(wedding, events, canConfig) {
 }
 
 // ==========================================
-// 4. HOST SECTION LOGIC (DROPDOWN BASED)
+// 4. HOST SECTION LOGIC (DROPDOWN BASED + PAGINATION)
 // ==========================================
 function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
     const section = document.createElement("div");
     section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
 
-    const header = document.createElement("div");
-    header.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4); flex-wrap: wrap; gap: 12px;";
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    let searchQuery = '';
+
+    const controlsRow = document.createElement("div");
+    controlsRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4); flex-wrap: wrap; gap: 12px;";
     
     let btnHTML = canConfig ? `
-        <button onclick="openSystemUserModal('host')" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.5rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+        <button id="add-host-btn-trigger" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.5rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
             <i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Wedding Host
         </button>
     ` : '';
 
-    header.innerHTML = `
+    controlsRow.innerHTML = `
         <div style="flex: 1 1 0; display: flex; justify-content: flex-start; min-width: 150px;"></div>
         <div style="flex: 1 1 0; display: flex; justify-content: center; min-width: 150px;">${btnHTML}</div>
-        <div style="flex: 1 1 0; display: flex; justify-content: flex-end; min-width: 150px;"></div>
+        <div style="flex: 1 1 0; display: flex; justify-content: flex-end; min-width: 200px;">
+            <div style="position: relative; display: flex; align-items: center; width: 100%; max-width: 300px;">
+                <i data-lucide="search" style="position: absolute; left: 10px; width: 16px; height: 16px; color: var(--color-text-muted);"></i>
+                <input type="text" id="hostSearchInput" placeholder="Search by name or phone..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
+            </div>
+        </div>
     `;
-    section.appendChild(header);
+    section.appendChild(controlsRow);
 
     const content = document.createElement("div");
+    section.appendChild(content);
 
-    if (!hosts || hosts.length === 0) {
-        content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No wedding hosts assigned yet.</div>`;
-    } else {
+    function renderHosts() {
+        const filteredHosts = (hosts || []).filter(h => {
+            const query = searchQuery.toLowerCase();
+            const nameMatch = (h.name || '').toLowerCase().includes(query);
+            const phoneMatch = (h.phone || '').toLowerCase().includes(query);
+            return nameMatch || phoneMatch;
+        });
+
+        const sortedHosts = filteredHosts.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+
+        const totalPages = Math.ceil(sortedHosts.length / itemsPerPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const paginatedHosts = sortedHosts.slice(startIndex, startIndex + itemsPerPage);
+
+        if (!hosts || hosts.length === 0) {
+            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No wedding hosts assigned yet.</div>`;
+            if (window.lucide) window.lucide.createIcons();
+            return;
+        }
+
+        if (paginatedHosts.length === 0) {
+            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No hosts match your search.</div>`;
+            if (window.lucide) window.lucide.createIcons();
+            return;
+        }
+
         let listHTML = `
             <div style="display: grid; grid-template-columns: 32px 50px 1.5fr 1fr; align-items: center; padding: 0 var(--space-4) var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-2); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); gap: 12px;">
                 <div></div> 
@@ -449,16 +491,13 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
             </div>
         `;
         
-        const sortedHosts = [...hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
-        
-        sortedHosts.forEach((host, index) => {
+        paginatedHosts.forEach((host, index) => {
+            const globalIndex = startIndex + index + 1;
             const hostJson = JSON.stringify(host).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-            
-            // Hosts cannot edit themselves unless they are a creator
             const canEditThisHost = canConfig && (isCreator || host.user_id !== curUserId);
             
             const actionBtn = canEditThisHost ? `
-                <button onclick="openSystemUserModal('host', JSON.parse('${hostJson}'))" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
+                <button class="edit-host-btn" data-host='${hostJson}' style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
                     <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
                 </button>
             ` : `<div></div>`;
@@ -467,7 +506,7 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
             <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">
                 <div style="display: grid; grid-template-columns: 32px 50px 1.5fr 1fr; align-items: center; padding: var(--space-3) var(--space-4); transition: background 0.2s ease; gap: 12px;" onmouseover="this.style.background='var(--color-border)';" onmouseout="this.style.background='transparent';">
                     ${actionBtn}
-                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${index + 1}</div>
+                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
                     <div style="display: flex; align-items: center; overflow: hidden;">
                         <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${host.name}</h4>
                     </div>
@@ -477,41 +516,134 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
                 </div>
             </div>`;
         });
+
+        listHTML += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border);">
+                <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+                    Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, sortedHosts.length)} of ${sortedHosts.length} hosts
+                </div>
+        `;
+
+        if (totalPages > 1) {
+            listHTML += `
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="host-pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === 1 ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
+                    <span style="font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-medium); padding: 0 8px;">Page ${currentPage} of ${totalPages}</span>
+                    <button class="host-pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === totalPages ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                </div>
+            `;
+        } else {
+            listHTML += `<div></div>`; 
+        }
+        listHTML += `</div>`;
+        
         content.innerHTML = listHTML;
+
+        setTimeout(() => {
+            const editBtns = content.querySelectorAll('.edit-host-btn');
+            editBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const hostData = JSON.parse(btn.getAttribute('data-host'));
+                    window.openSystemUserModal('host', hostData);
+                });
+            });
+
+            const pageBtns = content.querySelectorAll('.host-pagination-btn');
+            pageBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (btn.hasAttribute('disabled')) return;
+                    currentPage = parseInt(btn.getAttribute('data-page'));
+                    renderHosts();
+                });
+            });
+
+            if (window.lucide) window.lucide.createIcons();
+        }, 0);
     }
-    section.appendChild(content);
+
+    setTimeout(() => {
+        renderHosts();
+        const searchInput = document.getElementById('hostSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                currentPage = 1; 
+                renderHosts();
+            });
+        }
+        if (canConfig) {
+            const trigger = document.getElementById('add-host-btn-trigger');
+            if(trigger) trigger.addEventListener('click', () => window.openSystemUserModal('host'));
+        }
+    }, 0);
 
     return section;
 }
 
 // ==========================================
-// 5. WEDDING USERS SECTION (DROPDOWN BASED)
+// 5. WEDDING USERS SECTION (DROPDOWN BASED + PAGINATION)
 // ==========================================
 function buildWeddingUserListSection(wedding, wUsers, canConfig) {
     const section = document.createElement("div");
     section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
 
-    const header = document.createElement("div");
-    header.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4); flex-wrap: wrap; gap: 12px;";
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    let searchQuery = '';
+
+    const controlsRow = document.createElement("div");
+    controlsRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4); flex-wrap: wrap; gap: 12px;";
     
     let btnHTML = canConfig ? `
-        <button onclick="openSystemUserModal('wedding_user')" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.5rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+        <button id="add-wedding-user-btn-trigger" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.5rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
             <i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Wedding User
         </button>
     ` : '';
 
-    header.innerHTML = `
+    controlsRow.innerHTML = `
         <div style="flex: 1 1 0; display: flex; justify-content: flex-start; min-width: 150px;"></div>
         <div style="flex: 1 1 0; display: flex; justify-content: center; min-width: 150px;">${btnHTML}</div>
-        <div style="flex: 1 1 0; display: flex; justify-content: flex-end; min-width: 150px;"></div>
+        <div style="flex: 1 1 0; display: flex; justify-content: flex-end; min-width: 200px;">
+            <div style="position: relative; display: flex; align-items: center; width: 100%; max-width: 300px;">
+                <i data-lucide="search" style="position: absolute; left: 10px; width: 16px; height: 16px; color: var(--color-text-muted);"></i>
+                <input type="text" id="weddingUserSearchInput" placeholder="Search by name or phone..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
+            </div>
+        </div>
     `;
-    section.appendChild(header);
+    section.appendChild(controlsRow);
 
     const content = document.createElement("div");
+    section.appendChild(content);
 
-    if (!wUsers || wUsers.length === 0) {
-        content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No wedding users assigned yet.</div>`;
-    } else {
+    function renderWeddingUsers() {
+        const filteredUsers = (wUsers || []).filter(u => {
+            const query = searchQuery.toLowerCase();
+            const nameMatch = (u.name || '').toLowerCase().includes(query);
+            const phoneMatch = (u.phone || '').toLowerCase().includes(query);
+            return nameMatch || phoneMatch;
+        });
+
+        const sortedUsers = filteredUsers.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+
+        const totalPages = Math.ceil(sortedUsers.length / itemsPerPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const paginatedUsers = sortedUsers.slice(startIndex, startIndex + itemsPerPage);
+
+        if (!wUsers || wUsers.length === 0) {
+            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No wedding users assigned yet.</div>`;
+            if (window.lucide) window.lucide.createIcons();
+            return;
+        }
+
+        if (paginatedUsers.length === 0) {
+            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No users match your search.</div>`;
+            if (window.lucide) window.lucide.createIcons();
+            return;
+        }
+
         let listHTML = `
             <div style="display: grid; grid-template-columns: 32px 50px 1.5fr 1fr; align-items: center; padding: 0 var(--space-4) var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-2); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); gap: 12px;">
                 <div></div> 
@@ -521,12 +653,12 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
             </div>
         `;
         
-        const sortedUsers = [...wUsers].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
-        
-        sortedUsers.forEach((u, index) => {
+        paginatedUsers.forEach((u, index) => {
+            const globalIndex = startIndex + index + 1;
             const uJson = JSON.stringify(u).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            
             const actionBtn = canConfig ? `
-                <button onclick="openSystemUserModal('wedding_user', JSON.parse('${uJson}'))" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
+                <button class="edit-wedding-user-btn" data-user='${uJson}' style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
                     <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
                 </button>
             ` : `<div></div>`;
@@ -535,7 +667,7 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
             <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">
                 <div style="display: grid; grid-template-columns: 32px 50px 1.5fr 1fr; align-items: center; padding: var(--space-3) var(--space-4); transition: background 0.2s ease; gap: 12px;" onmouseover="this.style.background='var(--color-border)';" onmouseout="this.style.background='transparent';">
                     ${actionBtn}
-                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${index + 1}</div>
+                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
                     <div style="display: flex; align-items: center; overflow: hidden;">
                         <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${u.name}</h4>
                     </div>
@@ -545,9 +677,67 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
                 </div>
             </div>`;
         });
+
+        listHTML += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border);">
+                <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+                    Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, sortedUsers.length)} of ${sortedUsers.length} users
+                </div>
+        `;
+
+        if (totalPages > 1) {
+            listHTML += `
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="wedding-user-pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === 1 ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
+                    <span style="font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-medium); padding: 0 8px;">Page ${currentPage} of ${totalPages}</span>
+                    <button class="wedding-user-pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === totalPages ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                </div>
+            `;
+        } else {
+            listHTML += `<div></div>`; 
+        }
+        listHTML += `</div>`;
+        
         content.innerHTML = listHTML;
+
+        setTimeout(() => {
+            const editBtns = content.querySelectorAll('.edit-wedding-user-btn');
+            editBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const uData = JSON.parse(btn.getAttribute('data-user'));
+                    window.openSystemUserModal('wedding_user', uData);
+                });
+            });
+
+            const pageBtns = content.querySelectorAll('.wedding-user-pagination-btn');
+            pageBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (btn.hasAttribute('disabled')) return;
+                    currentPage = parseInt(btn.getAttribute('data-page'));
+                    renderWeddingUsers();
+                });
+            });
+
+            if (window.lucide) window.lucide.createIcons();
+        }, 0);
     }
-    section.appendChild(content);
+
+    setTimeout(() => {
+        renderWeddingUsers();
+        const searchInput = document.getElementById('weddingUserSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                currentPage = 1; 
+                renderWeddingUsers();
+            });
+        }
+        if (canConfig) {
+            const trigger = document.getElementById('add-wedding-user-btn-trigger');
+            if(trigger) trigger.addEventListener('click', () => window.openSystemUserModal('wedding_user'));
+        }
+    }, 0);
 
     return section;
 }
@@ -561,16 +751,16 @@ window.openSystemUserModal = async function(type, existingRecord = null) {
     const tableName = isHost ? 'wedding_hosts' : 'wedding_users';
     const titleType = isHost ? 'Wedding Host' : 'Wedding User';
 
-    // Build eligible users list: Exclude assigned users and exclude creators
     let eligibleUsers = ctx.allSysUsers.filter(u => !ctx.assignedIds.has(u.id) && u.role !== 'creator');
     
-    // If editing, push the current user back into the options so it displays
     if (existingRecord) {
         const currentSysUser = ctx.allSysUsers.find(u => u.id === existingRecord.user_id);
         if (currentSysUser && !eligibleUsers.some(u => u.id === currentSysUser.id)) {
             eligibleUsers.push(currentSysUser);
         }
     }
+
+    eligibleUsers.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
 
     let optionsHtml = eligibleUsers.map(u => 
         `<option value="${u.id}" ${existingRecord && existingRecord.user_id === u.id ? 'selected' : ''}>${u.name} - ${u.phone}</option>`
@@ -581,7 +771,7 @@ window.openSystemUserModal = async function(type, existingRecord = null) {
     }
 
     const formHTML = `
-        <form id="sysUserForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
+        <form id="sysUserForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3); padding-bottom: 200px;">
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Select ${titleType} *</label>
                 <select id="sysUserId" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
@@ -667,11 +857,17 @@ window.openSystemUserModal = async function(type, existingRecord = null) {
         actions: actions
     });
 
-    setTimeout(() => forceStyleModalButtons(), 50);
+    setTimeout(() => {
+        forceStyleModalButtons();
+        
+        // Convert the standard select into the searchable dropdown UI
+        convertToSearchableDropdown('sysUserId');
+        
+    }, 50);
 };
 
 // ==========================================
-// 6. GUEST LIST SECTION (Physical Guests)
+// 6. GUEST LIST SECTION 
 // ==========================================
 function buildGuestListSection(wedding, guests, events, canConfig) {
     window.__currentEvents = events || [];
@@ -744,7 +940,7 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
             return;
         }
 
-        const gridTemplate = canConfig ? "32px 32px 50px 1.5fr 1fr 1fr 60px" : "32px 50px 1.5fr 1fr 1fr 60px"; 
+        const gridTemplate = canConfig ? "32px 32px 50px 1.5fr 1fr 1fr 60px" : "32px 50px 1.5fr 1fr 1fr"; 
 
         let listHTML = `
             <div style="display: grid; grid-template-columns: ${gridTemplate}; align-items: center; padding: 0 var(--space-4) var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-2); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); gap: 12px;">
@@ -754,7 +950,7 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
                 <div>Name</div>
                 <div>Phone Number</div>
                 <div>Events Count</div>
-                <div style="text-align: center;">WhatsApp</div>
+                ${canConfig ? '<div style="text-align: center;">WhatsApp</div>' : ''}
             </div>
         `;
 
@@ -825,7 +1021,7 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
                         ${guest.invited_events?.length || 0} Invited
                     </div>
 
-                    <div>${waCellContent}</div>
+                    ${canConfig ? `<div>${waCellContent}</div>` : ''}
                 </div>
 
                 <div id="child-${guest.id}" style="display: none; padding: var(--space-4) var(--space-4) var(--space-4) ${canConfig ? '74px' : '42px'}; background: var(--color-white); border-top: 1px dashed var(--color-border);">
@@ -928,6 +1124,102 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
 
 function generateInviteCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// ==========================================
+// SEARCHABLE DROPDOWN UTILITY
+// ==========================================
+function convertToSearchableDropdown(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    // Hide original select
+    select.style.display = 'none';
+
+    // Create wrapper
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position: relative; width: 100%; text-align: left;';
+    select.parentNode.insertBefore(wrapper, select);
+
+    // Create search input
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Search...';
+    input.className = select.className; // Inherit existing classes
+    input.style.cssText = 'width: 100%; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;';
+    wrapper.appendChild(input);
+
+    // Create dropdown list container (Updated background color)
+    const list = document.createElement('div');
+    list.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); z-index: 9999; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-top: 4px;';
+    wrapper.appendChild(list);
+
+    const options = Array.from(select.options);
+    
+    // Function to filter and render options
+    function renderList(filter = '') {
+        list.innerHTML = '';
+        const filtered = options.filter(opt => opt.text.toLowerCase().includes(filter.toLowerCase()) && opt.value !== "");
+        
+        if (filtered.length === 0) {
+            const noRes = document.createElement('div');
+            noRes.style.cssText = 'padding: 10px; color: var(--color-text-muted); font-size: 0.9rem; text-align: center;';
+            noRes.textContent = 'No results found';
+            list.appendChild(noRes);
+            return;
+        }
+
+        filtered.forEach(opt => {
+            const item = document.createElement('div');
+            item.style.cssText = 'padding: 10px; cursor: pointer; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; color: var(--color-text-primary); transition: background 0.2s;';
+            item.textContent = opt.text;
+            
+            // Hover effects
+            item.addEventListener('mouseover', () => item.style.background = 'var(--color-border)');
+            item.addEventListener('mouseout', () => item.style.background = 'transparent');
+            
+            // Selection event
+            item.addEventListener('click', () => {
+                select.value = opt.value;
+                input.value = opt.text;
+                list.style.display = 'none';
+                select.dispatchEvent(new Event('change')); 
+            });
+            list.appendChild(item);
+        });
+    }
+
+    // Input interaction listeners
+    input.addEventListener('focus', () => {
+        input.value = ''; // Clear input on focus for easy new searching
+        renderList('');
+        list.style.display = 'block';
+    });
+
+    input.addEventListener('input', (e) => {
+        renderList(e.target.value);
+        list.style.display = 'block';
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) {
+            list.style.display = 'none';
+            // Revert input to the currently selected option's text if blurred
+            const selectedOpt = options.find(o => o.value === select.value);
+            if (selectedOpt && select.value !== "") {
+                input.value = selectedOpt.text;
+            } else {
+                input.value = '';
+            }
+        }
+    });
+
+    // Initial state setup
+    const initialOpt = options.find(o => o.value === select.value);
+    if (initialOpt && select.value !== "") {
+        input.value = initialOpt.text;
+    }
 }
 
 function forceStyleModalButtons() {
