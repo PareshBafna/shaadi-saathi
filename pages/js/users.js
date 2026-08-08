@@ -7,7 +7,7 @@ const usersPerPage = 10;
 let searchQuery = '';
 let allUsersData = [];
 
-export function renderManageUsers() {
+export function renderUsers() {
     const section = document.createElement("div");
     section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
 
@@ -31,7 +31,7 @@ export function renderManageUsers() {
     section.appendChild(controlsRow);
 
     const content = document.createElement("div");
-    content.id = "manage-users-content";
+    content.id = "users-content";
     section.appendChild(content);
 
     setTimeout(() => {
@@ -57,7 +57,7 @@ export function renderManageUsers() {
 }
 
 async function loadUsersData() {
-    const content = document.getElementById("manage-users-content");
+    const content = document.getElementById("users-content");
     if (!content) return;
     content.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading users...</div>`;
 
@@ -102,7 +102,7 @@ async function loadUsersData() {
 }
 
 function renderUsersList() {
-    const content = document.getElementById("manage-users-content");
+    const content = document.getElementById("users-content");
     if (!content) return;
 
     const filteredUsers = allUsersData.filter(u => {

@@ -11,7 +11,7 @@ import { renderDashboard } from '../../pages/js/dashboard.js';
 import { renderWeddings } from '../../pages/js/weddings.js';
 import { renderWeddingDetails } from '../../pages/js/wedding-details.js';
 import { renderLogin } from '../../pages/js/login.js';
-import { renderManageUsers } from '../../pages/js/manage-users.js';
+import { renderUsers } from '../../pages/js/users.js';
 import { renderCalendar } from '../../pages/js/calendar.js'; 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -204,9 +204,9 @@ async function router() {
         pageTitle = "Wedding Details"; 
         renderFunc = renderWeddingDetails; 
         allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
-    } else if (route === "#manage-users") {
-        pageTitle = "Manage Users";
-        renderFunc = renderManageUsers;
+    } else if (route === "#users") {
+        pageTitle = "Users";
+        renderFunc = renderUsers;
         allowedRoles = ['creator']; 
     } else if (route === "#calendar") {
         pageTitle = "Event Calendar";
