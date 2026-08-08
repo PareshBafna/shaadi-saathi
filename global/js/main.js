@@ -7,12 +7,13 @@ import { createSidebar } from '../components/js/sidebar.js';
 import { createHeader } from '../components/js/header.js';
 
 // Step OUT of global/js, OUT of global, and into pages/js
+import { renderLogin } from '../../pages/js/login.js';
 import { renderDashboard } from '../../pages/js/dashboard.js';
 import { renderWeddings } from '../../pages/js/weddings.js';
 import { renderWeddingDetails } from '../../pages/js/wedding-details.js';
-import { renderLogin } from '../../pages/js/login.js';
+import { renderCalendar } from '../../pages/js/calendar.js';
 import { renderUsers } from '../../pages/js/users.js';
-import { renderCalendar } from '../../pages/js/calendar.js'; 
+import { renderHosts } from '../../pages/js/hosts.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     document.body.style.opacity = '0.5';
@@ -204,14 +205,18 @@ async function router() {
         pageTitle = "Wedding Details"; 
         renderFunc = renderWeddingDetails; 
         allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
-    } else if (route === "#users") {
-        pageTitle = "Users";
-        renderFunc = renderUsers;
-        allowedRoles = ['creator']; 
     } else if (route === "#calendar") {
         pageTitle = "Event Calendar";
         renderFunc = renderCalendar;
         allowedRoles = ['creator', 'host', 'wedding_user', 'guest'];
+    }  else if (route === "#users") {
+        pageTitle = "Users";
+        renderFunc = renderUsers;
+        allowedRoles = ['creator']; 
+    } else if (route === "#hosts") {
+        pageTitle = "Hosts";
+        renderFunc = renderHosts;
+        allowedRoles = ['creator'];
     } else if (route === "#sample") {
         pageTitle = "Sample Wedding";
         renderFunc = renderWeddings; 
