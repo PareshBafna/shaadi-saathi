@@ -6,8 +6,8 @@ const CREATOR_NAV_ITEMS = [
   { id: 'calendar', label: 'Calendar', icon: 'calendar' },
   { id: "users", label: "Users", icon: "users" },
   { id: "hosts", label: "Hosts", icon: "user-check" },
-  { id: "web-invites", label: "Web Invites", icon: "mail" },
   { id: "sample", label: "Sample Wedding", icon: "eye" },
+  { id: "web-invites", label: "Web Invites", icon: "mail" },
   { id: "profile", label: "Profile", icon: "user" },
 ];
 

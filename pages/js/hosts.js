@@ -9,22 +9,28 @@ let hostUsersData = [];
 
 export function renderHosts() {
     const section = document.createElement("div");
-    section.style.cssText = "width: 100%; max-width: 1200px; margin: 0 auto; padding-bottom: var(--space-8);";
+    section.style.cssText = "width: 100%; max-width: 1300px; margin: 0 auto; padding-bottom: var(--space-8);";
 
+    // Add the Card Wrapper
+    const cardContainer = document.createElement("div");
+    cardContainer.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);";
+
+    // Top Controls Row (Matching Users Page Layout: Center Button, Right Search)
     const controlsRow = document.createElement("div");
-    controlsRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); flex-wrap: wrap; gap: 12px;";
-    
+    controlsRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); padding-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); flex-wrap: wrap; gap: 16px;";
+
     controlsRow.innerHTML = `
-        <div style="flex: 1; min-width: 200px;">
-            <div style="position: relative; display: flex; align-items: center; width: 100%; max-width: 350px;">
-                <i data-lucide="search" style="position: absolute; left: 12px; width: 18px; height: 18px; color: var(--color-text-muted);"></i>
-                <input type="text" id="hostSearchInput" placeholder="Search hosts by name or phone..." style="width: 100%; padding: 0.6rem 0.6rem 0.6rem 38px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-base); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
-            </div>
-        </div>
-        <div style="flex: 1; display: flex; justify-content: flex-end; min-width: 200px;">
-            <button id="add-host-btn" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.6rem 1.5rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                <i data-lucide="plus" style="width:18px; height:18px; margin-right:6px;"></i> Add Host
+        <div style="flex: 1;"></div>
+        <div style="display: flex; justify-content: center;">
+            <button id="add-host-btn" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                <i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Host
             </button>
+        </div>
+        <div style="flex: 1; display: flex; justify-content: flex-end;">
+            <div style="position: relative; display: flex; align-items: center; width: 100%; max-width: 300px;">
+                <i data-lucide="search" style="position: absolute; left: 10px; width: 16px; height: 16px; color: var(--color-text-muted);"></i>
+                <input type="text" id="hostSearchInput" placeholder="Search by name or phone..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
+            </div>
         </div>
     `;
 
@@ -32,8 +38,10 @@ export function renderHosts() {
     listContainer.id = "hosts-list-container";
     listContainer.style.cssText = "background: transparent;";
 
-    section.appendChild(controlsRow);
-    section.appendChild(listContainer);
+    // Append to card instead of directly to section
+    cardContainer.appendChild(controlsRow);
+    cardContainer.appendChild(listContainer);
+    section.appendChild(cardContainer);
 
     listContainer.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading hosts...</div>`;
 
@@ -55,7 +63,6 @@ export function renderHosts() {
 
 async function loadHostsData() {
     try {
-        // Fetch all dependencies
         const [usersRes, weddingsRes, hostsRes] = await Promise.all([
             supabase.from('users').select('*'),
             supabase.from('weddings').select('*'),
@@ -70,7 +77,6 @@ async function loadHostsData() {
         allWeddings = weddingsRes.data || [];
         allWeddingHosts = hostsRes.data || [];
 
-        // Identify unique users who are hosts
         const uniqueHostIds = [...new Set(allWeddingHosts.map(h => h.user_id))];
         
         hostUsersData = uniqueHostIds.map(userId => {
@@ -127,16 +133,17 @@ function renderHostsList() {
         return;
     }
 
-    const gridTemplate = "32px 50px 1.5fr 1fr 1fr 60px"; 
+    // 1. Updated Grid Template (6 columns)
+    const gridTemplate = "32px 32px 50px 1.5fr 1fr 130px"; 
 
     let listHTML = `
-        <div style="display: grid; grid-template-columns: ${gridTemplate}; align-items: center; padding: 0 var(--space-4) var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-3); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); gap: 12px;">
+        <div style="display: grid; grid-template-columns: ${gridTemplate}; align-items: center; padding: 0 var(--space-4) var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-2); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); gap: 12px;">
+            <div></div> 
             <div></div> 
             <div>S.No</div>
             <div>Name</div>
             <div>Phone Number</div>
             <div>Weddings Count</div>
-            <div style="text-align: right;">Action</div>
         </div>
     `;
 
@@ -147,44 +154,44 @@ function renderHostsList() {
         const weddingTags = sortedWeddings.length > 0 
             ? sortedWeddings.map(w => {
                 const displayNames = w.primary_side === 'groom' ? `${w.groom_name} & ${w.bride_name}` : `${w.bride_name} & ${w.groom_name}`;
-                return `<span style="background: var(--color-border); padding: 6px 12px; border-radius: 16px; font-size: 0.8rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px;"><i data-lucide="heart" style="width:12px; height:12px; color: var(--color-primary);"></i> ${displayNames}</span>`;
+                return `<span style="background: var(--color-border); padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="heart" style="width:12px; height:12px; color: var(--color-primary);"></i> ${displayNames}</span>`;
             }).join('')
             : `<span style="color: var(--color-text-muted); font-size: 0.8rem; font-style: italic;">No active assignments</span>`;
 
         const hostJson = JSON.stringify({id: host.id, name: host.name}).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
         listHTML += `
-        <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-3); background: var(--color-white); overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-            <div style="display: grid; grid-template-columns: ${gridTemplate}; align-items: center; padding: var(--space-4); transition: background 0.2s ease; gap: 12px;" onmouseover="this.style.background='var(--color-bg)';" onmouseout="this.style.background='transparent';">
+        <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">
+            <div style="display: grid; grid-template-columns: ${gridTemplate}; align-items: center; padding: var(--space-3) var(--space-4); transition: background 0.2s ease; gap: 12px;" onmouseover="this.style.background='var(--color-border)';" onmouseout="this.style.background='transparent';">
                 
                 <button class="toggle-weddings-btn" data-target="child-host-${host.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'">
-                    <i data-lucide="chevron-right" style="width: 20px; height: 20px; transition: transform 0.2s;"></i>
+                    <i data-lucide="chevron-right" style="width: 16px; height: 16px; transition: transform 0.2s;"></i>
+                </button>
+
+                <!-- Edit Icon Moved to the Left -->
+                <button class="edit-host-btn" data-host='${hostJson}' style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit Host">
+                    <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
                 </button>
 
                 <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
                 
                 <div style="display: flex; align-items: center; overflow: hidden;">
-                    <h4 style="margin: 0; font-size: 1rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${host.name}</h4>
+                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${host.name}</h4>
                 </div>
                 
-                <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> ${host.phone}
                 </div>
                 
-                <div style="display: flex; align-items: center; gap: 6px; color: var(--color-primary); font-weight: var(--font-weight-bold); font-size: 1rem;">
+                <div style="font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); color: var(--color-text-primary);">
                     ${host.assigned_weddings.length}
-                </div>
-
-                <div style="text-align: right;">
-                    <button class="edit-host-btn" data-host='${hostJson}' style="background: var(--color-bg); border: 1px solid var(--color-border); cursor: pointer; color: var(--color-text-primary); padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--color-primary)'; this.style.color='var(--color-primary)';" onmouseout="this.style.borderColor='var(--color-border)'; this.style.color='var(--color-text-primary)';" title="Edit Assignments">
-                        <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
-                    </button>
                 </div>
             </div>
 
-            <div id="child-host-${host.id}" style="display: none; padding: var(--space-4) var(--space-4) var(--space-5) 74px; background: var(--color-white); border-top: 1px dashed var(--color-border);">
-                <div style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: var(--font-weight-bold);">Assigned Weddings:</div>
-                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            <!-- Adjusted padding-left to align with the Name column perfectly -->
+            <div id="child-host-${host.id}" style="display: none; padding: var(--space-4) var(--space-4) var(--space-4) 150px; background: var(--color-white); border-top: 1px dashed var(--color-border);">
+                <div style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: var(--font-weight-semibold);">Assigned Weddings:</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                     ${weddingTags}
                 </div>
             </div>
@@ -192,7 +199,7 @@ function renderHostsList() {
     });
 
     listHTML += `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: var(--space-4); margin-top: var(--space-4);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border);">
             <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
                 Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, sortedHosts.length)} of ${sortedHosts.length} hosts
             </div>
@@ -201,9 +208,9 @@ function renderHostsList() {
     if (totalPages > 1) {
         listHTML += `
             <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} style="background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 6px 10px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === 1 ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
-                <span style="font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-bold); padding: 0 8px;">Page ${currentPage} of ${totalPages}</span>
-                <button class="pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} style="background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 6px 10px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === totalPages ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                <button class="pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === 1 ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
+                <span style="font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-medium); padding: 0 8px;">Page ${currentPage} of ${totalPages}</span>
+                <button class="pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === totalPages ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
             </div>
         `;
     } else {
@@ -215,7 +222,6 @@ function renderHostsList() {
 
     bindStaticListeners();
 
-    // Bind Dynamic List Listeners
     const toggleBtns = container.querySelectorAll('.toggle-weddings-btn');
     toggleBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -279,7 +285,6 @@ function bindStaticListeners() {
 // HOST MODAL LOGIC
 // ==========================================
 function openHostModal(existingHost = null) {
-    // 1. Get In Progress and Upcoming Weddings
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -293,7 +298,6 @@ function openHostModal(existingHost = null) {
     if (existingHost) {
         preSelectedWeddingIds = allWeddingHosts.filter(h => h.user_id === existingHost.id).map(h => h.wedding_id);
         
-        // Ensure any past weddings they are assigned to are included in the list so they can be viewed/unassigned
         const pastAssignedIds = preSelectedWeddingIds.filter(id => !activeWeddings.some(aw => aw.id === id));
         pastAssignedIds.forEach(id => {
             const pastW = allWeddings.find(w => w.id === id);
@@ -324,7 +328,6 @@ function openHostModal(existingHost = null) {
             </div>
         `;
     } else {
-        // Find users who are NOT currently hosts for ANY active wedding
         const currentHostIds = [...new Set(allWeddingHosts.map(h => h.user_id))];
         const eligibleUsers = allSystemUsers.filter(u => !currentHostIds.includes(u.id) && u.role !== 'creator');
         
@@ -374,12 +377,16 @@ function openHostModal(existingHost = null) {
 
                 const selectedWeddings = Array.from(document.getElementById('hostForm').querySelectorAll('input[name="host_weddings"]:checked')).map(cb => cb.value);
 
+                // --- NEW VALIDATION CHECK ---
+                if (selectedWeddings.length === 0) {
+                    showAlert({ icon: 'warning', title: 'Missing Selection', text: 'Please assign the host to at least one wedding.' });
+                    return;
+                }
+
                 try {
-                    // First, remove all existing assignments for this user
                     const { error: delErr } = await supabase.from('wedding_hosts').delete().eq('user_id', userId);
                     if (delErr) throw delErr;
 
-                    // Then, insert new assignments if any were checked
                     if (selectedWeddings.length > 0) {
                         const insertPayload = selectedWeddings.map(wId => ({
                             user_id: userId,
@@ -401,7 +408,7 @@ function openHostModal(existingHost = null) {
 
     if (existingHost) {
         actions.unshift({
-            label: "Remove Host",
+            label: "Delete",
             variant: "danger", 
             closesModal: false,
             onClick: async () => {
@@ -438,17 +445,16 @@ function openHostModal(existingHost = null) {
     });
 
     setTimeout(() => {
-        // Apply custom styles to buttons
         const btns = Array.from(document.querySelectorAll('button'));
         btns.forEach(btn => {
             const txt = btn.textContent.trim();
             if (txt === 'Cancel' && !btn.hasAttribute('data-styled')) {
-                btn.style.cssText = 'background: #6b7280; color: #ffffff; border: 1px solid #6b7280; padding: 0.6rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-medium); cursor: pointer; transition: opacity 0.2s;';
+                btn.style.cssText = 'background: #6b7280; color: #ffffff; border: 1px solid #6b7280; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-medium); cursor: pointer; transition: opacity 0.2s;';
                 btn.onmouseover = () => btn.style.opacity = '0.85';
                 btn.onmouseout = () => btn.style.opacity = '1';
                 btn.setAttribute('data-styled', 'true');
-            } else if (txt === 'Remove Host' && !btn.hasAttribute('data-styled')) {
-                btn.style.cssText = 'background: #dc2626; color: #ffffff; border: 1px solid #dc2626; padding: 0.6rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; transition: opacity 0.2s; margin-right: auto;';
+            } else if (txt === 'Delete' && !btn.hasAttribute('data-styled')) {
+                btn.style.cssText = 'background: #dc2626; color: #ffffff; border: 1px solid #dc2626; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; transition: opacity 0.2s; margin-right: auto;';
                 if (btn.parentElement) {
                     btn.parentElement.style.display = 'flex';
                     btn.parentElement.style.width = '100%';
@@ -459,9 +465,94 @@ function openHostModal(existingHost = null) {
             }
         });
 
-        // Convert to searchable dropdown only for Add mode
-        if (!existingHost && typeof window.convertToSearchableDropdown === 'function') {
-            window.convertToSearchableDropdown('sysUserId');
+        // Initialize searchable dropdown if we are adding a new host
+        if (!existingHost) {
+            convertToSearchableDropdown('sysUserId');
         }
     }, 50);
+}
+
+// ==========================================
+// SEARCHABLE DROPDOWN UTILITY
+// ==========================================
+function convertToSearchableDropdown(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    select.style.display = 'none';
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position: relative; width: 100%; text-align: left;';
+    select.parentNode.insertBefore(wrapper, select);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Search...';
+    input.className = select.className; 
+    input.style.cssText = 'width: 100%; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;';
+    wrapper.appendChild(input);
+
+    const list = document.createElement('div');
+    list.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); z-index: 9999; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-top: 4px;';
+    wrapper.appendChild(list);
+
+    const options = Array.from(select.options);
+    
+    function renderList(filter = '') {
+        list.innerHTML = '';
+        const filtered = options.filter(opt => opt.text.toLowerCase().includes(filter.toLowerCase()) && opt.value !== "");
+        
+        if (filtered.length === 0) {
+            const noRes = document.createElement('div');
+            noRes.style.cssText = 'padding: 10px; color: var(--color-text-muted); font-size: 0.9rem; text-align: center;';
+            noRes.textContent = 'No results found';
+            list.appendChild(noRes);
+            return;
+        }
+
+        filtered.forEach(opt => {
+            const item = document.createElement('div');
+            item.style.cssText = 'padding: 10px; cursor: pointer; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; color: var(--color-text-primary); transition: background 0.2s;';
+            item.textContent = opt.text;
+            
+            item.addEventListener('mouseover', () => item.style.background = 'var(--color-border)');
+            item.addEventListener('mouseout', () => item.style.background = 'transparent');
+            
+            item.addEventListener('click', () => {
+                select.value = opt.value;
+                input.value = opt.text;
+                list.style.display = 'none';
+                select.dispatchEvent(new Event('change')); 
+            });
+            list.appendChild(item);
+        });
+    }
+
+    input.addEventListener('focus', () => {
+        input.value = ''; 
+        renderList('');
+        list.style.display = 'block';
+    });
+
+    input.addEventListener('input', (e) => {
+        renderList(e.target.value);
+        list.style.display = 'block';
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) {
+            list.style.display = 'none';
+            const selectedOpt = options.find(o => o.value === select.value);
+            if (selectedOpt && select.value !== "") {
+                input.value = selectedOpt.text;
+            } else {
+                input.value = '';
+            }
+        }
+    });
+
+    const initialOpt = options.find(o => o.value === select.value);
+    if (initialOpt && select.value !== "") {
+        input.value = initialOpt.text;
+    }
 }

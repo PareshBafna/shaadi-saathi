@@ -1,0 +1,251 @@
+/* =========================================================
+   ROOT VARIABLES
+   Centralized theme colors for easy updates
+   ========================================================= */
+
+:root {
+    --gold: #4a90d9; /* BLUE THEME: was #d4af37 (gold) */
+    --wax-red: #1b3a8a; /* BLUE THEME: was #9e1b32 (wax red) */
+    --env-bg: #050f2a; /* BLUE THEME: was #1a0a0d (dark maroon) */
+    --text-pink: #e0eeff; /* BLUE THEME: was #ffece0 (peach) */
+}
+
+/* =========================================================
+   GLOBAL RESET & BASE STYLES
+   ========================================================= */
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000510 !important; /* BLUE THEME: was #050003 */
+    overflow: hidden;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* =========================================================
+   BACKGROUND LAYERS
+   ========================================================= */
+
+/* Fixed full-screen background image */
+.bg-image {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: -10 !important;
+    background: url("../images/background/main-background.png") no-repeat center center !important;
+    background-size: cover !important;
+    display: block !important;
+}
+
+/* Particle canvas overlay */
+#particles {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    filter: drop-shadow(0 0 5px rgba(100, 160, 255, 0.4)); /* BLUE THEME: was rgba(255,100,130,0.4) */
+}
+
+/* =========================================================
+   SPLASH SCREEN
+   ========================================================= */
+
+#splash-screen {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 5, 30, 0.78) !important; /* BLUE THEME: was rgba(0,0,0,0.75) */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    transition:
+        transform 1.2s cubic-bezier(0.7, 0, 0.3, 1),
+        opacity 1s;
+}
+
+/* Splash exit animation */
+.splash-open {
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* =========================================================
+   ENVELOPE STRUCTURE
+   ========================================================= */
+
+.envelope {
+    position: relative;
+    width: 500px;
+    height: 350px;
+    background: var(--env-bg);
+    box-shadow: 0 50px 100px rgba(0, 0, 0, 0.9);
+    perspective: 1500px;
+}
+
+/* Envelope pocket (front V shape) */
+.envelope::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    z-index: 3;
+    border-left: 250px solid transparent;
+    border-right: 250px solid transparent;
+    border-bottom: 180px solid #0a1a3a; /* BLUE THEME: was #240e11 (dark maroon) */
+}
+
+/* Envelope pocket (inner depth layer) */
+.envelope::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+    border-top: 175px solid transparent;
+    border-bottom: 175px solid transparent;
+    border-left: 250px solid var(--env-bg);
+    border-right: 250px solid var(--env-bg);
+}
+
+/* =========================================================
+   ENVELOPE FLAP
+   ========================================================= */
+
+.envelope-flap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 4;
+    width: 0;
+    height: 0;
+    border-left: 250px solid transparent;
+    border-right: 250px solid transparent;
+    border-top: 200px solid #0d2250; /* BLUE THEME: was #2c1216 (dark maroon) */
+    transform-origin: top;
+    transition: transform 0.8s ease;
+}
+
+/* Flap opening animation */
+.flap-open {
+    transform: rotateX(160deg);
+    z-index: 1;
+}
+
+/* =========================================================
+   WAX SEAL
+   ========================================================= */
+
+#seal-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    cursor: pointer;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Visible + animated state */
+#seal-container.ready {
+    opacity: 1 !important;
+    animation: sealBounce 2s infinite ease-in-out;
+}
+
+/* Wax seal circle */
+.wax-seal {
+    width: 110px;
+    height: 110px;
+    background: var(--wax-red);
+    border-radius: 50%;
+    border: 3px solid #0f2a6b; /* BLUE THEME: was #6b1122 (dark maroon border) */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow:
+        0 10px 25px rgba(0, 0, 0, 0.8),
+        0 0 20px rgba(80, 140, 255, 0.5); /* BLUE THEME: added blue glow — was single shadow only */
+}
+
+/* Seal icon */
+.wax-seal img {
+    /* width: 65%; */
+    filter: brightness(0) invert(1);
+}
+
+/* Seal text label */
+.seal-label {
+    margin-top: 20px;
+    color: var(--text-pink);
+    font-size: 1.4rem;
+    font-weight: bold;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+/* Floating bounce animation */
+@keyframes sealBounce {
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        transform: translate(-50%, -58%) scale(1.05);
+    }
+}
+
+/* =========================================================
+   CONTENT LOADER
+   ========================================================= */
+
+#content-loader {
+    position: relative;
+    z-index: 5;
+    width: 100%;
+    min-height: 100vh;
+    display: none;
+    background: transparent !important;
+}
+
+/* =========================================================
+   RESPONSIVE (MOBILE)
+   ========================================================= */
+
+@media (max-width: 600px) {
+    .envelope {
+        width: 320px;
+        height: 224px;
+    }
+
+    .envelope::before {
+        border-left: 160px solid transparent;
+        border-right: 160px solid transparent;
+        border-bottom: 110px solid #0a1a3a; /* BLUE THEME: was #240e11 */
+    }
+
+    .envelope::after {
+        border-left: 160px solid var(--env-bg);
+        border-right: 160px solid var(--env-bg);
+        border-top: 112px solid transparent;
+        border-bottom: 112px solid transparent;
+    }
+
+    .envelope-flap {
+        border-left: 160px solid transparent;
+        border-right: 160px solid transparent;
+        border-top: 130px solid #0d2250; /* BLUE THEME: was #2c1216 */
+    }
+
+    .wax-seal {
+        width: 85px;
+        height: 85px;
+    }
+}

@@ -14,6 +14,8 @@ import { renderWeddingDetails } from '../../pages/js/wedding-details.js';
 import { renderCalendar } from '../../pages/js/calendar.js';
 import { renderUsers } from '../../pages/js/users.js';
 import { renderHosts } from '../../pages/js/hosts.js';
+import { renderSampleWedding } from '../../pages/js/sample-wedding.js';
+import { renderWebInvites } from '../../web-invites/js/web-invites.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     document.body.style.opacity = '0.5';
@@ -217,9 +219,9 @@ async function router() {
         pageTitle = "Hosts";
         renderFunc = renderHosts;
         allowedRoles = ['creator'];
-    } else if (route === "#sample") {
+    } else if (route === "#sample-wedding" || route === "#sample") {
         pageTitle = "Sample Wedding";
-        renderFunc = renderWeddings; 
+        renderFunc = renderSampleWedding; // Map to the new function
         allowedRoles = ['creator', 'host', 'wedding_user', 'guest'];
     } else if (route === "#profile") {
         pageTitle = "Profile";
