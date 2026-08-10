@@ -22,19 +22,26 @@ function generateDynamicLogo(bride, groom) {
 
 async function initDynamicInvite() {
     const urlParams = new URLSearchParams(window.location.search);
-    const hashParam = urlParams.get('h');
+    const inviteId = urlParams.get('id');
 
-    if (!hashParam) {
-        document.body.innerHTML = "<h1 style='color:white; text-align:center; margin-top:50px; font-family:sans-serif;'>Invalid Invitation Link</h1>";
+    if (!inviteId) {
+        document.body.innerHTML = "<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000;'><div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center;'><h1 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>Invalid Link</h1><p style='color:#ccc; font-family:sans-serif; margin:0;'>No wedding ID was provided.</p></div></div>";
         return;
     }
 
     try {
-        const targetHashtag = `#${hashParam}`;
-        const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').ilike('hashtag', targetHashtag).single();
-        if (wErr || !wedding) throw new Error("Wedding not found.");
+        const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', inviteId).single();
+        if (wErr || !wedding) {
+            document.body.innerHTML = "<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000;'><div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center;'><h1 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>No Web Invite Found</h1><p style='color:#ccc; font-family:sans-serif; margin:0;'>We couldn't find an invitation for this link.</p></div></div>";
+            return;
+        }
 
-        const { data: inviteDetails } = await supabase.from('wedding_web_invite').select('*').eq('wedding_id', wedding.id).single();
+        const { data: inviteDetails, error: iErr } = await supabase.from('wedding_web_invite').select('*').eq('wedding_id', wedding.id).single();
+        if (iErr || !inviteDetails) {
+            document.body.innerHTML = "<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000;'><div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center;'><h1 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>No Web Invite Found</h1><p style='color:#ccc; font-family:sans-serif; margin:0;'>The web invitation details for this wedding have not been set up yet.</p></div></div>";
+            return;
+        }
+
         const { data: events } = await supabase.from('events').select('*').eq('wedding_id', wedding.id).order('start_time', { ascending: true });
 
         const dynamicLogoUri = generateDynamicLogo(wedding.bride_name, wedding.groom_name);
@@ -56,21 +63,21 @@ async function initDynamicInvite() {
             bride: {
                 firstName: wedding.bride_name,
                 letters: wedding.bride_name.split(''),
-                grandparents: inviteDetails?.bride_grandparents || "",
-                parents: inviteDetails?.bride_parents || ""
+                grandparents: inviteDetails.bride_grandparents || "",
+                parents: inviteDetails.bride_parents || ""
             },
             groom: {
                 firstName: wedding.groom_name,
                 letters: wedding.groom_name.split(''),
-                grandparents: inviteDetails?.groom_grandparents || "",
-                parents: inviteDetails?.groom_parents || ""
+                grandparents: inviteDetails.groom_grandparents || "",
+                parents: inviteDetails.groom_parents || ""
             },
             hashtag: wedding.hashtag,
             mainDatePlace: `${new Date(wedding.start_date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
             timerTarget: events.length > 0 ? events[0].start_time : `${wedding.start_date}T10:00:00+05:30`,
             instagram: wedding.instagram || "",
             instaLink: wedding.instagram ? `https://instagram.com/${wedding.instagram.replace('@','')}` : "#",
-            story: inviteDetails?.story_text || '"Two souls, one beautiful journey."'
+            story: inviteDetails.story_text || '"Two souls, one beautiful journey."'
         };
 
         weddingEventsData = (events || []).map((ev, index) => {
@@ -98,7 +105,7 @@ async function initDynamicInvite() {
 
     } catch (err) {
         console.error("Error loading invite:", err);
-        document.body.innerHTML = `<h1 style='color:white; text-align:center; margin-top:50px; font-family:sans-serif;'>Invitation Not Found</h1>`;
+        document.body.innerHTML = `<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000;'><div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center;'><h1 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>Error</h1><p style='color:#ccc; font-family:sans-serif; margin:0;'>${err.message}</p></div></div>`;
     }
 }
 

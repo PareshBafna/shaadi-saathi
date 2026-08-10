@@ -223,6 +223,10 @@ async function router() {
         pageTitle = "Sample Wedding";
         renderFunc = renderSampleWedding; // Map to the new function
         allowedRoles = ['creator', 'host', 'wedding_user', 'guest'];
+    } else if (route === "#web-invites") {
+        pageTitle = "Web Invites";
+        renderFunc = renderWebInvites;
+        allowedRoles = ['creator'];
     } else if (route === "#profile") {
         pageTitle = "Profile";
         renderFunc = renderWeddings;
