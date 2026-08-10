@@ -1,13 +1,77 @@
 /* =========================================================
-   ROOT VARIABLES
-   Centralized theme colors for easy updates
+   THEME PALETTES & ROOT VARIABLES
    ========================================================= */
 
-:root {
-    --gold: #4a90d9; /* BLUE THEME: was #d4af37 (gold) */
-    --wax-red: #1b3a8a; /* BLUE THEME: was #9e1b32 (wax red) */
-    --env-bg: #050f2a; /* BLUE THEME: was #1a0a0d (dark maroon) */
-    --text-pink: #e0eeff; /* BLUE THEME: was #ffece0 (peach) */
+:root, body[data-theme="blue"] {
+    --color-primary: #1d4ed8;
+    --color-secondary: #60a5fa;
+    --color-bg-dark: #0f172a;
+    --theme-accent-rgb: 96, 165, 250;
+    --theme-bg-dark-rgb: 15, 23, 42;
+}
+
+body[data-theme="emerald"] {
+    --color-primary: #047857;
+    --color-secondary: #34d399;
+    --color-bg-dark: #064e3b;
+    --theme-accent-rgb: 52, 211, 153;
+    --theme-bg-dark-rgb: 6, 78, 59;
+}
+
+body[data-theme="burgundy"] {
+    --color-primary: #881337;
+    --color-secondary: #fb7185;
+    --color-bg-dark: #4c0519;
+    --theme-accent-rgb: 251, 113, 133;
+    --theme-bg-dark-rgb: 76, 5, 25;
+}
+
+body[data-theme="gold"] {
+    --color-primary: #b45309;
+    --color-secondary: #fbbf24;
+    --color-bg-dark: #451a03;
+    --theme-accent-rgb: 251, 191, 36;
+    --theme-bg-dark-rgb: 69, 26, 3;
+}
+
+body[data-theme="rose"] {
+    --color-primary: #be123c;
+    --color-secondary: #fb7185;
+    --color-bg-dark: #4c0519;
+    --theme-accent-rgb: 251, 113, 133;
+    --theme-bg-dark-rgb: 76, 5, 25;
+}
+
+body[data-theme="violet"] {
+    --color-primary: #5b21b6;
+    --color-secondary: #a78bfa;
+    --color-bg-dark: #2e1065;
+    --theme-accent-rgb: 167, 139, 250;
+    --theme-bg-dark-rgb: 46, 16, 101;
+}
+
+body[data-theme="purple"] {
+    --color-primary: #6b21a8;
+    --color-secondary: #c084fc;
+    --color-bg-dark: #3b0764;
+    --theme-accent-rgb: 192, 132, 252;
+    --theme-bg-dark-rgb: 59, 7, 100;
+}
+
+body[data-theme="red"] {
+    --color-primary: #b91c1c;
+    --color-secondary: #f87171;
+    --color-bg-dark: #450a0a;
+    --theme-accent-rgb: 248, 113, 113;
+    --theme-bg-dark-rgb: 69, 10, 10;
+}
+
+body[data-theme="pink"] {
+    --color-primary: #be185d;
+    --color-secondary: #f472b6;
+    --color-bg-dark: #500724;
+    --theme-accent-rgb: 244, 114, 182;
+    --theme-bg-dark-rgb: 80, 7, 36;
 }
 
 /* =========================================================
@@ -20,7 +84,7 @@ body {
     padding: 0;
     width: 100%;
     height: 100%;
-    background-color: #000510 !important; /* BLUE THEME: was #050003 */
+    background-color: var(--color-bg-dark) !important;
     overflow: hidden;
     font-family: system-ui, -apple-system, sans-serif;
 }
@@ -34,10 +98,20 @@ body {
     position: fixed !important;
     inset: 0 !important;
     z-index: -10 !important;
-    background: url("../images/background/main-background.png") no-repeat center center !important;
-    background-size: cover !important;
     display: block !important;
 }
+
+/* Dynamic Background Images mapped to the Theme */
+body[data-theme="blue"] .bg-image { background: url('../images/background/blue-background.png') no-repeat center center / cover !important; }
+body[data-theme="emerald"] .bg-image { background: url('../images/background/emerald-background.png') no-repeat center center / cover !important; }
+body[data-theme="burgundy"] .bg-image { background: url('../images/background/burgundy-background.png') no-repeat center center / cover !important; }
+body[data-theme="gold"] .bg-image { background: url('../images/background/gold-background.png') no-repeat center center / cover !important; }
+body[data-theme="rose"] .bg-image { background: url('../images/background/rose-background.png') no-repeat center center / cover !important; }
+body[data-theme="violet"] .bg-image { background: url('../images/background/violet-background.png') no-repeat center center / cover !important; }
+body[data-theme="purple"] .bg-image { background: url('../images/background/purple-background.png') no-repeat center center / cover !important; }
+body[data-theme="red"] .bg-image { background: url('../images/background/red-background.png') no-repeat center center / cover !important; }
+body[data-theme="pink"] .bg-image { background: url('../images/background/pink-background.png') no-repeat center center / cover !important; }
+
 
 /* Particle canvas overlay */
 #particles {
@@ -45,7 +119,7 @@ body {
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    filter: drop-shadow(0 0 5px rgba(100, 160, 255, 0.4)); /* BLUE THEME: was rgba(255,100,130,0.4) */
+    filter: drop-shadow(0 0 5px rgba(var(--theme-accent-rgb), 0.4));
 }
 
 /* =========================================================
@@ -55,7 +129,7 @@ body {
 #splash-screen {
     position: fixed;
     inset: 0;
-    background: rgba(0, 5, 30, 0.78) !important; /* BLUE THEME: was rgba(0,0,0,0.75) */
+    background: rgba(var(--theme-bg-dark-rgb), 0.78) !important; 
     display: flex;
     justify-content: center;
     align-items: center;
@@ -80,7 +154,7 @@ body {
     position: relative;
     width: 500px;
     height: 350px;
-    background: var(--env-bg);
+    background: transparent;
     box-shadow: 0 50px 100px rgba(0, 0, 0, 0.9);
     perspective: 1500px;
 }
@@ -94,7 +168,8 @@ body {
     z-index: 3;
     border-left: 250px solid transparent;
     border-right: 250px solid transparent;
-    border-bottom: 180px solid #0a1a3a; /* BLUE THEME: was #240e11 (dark maroon) */
+    border-bottom: 180px solid var(--color-bg-dark) !important;
+    filter: brightness(1.35); /* Brightened slightly to show the top fold */
 }
 
 /* Envelope pocket (inner depth layer) */
@@ -106,8 +181,9 @@ body {
     z-index: 2;
     border-top: 175px solid transparent;
     border-bottom: 175px solid transparent;
-    border-left: 250px solid var(--env-bg);
-    border-right: 250px solid var(--env-bg);
+    border-left: 250px solid var(--color-bg-dark) !important;
+    border-right: 250px solid var(--color-bg-dark) !important;
+    filter: brightness(1.0); /* Darkest base layer */
 }
 
 /* =========================================================
@@ -123,9 +199,10 @@ body {
     height: 0;
     border-left: 250px solid transparent;
     border-right: 250px solid transparent;
-    border-top: 200px solid #0d2250; /* BLUE THEME: was #2c1216 (dark maroon) */
+    border-top: 200px solid var(--color-bg-dark) !important; 
     transform-origin: top;
     transition: transform 0.8s ease;
+    filter: brightness(1.2); /* Medium brightness for the top flap */
 }
 
 /* Flap opening animation */
@@ -163,15 +240,15 @@ body {
 .wax-seal {
     width: 110px;
     height: 110px;
-    background: var(--wax-red);
+    background: var(--color-primary) !important;
     border-radius: 50%;
-    border: 3px solid #0f2a6b; /* BLUE THEME: was #6b1122 (dark maroon border) */
+    border: 3px solid var(--color-secondary) !important; 
     display: flex;
     justify-content: center;
     align-items: center;
     box-shadow:
         0 10px 25px rgba(0, 0, 0, 0.8),
-        0 0 20px rgba(80, 140, 255, 0.5); /* BLUE THEME: added blue glow — was single shadow only */
+        0 0 20px rgba(var(--theme-accent-rgb), 0.8) !important; 
 }
 
 /* Seal icon */
@@ -183,7 +260,7 @@ body {
 /* Seal text label */
 .seal-label {
     margin-top: 20px;
-    color: var(--text-pink);
+    color: var(--color-secondary) !important;
     font-size: 1.4rem;
     font-weight: bold;
     letter-spacing: 4px;
@@ -228,12 +305,12 @@ body {
     .envelope::before {
         border-left: 160px solid transparent;
         border-right: 160px solid transparent;
-        border-bottom: 110px solid #0a1a3a; /* BLUE THEME: was #240e11 */
+        border-bottom: 110px solid var(--color-bg-dark) !important; 
     }
 
     .envelope::after {
-        border-left: 160px solid var(--env-bg);
-        border-right: 160px solid var(--env-bg);
+        border-left: 160px solid var(--color-bg-dark) !important;
+        border-right: 160px solid var(--color-bg-dark) !important;
         border-top: 112px solid transparent;
         border-bottom: 112px solid transparent;
     }
@@ -241,7 +318,7 @@ body {
     .envelope-flap {
         border-left: 160px solid transparent;
         border-right: 160px solid transparent;
-        border-top: 130px solid #0d2250; /* BLUE THEME: was #2c1216 */
+        border-top: 130px solid var(--color-bg-dark) !important; 
     }
 
     .wax-seal {

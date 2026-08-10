@@ -2,7 +2,7 @@ import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/components/js/modal.js';
 import { showAlert } from '../../global/components/js/alerts.js';
 
-const INVITE_BASE_URL = "/web-invites/html/index.html"; 
+const INVITE_BASE_URL = "/invite.html"; 
 
 export function renderWebInvites() {
     const section = document.createElement("div");
@@ -220,6 +220,21 @@ async function openInviteModal(existingInvite = null) {
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Story / About Us Quote *</label>
                 <textarea id="storyText" required rows="3" placeholder="A short quote or story for the About Us page..." style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; resize: vertical;">${existingInvite ? existingInvite.story_text : ''}</textarea>
             </div>
+
+            <div>
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Invite Theme Color *</label>
+                <select id="inviteTheme" required style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                    <option value="blue" ${existingInvite?.theme === 'blue' ? 'selected' : ''}>Royal Blue (Default)</option>
+                    <option value="emerald" ${existingInvite?.theme === 'emerald' ? 'selected' : ''}>Emerald Green</option>
+                    <option value="burgundy" ${existingInvite?.theme === 'burgundy' ? 'selected' : ''}>Burgundy</option>
+                    <option value="gold" ${existingInvite?.theme === 'gold' ? 'selected' : ''}>Classic Gold</option>
+                    <option value="rose" ${existingInvite?.theme === 'rose' ? 'selected' : ''}>Dusty Rose</option>
+                    <option value="violet" ${existingInvite?.theme === 'violet' ? 'selected' : ''}>Deep Violet</option>
+                    <option value="purple" ${existingInvite?.theme === 'purple' ? 'selected' : ''}>Royal Purple</option>
+                    <option value="red" ${existingInvite?.theme === 'red' ? 'selected' : ''}>Classic Red</option>
+                    <option value="pink" ${existingInvite?.theme === 'pink' ? 'selected' : ''}>Soft Pink</option>
+                </select>
+            </div>
         </form>
     `;
 
@@ -240,12 +255,12 @@ async function openInviteModal(existingInvite = null) {
                     { id: 'gGrandmother', name: "Groom's Grandmother" },
                     { id: 'gFather', name: "Groom's Father" },
                     { id: 'gMother', name: "Groom's Mother" },
-                    { id: 'storyText', name: "Story / About Us Quote" }
+                    { id: 'storyText', name: "Story / About Us Quote" },
+                    { id: 'inviteTheme', name: "Invite Theme Color" }
                 ];
 
                 let firstError = null;
 
-                // 1. Loop through fields to apply borders and find the first error
                 fieldsToValidate.forEach(field => {
                     const el = document.getElementById(field.id);
                     if (!el) return;
@@ -259,14 +274,13 @@ async function openInviteModal(existingInvite = null) {
                     }
 
                     if (!el.value.trim()) {
-                        targetEl.style.borderColor = '#dc2626'; // Red border for invalid
+                        targetEl.style.borderColor = '#dc2626'; 
                         if (!firstError) firstError = field.name; 
                     } else {
-                        targetEl.style.borderColor = '#16a34a'; // Green border for valid
+                        targetEl.style.borderColor = '#16a34a'; 
                     }
                 });
 
-                // 2. Stop submission and show only the first error found
                 if (firstError) {
                     showAlert({ 
                         icon: 'warning', 
@@ -296,7 +310,8 @@ async function openInviteModal(existingInvite = null) {
                     groom_grandmother: document.getElementById('gGrandmother').value.trim(),
                     groom_father: document.getElementById('gFather').value.trim(),
                     groom_mother: document.getElementById('gMother').value.trim(),
-                    story_text: document.getElementById('storyText').value.trim()
+                    story_text: document.getElementById('storyText').value.trim(),
+                    theme: document.getElementById('inviteTheme').value
                 };
 
                 try {
@@ -365,8 +380,7 @@ async function openInviteModal(existingInvite = null) {
             }
         }
 
-        // Apply real-time green/red borders as the user types
-        ['bGrandfather', 'bGrandmother', 'bFather', 'bMother', 'gGrandfather', 'gGrandmother', 'gFather', 'gMother', 'storyText'].forEach(id => {
+        ['bGrandfather', 'bGrandmother', 'bFather', 'bMother', 'gGrandfather', 'gGrandmother', 'gFather', 'gMother', 'storyText', 'inviteTheme'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener('input', (e) => {
@@ -390,7 +404,6 @@ async function openInviteModal(existingInvite = null) {
 
         if (!existingInvite) {
             convertToSearchableDropdown('inviteWeddingId');
-            
             const selectEl = document.getElementById('inviteWeddingId');
             if (selectEl) {
                 selectEl.addEventListener('change', (e) => {
