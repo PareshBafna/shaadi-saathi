@@ -75,13 +75,14 @@ function generateInitialsLogo(name1, name2, colors) {
 async function initDynamicInvite() {
     const urlParams = new URLSearchParams(window.location.search);
     const inviteId = urlParams.get('id');
+    const guestId = urlParams.get('guest_id'); // Extracting the guest context
 
     if (!inviteId) {
         document.body.innerHTML = "<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000;'><div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center;'><h1 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>Invalid Link</h1><p style='color:#ccc; font-family:sans-serif; margin:0;'>No wedding ID was provided.</p></div></div>";
         return;
     }
 
-    window.history.replaceState(null, '', `/invite.html?id=${inviteId}`);
+    window.history.replaceState(null, '', `/invite.html?id=${inviteId}${guestId ? `&guest_id=${guestId}` : ''}`);
 
     try {
         const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', inviteId).single();
@@ -233,6 +234,33 @@ async function initDynamicInvite() {
 
         const { data: events } = await supabase.from('events').select('*').eq('wedding_id', wedding.id).order('start_time', { ascending: true });
 
+        // =========================================================================
+        // GUEST & ROLE FILTERING LOGIC
+        // =========================================================================
+        let currentGuest = null;
+        if (guestId) {
+            const { data: guestData, error: guestErr } = await supabase.from('guests').select('*').eq('id', guestId).single();
+            if (!guestErr) currentGuest = guestData;
+        }
+
+        const filteredEvents = (events || []).filter(ev => {
+            // If the link does not specify a guest, default to showing all events
+            if (!guestId) return true;
+
+            const allowedRoles = ev.roles || ev.invited_roles || [];
+            const allowedGuests = ev.guests || ev.invited_guests || [];
+
+            // If the event has no role/guest restrictions configured, it is considered open to everyone
+            if (allowedRoles.length === 0 && allowedGuests.length === 0) return true;
+
+            // Check if the current guest's role or exact ID matches the event allowances
+            const guestRole = currentGuest?.role || currentGuest?.group || currentGuest?.category;
+            const roleMatches = guestRole && allowedRoles.includes(guestRole);
+            const guestMatches = allowedGuests.includes(guestId);
+
+            return roleMatches || guestMatches;
+        });
+
         const primarySide = (inviteDetails.primary_side || 'groom').toLowerCase();
         const isBridePrimary = primarySide === 'bride';
         const primaryFirstName = isBridePrimary ? wedding.bride_name : wedding.groom_name;
@@ -277,13 +305,15 @@ async function initDynamicInvite() {
             },
             hashtag: wedding.hashtag,
             mainDatePlace: `${new Date(wedding.start_date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
-            timerTarget: events.length > 0 ? events[0].start_time : `${wedding.start_date}T10:00:00+05:30`,
+            timerTarget: filteredEvents.length > 0 ? filteredEvents[0].start_time : `${wedding.start_date}T10:00:00+05:30`,
             instagram: wedding.instagram || "",
-            instaLink: wedding.instagram ? `${wedding.instagram.replace('@','')}` : "#",
+            instaLink: wedding.instagram 
+                ? (wedding.instagram.includes('instagram.com') ? wedding.instagram : `https://instagram.com/${wedding.instagram.replace('@','')}`) 
+                : "#",
             story: inviteDetails.story_text || '"Two souls, one beautiful journey."'
         };
 
-        weddingEventsData = (events || []).map((ev, index) => {
+        weddingEventsData = filteredEvents.map((ev, index) => {
             const evDate = new Date(ev.start_time || ev.date);
             return {
                 id: `event-${ev.id}`,
@@ -298,8 +328,8 @@ async function initDynamicInvite() {
                 time: evDate.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit' }) + " onwards",
                 location: ev.venue,
                 directions: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue)}`,
-                nextTarget: index < events.length - 1 ? `#event-${events[index+1].id}` : "#about-us",
-                nextLabel: index < events.length - 1 ? events[index+1].title : "About Us"
+                nextTarget: index < filteredEvents.length - 1 ? `#event-${filteredEvents[index+1].id}` : "#about-us",
+                nextLabel: index < filteredEvents.length - 1 ? filteredEvents[index+1].title : "About Us"
             };
         });
 
@@ -496,16 +526,16 @@ const generateAboutUsHTML = () => {
                     <div class="tagline" style="font-size:2.4rem; font-weight:bold; letter-spacing: 0.15em; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">ABOUT US</div>
                     <div class="hero-divider"></div>
                     
-                    <div class="event-subtitle" style="font-size: 1rem; line-height: 1.6; color: #ffffff !important; padding: 0 10px; text-shadow: none !important;">
+                    <div class="event-subtitle" style="font-size: 1.1rem; line-height: 1.6; color: #ffffff !important; padding: 0 10px; text-shadow: none !important;">
                         ${weddingConfig.story.replace(/\n/g, '<br/>')}
                     </div>
                     
                     <div style="margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
                         <p class="event-subtitle" style="font-size: 1.3rem; margin-bottom:12px; color: #ffffff !important; text-shadow: none !important;">Follow our journey for latest updates & gossips!</p>
                         ${weddingConfig.instagram ? `
-                        <a href="${weddingConfig.instaLink}" target="_blank" class="btn" style="font-weight: bold; font-size: 1.2rem; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888) !important; border: none !important; padding: 10px 24px; display: flex; align-items: center; gap: 10px; color: white !important;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#ffffff" viewBox="0 0 16 16">
-                                <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.282.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.478 2.478 0 0 1-.92-.598 2.48 2.48 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233 0-2.136.008-2.388.046-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334z"/>
+                        <a href="${weddingConfig.instaLink}" target="_blank" class="btn" style="font-weight: bold; font-size: 1.25rem; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888) !important; border: none !important; padding: 12px 26px; display: flex; align-items: center; gap: 10px; color: white !important; border-radius: 999px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffffff" viewBox="0 0 16 16">
+                                <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.282.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.478 2.478 0 0 1-.92-.598 2.48 2.48 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233 0-2.136.008-2.388.046-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 0 1 0-5.334 2.667 2.667 0 0 1 0-5.334z"/>
                             </svg>
                                 ${instaHandle}
                             </a>
@@ -531,7 +561,7 @@ const generateAboutUsHTML = () => {
                         <strong style="font-size:1.1rem">Created By</strong>
                         <br/>
                         <br/>
-                        <div class="signature-glow" style="font-weight: bold; font-size: 2.2rem; font-family: 'Best Signature Font', sans-serif; margin-bottom: 4px;">
+                        <div class="signature-glow" style="font-weight: bold; font-size: 2.2rem; color: lightblue; font-family: 'Best Signature Font', sans-serif; margin-bottom: 4px;">
                             Paresh Bafna
                         </div>
                         <div style="display: flex !important; justify-content: center !important; margin-top: 25px !important; margin-bottom: 25px !important; gap: 20px !important; align-items: center !important;">
