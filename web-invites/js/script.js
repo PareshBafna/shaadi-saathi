@@ -75,14 +75,13 @@ function generateInitialsLogo(name1, name2, colors) {
 async function initDynamicInvite() {
     const urlParams = new URLSearchParams(window.location.search);
     const inviteId = urlParams.get('id');
-    const guestId = urlParams.get('guest_id'); // Extracting the guest context
 
     if (!inviteId) {
         document.body.innerHTML = "<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000;'><div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center;'><h1 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>Invalid Link</h1><p style='color:#ccc; font-family:sans-serif; margin:0;'>No wedding ID was provided.</p></div></div>";
         return;
     }
 
-    window.history.replaceState(null, '', `/invite.html?id=${inviteId}${guestId ? `&guest_id=${guestId}` : ''}`);
+    window.history.replaceState(null, '', `/invite.html?id=${inviteId}`);
 
     try {
         const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', inviteId).single();
@@ -232,34 +231,69 @@ async function initDynamicInvite() {
         // Unlock the Canvas Engine so particles can spawn in the correct color
         isThemeReady = true;
 
-        const { data: events } = await supabase.from('events').select('*').eq('wedding_id', wedding.id).order('start_time', { ascending: true });
+        // =========================================================================
+        // PERMISSION HIERARCHY & EVENT FILTERING (Matching wedding-details.js)
+        // =========================================================================
+        const ssUserId = localStorage.getItem('ss_user_id');
 
-        // =========================================================================
-        // GUEST & ROLE FILTERING LOGIC
-        // =========================================================================
-        let currentGuest = null;
-        if (guestId) {
-            const { data: guestData, error: guestErr } = await supabase.from('guests').select('*').eq('id', guestId).single();
-            if (!guestErr) currentGuest = guestData;
+        if (!ssUserId) {
+            window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
+            return;
         }
 
-        const filteredEvents = (events || []).filter(ev => {
-            // If the link does not specify a guest, default to showing all events
-            if (!guestId) return true;
+        // 1. Fetch current user from system
+        const { data: curUser, error: userErr } = await supabase.from('users').select('*').eq('id', ssUserId).single();
+        if (userErr || !curUser) {
+            window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
+            return;
+        }
 
-            const allowedRoles = ev.roles || ev.invited_roles || [];
-            const allowedGuests = ev.guests || ev.invited_guests || [];
+        // 2. Fetch Hosts & Wedding Users to establish permissions
+        const { data: rawHosts } = await supabase.from('wedding_hosts').select('user_id').eq('wedding_id', wedding.id);
+        const { data: rawWUsers } = await supabase.from('wedding_users').select('user_id').eq('wedding_id', wedding.id);
 
-            // If the event has no role/guest restrictions configured, it is considered open to everyone
-            if (allowedRoles.length === 0 && allowedGuests.length === 0) return true;
+        const isCreator = wedding.user_id === curUser.id || curUser.role === 'creator';
+        const isHost = (rawHosts || []).some(h => h.user_id === curUser.id);
+        const isWeddingUser = (rawWUsers || []).some(w => w.user_id === curUser.id);
+        
+        // Match exact logic: Creators, Hosts, and Wedding Users see all events
+        const canViewAll = isCreator || isHost || isWeddingUser;
 
-            // Check if the current guest's role or exact ID matches the event allowances
-            const guestRole = currentGuest?.role || currentGuest?.group || currentGuest?.category;
-            const roleMatches = guestRole && allowedRoles.includes(guestRole);
-            const guestMatches = allowedGuests.includes(guestId);
+        // 3. Fetch All Events
+        const { data: allEvents } = await supabase.from('events').select('*').eq('wedding_id', wedding.id).order('start_time', { ascending: true });
+        
+        let filteredEvents = [];
 
-            return roleMatches || guestMatches;
-        });
+        if (!canViewAll) {
+            // Physical Guest Logic
+            const { data: guests } = await supabase.from('guests').select('*').eq('wedding_id', wedding.id);
+            const currentGuest = (guests || []).find(g => g.phone === curUser.phone);
+
+            if (!currentGuest) {
+                // Not invited popup
+                document.body.innerHTML = `
+                    <div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000; padding: 20px;'>
+                        <div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center; max-width: 400px;'>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#fb7185" viewBox="0 0 16 16" style="margin-bottom: 16px;">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+                            </svg>
+                            <h2 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>Not Invited</h2>
+                            <p style='color:#ccc; font-family:sans-serif; margin:0; line-height: 1.5;'>Your account is not registered on the guest list for this wedding. Please contact the host if you believe this is a mistake.</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Fetch explicitly invited events from event_guests mapping
+            const { data: eventGuests } = await supabase.from('event_guests').select('*').eq('guest_id', currentGuest.id);
+            const invitedEventIds = (eventGuests || []).map(eg => eg.event_id);
+            
+            filteredEvents = (allEvents || []).filter(e => invitedEventIds.includes(e.id));
+        } else {
+            filteredEvents = allEvents || [];
+        }
 
         const primarySide = (inviteDetails.primary_side || 'groom').toLowerCase();
         const isBridePrimary = primarySide === 'bride';
@@ -534,12 +568,10 @@ const generateAboutUsHTML = () => {
                         <p class="event-subtitle" style="font-size: 1.3rem; margin-bottom:12px; color: #ffffff !important; text-shadow: none !important;">Follow our journey for latest updates & gossips!</p>
                         ${weddingConfig.instagram ? `
                         <a href="${weddingConfig.instaLink}" target="_blank" class="btn" style="font-weight: bold; font-size: 1.25rem; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888) !important; border: none !important; padding: 12px 26px; display: flex; align-items: center; gap: 10px; color: white !important; border-radius: 999px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffffff" viewBox="0 0 16 16">
-                                <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.282.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.478 2.478 0 0 1-.92-.598 2.48 2.48 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233 0-2.136.008-2.388.046-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 0 1 0-5.334 2.667 2.667 0 0 1 0-5.334z"/>
-                            </svg>
-                                ${instaHandle}
-                            </a>
-                            ` : ''}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffffff" viewBox="0 0 16 16"><path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.282.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.478 2.478 0 0 1-.92-.598 2.48 2.48 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233 0-2.136.008-2.388.046-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334z"/></svg>
+                            ${instaHandle}
+                        </a>
+                        ` : ''}
                     </div>
                     
                     <div class="hero-divider" style="margin-top: 30px;"></div>
