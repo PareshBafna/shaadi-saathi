@@ -95,35 +95,53 @@ function renderInviteCards(container, invites) {
         return;
     }
 
+    // Theme mapping for the dashboard cards
+    const themePalettes = {
+        blue:   { bgDark: '#0f172a', accent: '#60a5fa' },
+        green:  { bgDark: '#064e3b', accent: '#34d399' },
+        maroon: { bgDark: '#4c0519', accent: '#fb7185' },
+        gold:   { bgDark: '#451a03', accent: '#fbbf24' },
+        peach:  { bgDark: '#4c0519', accent: '#fb7185' },
+        violet: { bgDark: '#2e1065', accent: '#a78bfa' },
+        purple: { bgDark: '#3b0764', accent: '#c084fc' },
+        red:    { bgDark: '#450a0a', accent: '#f87171' },
+        pink:   { bgDark: '#500724', accent: '#f472b6' }
+    };
+
     container.innerHTML = invites.map(inv => {
         const w = inv.weddings;
         const displayNames = `${w.bride_name} & ${w.groom_name}`;
         const dateStr = new Date(w.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        
-        // Use ID instead of hashtag
-        const inviteUrl = `${INVITE_BASE_URL}?id=${w.id}`;
-
+        const inviteUrl = `/invite.html?id=${w.id}`;
         const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
+        // Grab specific theme colors
+        const t = themePalettes[inv.theme] || themePalettes.blue;
+
         return `
-        <div style="background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-            <div style="background: radial-gradient(circle at top left, var(--color-bg), var(--color-border)); padding: var(--space-6); text-align: center; position: relative;">
-                <button class="edit-invite-btn" data-invite='${invJson}' style="position: absolute; top: 12px; right: 12px; background: var(--color-white); border: 1px solid var(--color-border); color: var(--color-text-muted); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.color='var(--color-primary)'; this.style.borderColor='var(--color-primary)';" onmouseout="this.style.color='var(--color-text-muted)'; this.style.borderColor='var(--color-border)';">
+        <div style="background: ${t.bgDark}; border: 1px solid ${t.accent}; border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.2)';">
+            <div style="background: rgba(0,0,0,0.2); padding: var(--space-6); text-align: center; position: relative; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <button class="edit-invite-btn" data-invite='${invJson}' style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='${t.accent}'; this.style.color='#000';" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.color='#fff';">
                     <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i>
                 </button>
-                <div style="width: 60px; height: 60px; background: var(--color-white); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                    <i data-lucide="mail" style="width: 28px; height: 28px; color: var(--color-primary);"></i>
+                <div style="width: 60px; height: 60px; background: ${t.accent}; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                    <i data-lucide="mail" style="width: 28px; height: 28px; color: ${t.bgDark};"></i>
                 </div>
             </div>
             <div style="padding: var(--space-5); display: flex; flex-direction: column; flex-grow: 1;">
-                <h3 style="margin: 0 0 4px 0; font-size: 1.15rem; color: var(--color-text-primary); text-align: center;">${displayNames}</h3>
-                <p style="margin: 0 0 16px 0; font-size: 0.85rem; color: var(--color-text-secondary); text-align: center; font-weight: var(--font-weight-medium);">${dateStr} • ${w.hashtag || ''}</p>
+                <h3 style="margin: 0 0 12px 0; font-size: 1.15rem; color: #ffffff; text-align: center;">${displayNames}</h3>
+                
+                <!-- Hashtag on top, Date below -->
+                <p style="margin: 0 0 16px 0; font-size: 0.85rem; color: #cbd5e1; text-align: center; font-weight: var(--font-weight-medium);">
+                    <span style="color: ${t.accent}; font-weight: bold; font-size: 1rem; letter-spacing: 0.05em;">${w.hashtag || ''}</span><br/>
+                    <span style="display:inline-block; margin-top: 6px;">${dateStr}</span>
+                </p>
                 
                 <div style="margin-top: auto; display: flex; gap: 8px;">
-                    <a href="${inviteUrl}" target="_blank" style="flex: 1; text-align: center; background: var(--color-primary); color: var(--color-text-on-accent); padding: 10px; border-radius: var(--radius-sm); text-decoration: none; font-size: 0.9rem; font-weight: var(--font-weight-semibold); transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                    <a href="${inviteUrl}" target="_blank" style="flex: 1; text-align: center; background: ${t.accent}; color: ${t.bgDark}; padding: 10px; border-radius: var(--radius-sm); text-decoration: none; font-size: 0.9rem; font-weight: var(--font-weight-semibold); transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
                         View Invite
                     </a>
-                    <button onclick="navigator.clipboard.writeText(window.location.origin + '${inviteUrl}'); alert('Link Copied!');" style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--color-border)'" onmouseout="this.style.background='var(--color-bg)'" title="Copy Link">
+                    <button onclick="navigator.clipboard.writeText(window.location.origin + '${inviteUrl}'); alert('Link Copied!');" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" title="Copy Link">
                         <i data-lucide="link" style="width: 18px; height: 18px;"></i>
                     </button>
                 </div>
@@ -224,15 +242,32 @@ async function openInviteModal(existingInvite = null) {
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Invite Theme Color *</label>
                 <select id="inviteTheme" required style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
-                    <option value="blue" ${existingInvite?.theme === 'blue' ? 'selected' : ''}>Royal Blue (Default)</option>
-                    <option value="emerald" ${existingInvite?.theme === 'emerald' ? 'selected' : ''}>Emerald Green</option>
-                    <option value="burgundy" ${existingInvite?.theme === 'burgundy' ? 'selected' : ''}>Burgundy</option>
-                    <option value="gold" ${existingInvite?.theme === 'gold' ? 'selected' : ''}>Classic Gold</option>
-                    <option value="rose" ${existingInvite?.theme === 'rose' ? 'selected' : ''}>Dusty Rose</option>
-                    <option value="violet" ${existingInvite?.theme === 'violet' ? 'selected' : ''}>Deep Violet</option>
-                    <option value="purple" ${existingInvite?.theme === 'purple' ? 'selected' : ''}>Royal Purple</option>
-                    <option value="red" ${existingInvite?.theme === 'red' ? 'selected' : ''}>Classic Red</option>
-                    <option value="pink" ${existingInvite?.theme === 'pink' ? 'selected' : ''}>Soft Pink</option>
+                    <!-- #1d4ed8 is a vibrant, deep jewel-tone blue -->
+                    <option value="blue" ${existingInvite?.theme === 'blue' ? 'selected' : ''}>Sapphire Blue (Default)</option>
+                    
+                    <!-- #047857 is a rich, dark jewel green -->
+                    <option value="green" ${existingInvite?.theme === 'green' ? 'selected' : ''}>Emerald Green</option>
+                    
+                    <!-- #881337 is a deep, dark wine red -->
+                    <option value="maroon" ${existingInvite?.theme === 'maroon' ? 'selected' : ''}>Burgundy Maroon</option>
+                    
+                    <!-- #b45309 is a warm, brownish-orange gold -->
+                    <option value="gold" ${existingInvite?.theme === 'gold' ? 'selected' : ''}>Amber Gold</option>
+                    
+                    <!-- #fb7185 is a warm, pinkish-orange -->
+                    <option value="peach" ${existingInvite?.theme === 'peach' ? 'selected' : ''}>Coral Peach</option>
+                    
+                    <!-- #5b21b6 is a deep, bluish-purple -->
+                    <option value="violet" ${existingInvite?.theme === 'violet' ? 'selected' : ''}>Indigo Violet</option>
+                    
+                    <!-- #6b21a8 is a rich, true purple -->
+                    <option value="purple" ${existingInvite?.theme === 'purple' ? 'selected' : ''}>Amethyst Purple</option>
+                    
+                    <!-- #b91c1c is a strong, classic red -->
+                    <option value="red" ${existingInvite?.theme === 'red' ? 'selected' : ''}>Ruby Red</option>
+                    
+                    <!-- #be185d is a vivid, dark purplish-red -->
+                    <option value="pink" ${existingInvite?.theme === 'pink' ? 'selected' : ''}>Magenta Pink</option>
                 </select>
             </div>
         </form>
