@@ -71,28 +71,53 @@ async function loadUsersData() {
         const { data: wUsers, error: wUsersErr } = await supabase.from('wedding_users').select('*');
         if (wUsersErr && wUsersErr.code !== '42P01') throw wUsersErr;
 
-        const { data: weddings, error: weddingsErr } = await supabase.from('weddings').select('id, end_date');
+        const { data: guests, error: guestsErr } = await supabase.from('guests').select('*');
+        if (guestsErr && guestsErr.code !== '42P01') throw guestsErr;
+
+        const { data: weddings, error: weddingsErr } = await supabase.from('weddings').select('*');
         if (weddingsErr) throw weddingsErr;
 
-        const todayTime = new Date();
-        todayTime.setHours(0, 0, 0, 0);
-
-        const activeWeddingIds = (weddings || []).filter(w => {
-            const end = new Date(w.end_date);
-            end.setHours(0, 0, 0, 0);
-            return end.getTime() >= todayTime.getTime();
-        }).map(w => w.id);
-
         allUsersData = (users || []).map(u => {
-            let wRole = '';
-            const isHost = (hosts || []).some(h => h.user_id === u.id && activeWeddingIds.includes(h.wedding_id));
-            if (isHost) {
-                wRole = 'Host';
-            } else {
-                const isWUser = (wUsers || []).some(wu => wu.user_id === u.id && activeWeddingIds.includes(wu.wedding_id));
-                if (isWUser) wRole = 'User';
-            }
-            return { ...u, wedding_role: wRole };
+            let roles = new Set();
+            let hostWeddings = [];
+            let userWeddings = [];
+            let guestWeddings = [];
+
+            const cleanedUserPhone = u.phone ? u.phone.replace(/[^0-9]/g, '') : null;
+            const baseUserPhone = cleanedUserPhone ? cleanedUserPhone.slice(-8) : null;
+
+            (hosts || []).forEach(h => {
+                if (h.user_id === u.id) {
+                    roles.add('Host');
+                    const w = (weddings || []).find(x => x.id === h.wedding_id);
+                    if (w) hostWeddings.push(w);
+                }
+            });
+
+            (wUsers || []).forEach(wu => {
+                if (wu.user_id === u.id) {
+                    roles.add('User');
+                    const w = (weddings || []).find(x => x.id === wu.wedding_id);
+                    if (w) userWeddings.push(w);
+                }
+            });
+
+            (guests || []).forEach(g => {
+                const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
+                if (baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone)) {
+                    roles.add('Guest');
+                    const w = (weddings || []).find(x => x.id === g.wedding_id);
+                    if (w) guestWeddings.push(w);
+                }
+            });
+
+            return { 
+                ...u, 
+                wedding_role: Array.from(roles).join(', ') || '-',
+                host_weddings: hostWeddings,
+                user_weddings: userWeddings,
+                guest_weddings: guestWeddings
+            };
         });
 
         renderUsersList();
@@ -126,10 +151,11 @@ function renderUsersList() {
         return;
     }
 
-    const gridTemplate = "32px 280px 200px 1fr 60px 80px 100px 70px 110px";
+    const gridTemplate = "32px 32px 280px 200px 1fr 60px 80px 140px 70px 110px";
 
     let listHTML = `
         <div style="display: grid; grid-template-columns: ${gridTemplate}; align-items: center; padding: 0 var(--space-4) var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-2); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); gap: 12px;">
+            <div></div>
             <div></div>
             <div>ID</div>
             <div>Name</div>
@@ -146,8 +172,14 @@ function renderUsersList() {
         const uJson = JSON.stringify(u).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
         
         const verifiedBadge = u.is_verified 
-            ? `<span style="color: #10b981; font-weight: bold;">Yes</span>` 
-            : `<span style="color: #ef4444; font-weight: bold;">No</span>`;
+            ? `<span style="color: #10b981; font-weight: bold;">Verified</span>` 
+            : `<button class="verify-user-btn" data-id="${u.id}" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 4px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.75rem; font-weight: var(--font-weight-medium); transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">Verify</button>`;
+
+        const toggleBtn = `
+            <button class="toggle-weddings-btn" data-target="child-user-${u.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'">
+                <i data-lucide="chevron-right" style="width: 18px; height: 18px; transition: transform 0.2s;"></i>
+            </button>
+        `;
 
         const editBtn = !u.is_verified ? `
             <button onclick="openUserModal(JSON.parse('${uJson}'))" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
@@ -155,10 +187,35 @@ function renderUsersList() {
             </button>
         ` : `<div></div>`;
         
+        const renderWeddingsList = (title, weds) => {
+            if (!weds || weds.length === 0) return '';
+            const uniqueWeds = [];
+            const seenIds = new Set();
+            for (const w of weds) {
+                if (!seenIds.has(w.id)) { seenIds.add(w.id); uniqueWeds.push(w); }
+            }
+            const wNames = uniqueWeds.map(w => {
+                const names = w.primary_side === 'groom' ? `${w.groom_name} & ${w.bride_name}` : `${w.bride_name} & ${w.groom_name}`;
+                return `<span style="background: var(--color-border); padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; margin-right: 8px; margin-bottom: 8px;"><i data-lucide="heart" style="width:12px; height:12px; margin-right: 4px;"></i> ${names}</span>`;
+            }).join('');
+            return `<div style="margin-bottom: 12px;">
+                        <div style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: var(--font-weight-semibold);">${title}:</div>
+                        <div style="display: flex; flex-wrap: wrap;">${wNames}</div>
+                    </div>`;
+        };
+
+        const hostHTML = renderWeddingsList('Host', u.host_weddings);
+        const userHTML = renderWeddingsList('User', u.user_weddings);
+        const guestHTML = renderWeddingsList('Guest', u.guest_weddings);
+
+        let childContent = hostHTML + userHTML + guestHTML;
+        if (!childContent) childContent = `<div style="color: var(--color-text-muted); font-size: var(--font-size-xs);">No associated weddings.</div>`;
+
         listHTML += `
         <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">
             <div style="display: grid; grid-template-columns: ${gridTemplate}; align-items: center; padding: var(--space-3) var(--space-4); transition: background 0.2s ease; gap: 12px;" onmouseover="this.style.background='var(--color-border)';" onmouseout="this.style.background='transparent';">
                 
+                ${toggleBtn}
                 ${editBtn}
                 
                 <div style="font-family: monospace; color: var(--color-text-muted); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${u.id}">${u.id}</div>
@@ -184,6 +241,10 @@ function renderUsersList() {
                         Imitate User
                     </button>
                 </div>
+            </div>
+
+            <div id="child-user-${u.id}" style="display: none; padding: var(--space-4) var(--space-4) var(--space-4) 74px; background: var(--color-white); border-top: 1px dashed var(--color-border);">
+                ${childContent}
             </div>
         </div>`;
     });
@@ -219,6 +280,43 @@ function renderUsersList() {
                 renderUsersList();
             });
         });
+
+        // Add Toggle Logic
+        const toggleBtns = content.querySelectorAll('.toggle-weddings-btn');
+        toggleBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const targetId = btn.getAttribute('data-target');
+                const childRow = document.getElementById(targetId);
+                const icon = btn.querySelector('i');
+                
+                if (childRow.style.display === 'none') {
+                    childRow.style.display = 'block';
+                    icon.style.transform = 'rotate(90deg)';
+                } else {
+                    childRow.style.display = 'none';
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            });
+        });
+
+        // Add Verification Button Logic
+        const verifyBtns = content.querySelectorAll('.verify-user-btn');
+        verifyBtns.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const userId = btn.getAttribute('data-id');
+                try {
+                    const { error } = await supabase.from('users').update({ is_verified: true }).eq('id', userId);
+                    if (error) throw error;
+                    showAlert({ icon: 'success', title: 'Verified!', text: 'User has been successfully verified.', timer: 2000 });
+                    loadUsersData();
+                } catch (error) {
+                    showAlert({ icon: 'error', title: 'Verification Failed', text: error.message });
+                }
+            });
+        });
+
         if (window.lucide) window.lucide.createIcons();
     }, 0);
 }
@@ -233,26 +331,11 @@ window.openUserModal = function(user = null) {
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Phone Number *</label>
-                <input type="text" id="sysUserPhone" value="${user ? user.phone : ''}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                <input type="tel" id="sysUserPhone" value="${user ? user.phone : ''}" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
             </div>
-            <div style="display: flex; gap: var(--space-3);">
-                <div style="flex: 1;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">User Role *</label>
-                    <select id="sysUserRole" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
-                        <option value="guest" ${user && user.role === 'guest' ? 'selected' : ''}>Guest</option>
-                        <option value="creator" ${user && user.role === 'creator' ? 'selected' : ''}>Creator</option>
-                    </select>
-                </div>
-                <div style="flex: 1;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">PIN *</label>
-                    <input type="text" id="sysUserPin" value="${user && user.pin ? user.pin : ''}" maxlength="4" placeholder="4 Digits" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
-                </div>
-            </div>
-            <div style="margin-top: 8px;">
-                <label style="display:flex; align-items:center; gap:8px; font-size:var(--font-size-sm); color:var(--color-text-primary); cursor:pointer;">
-                    <input type="checkbox" id="sysUserVerified" ${user && user.is_verified ? 'checked' : ''} style="accent-color: var(--color-primary); width: 16px; height: 16px;"> 
-                    User is Verified
-                </label>
+            <div>
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">PIN *</label>
+                <input type="password" id="sysUserPin" value="${user && user.pin ? user.pin : ''}" maxlength="4" placeholder="4 Digits" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
             </div>
         </form>
     `;
@@ -264,14 +347,40 @@ window.openUserModal = function(user = null) {
             variant: "primary", 
             closesModal: false,
             onClick: async () => {
-                const name = document.getElementById('sysUserName').value.trim();
-                const phoneInput = document.getElementById('sysUserPhone').value.trim();
-                const role = document.getElementById('sysUserRole').value;
-                const pin = document.getElementById('sysUserPin').value.trim();
-                const isVerified = document.getElementById('sysUserVerified').checked;
+                const nameInput = document.getElementById('sysUserName');
+                const phoneInputEl = document.getElementById('sysUserPhone');
+                const pinInput = document.getElementById('sysUserPin');
 
-                if (!name || !phoneInput || !pin) {
-                    showAlert({ icon: 'warning', title: 'Missing Information', text: `Please fill out Name, Phone, and PIN.` });
+                const name = nameInput.value.trim();
+                const phoneInput = phoneInputEl.value.trim();
+                const pin = pinInput.value.trim();
+
+                // Reset borders
+                nameInput.style.borderColor = 'var(--color-border)';
+                phoneInputEl.style.borderColor = 'var(--color-border)';
+                pinInput.style.borderColor = 'var(--color-border)';
+
+                if (!name) {
+                    nameInput.style.borderColor = 'red';
+                    showAlert({ icon: 'warning', title: 'Missing Information', text: 'Please enter the Full Name.' });
+                    return;
+                }
+
+                if (!phoneInput) {
+                    phoneInputEl.style.borderColor = 'red';
+                    showAlert({ icon: 'warning', title: 'Missing Information', text: 'Please enter the Phone Number.' });
+                    return;
+                }
+
+                if (!pin) {
+                    pinInput.style.borderColor = 'red';
+                    showAlert({ icon: 'warning', title: 'Missing Information', text: 'Please enter the 4-Digit PIN.' });
+                    return;
+                }
+
+                if (!/^\d{4}$/.test(pin)) {
+                    pinInput.style.borderColor = "red";
+                    showAlert({ icon: 'warning', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
                     return;
                 }
 
@@ -288,7 +397,10 @@ window.openUserModal = function(user = null) {
                         }
                     }
 
-                    const payload = { name, phone: cleanedPhone, role, pin, is_verified: isVerified };
+                    const payload = { name, phone: cleanedPhone, pin };
+                    if (!user) {
+                        payload.role = 'guest'; // Hardcoded default role for new users
+                    }
 
                     if (user) {
                         const { error } = await supabase.from('users').update(payload).eq('id', user.id);

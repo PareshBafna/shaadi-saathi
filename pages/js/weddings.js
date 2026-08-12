@@ -9,6 +9,45 @@ function getLocalTodayString() {
     return today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 }
 
+function startOfDay(date) {
+    const copy = new Date(date);
+    copy.setHours(0, 0, 0, 0);
+    return copy;
+}
+
+export function formatWeddingDateRange(startIso, endIso) {
+    if (!startIso || !endIso) return "Dates TBD";
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    
+    const sDay = start.getDate();
+    const eDay = end.getDate();
+    
+    const getSuffix = (day) => {
+        if (day > 3 && day < 21) return 'th';
+        switch (day % 10) {
+            case 1: return "st";
+            case 2: return "nd";
+            case 3: return "rd";
+            default: return "th";
+        }
+    };
+
+    const sMonth = start.toLocaleString("en-IN", { month: "short" });
+    const eMonth = end.toLocaleString("en-IN", { month: "short" });
+    const year = start.getFullYear();
+
+    if (startIso === endIso) {
+        return `${sDay}${getSuffix(sDay)} ${start.toLocaleString("en-IN", { month: "long" })}, ${year}`;
+    }
+    
+    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+        return `${sDay}${getSuffix(sDay)} - ${eDay}${getSuffix(eDay)} ${start.toLocaleString("en-IN", { month: "long" })}, ${year}`;
+    }
+    
+    return `${sDay}${getSuffix(sDay)} ${sMonth} - ${eDay}${getSuffix(eDay)} ${eMonth}, ${year}`;
+}
+
 // Helper to strictly determine if the current user can edit a specific wedding
 function canEditWedding(wedding) {
     const today = new Date();
@@ -100,12 +139,6 @@ export function renderWeddings() {
     return wrapper;
 }
 
-function startOfDay(date) {
-    const copy = new Date(date);
-    copy.setHours(0, 0, 0, 0);
-    return copy;
-}
-
 async function loadWeddingsData(container) {
     const userRole = window.currentUser?.role || 'guest';
     const userPhone = window.currentUser?.phone || '';
@@ -117,7 +150,6 @@ async function loadWeddingsData(container) {
     try {
         let accessibleWeddingIds = [];
 
-        // 1. If not a creator, find which weddings this user is allowed to see first
         if (!isCreator) {
             const [hostRes, wUserRes, guestRes] = await Promise.all([
                 supabase.from('wedding_hosts').select('wedding_id').eq('user_id', userId),
@@ -131,7 +163,6 @@ async function loadWeddingsData(container) {
 
             accessibleWeddingIds = [...new Set([...hostIds, ...wUserIds, ...guestIds])];
 
-            // If they have no associations, stop early and render empty
             if (accessibleWeddingIds.length === 0) {
                 allWeddings = [];
                 filterAndRenderGalleries();
@@ -139,7 +170,6 @@ async function loadWeddingsData(container) {
             }
         }
 
-        // 2. Fetch only the permitted weddings
         let weddingsQuery = supabase.from('weddings').select('*');
         if (!isCreator) {
             weddingsQuery = weddingsQuery.in('id', accessibleWeddingIds);
@@ -148,16 +178,17 @@ async function loadWeddingsData(container) {
         const { data: rawWeddings, error } = await weddingsQuery;
         if (error) throw error;
         
-        // 3. Fetch dependencies
         const { data: allSysUsers, error: sysUsersErr } = await supabase.from('users').select('id, name, phone');
         if (sysUsersErr) throw sysUsersErr;
 
         let hostsQuery = supabase.from('wedding_hosts').select('*');
         let wUsersQuery = supabase.from('wedding_users').select('*');
+        let webInvitesQuery = supabase.from('wedding_web_invite').select('wedding_id');
         
         if (!isCreator) {
             hostsQuery = hostsQuery.in('wedding_id', accessibleWeddingIds);
             wUsersQuery = wUsersQuery.in('wedding_id', accessibleWeddingIds);
+            webInvitesQuery = webInvitesQuery.in('wedding_id', accessibleWeddingIds);
         }
 
         const { data: hostsData, error: hostsError } = await hostsQuery;
@@ -165,10 +196,11 @@ async function loadWeddingsData(container) {
 
         const { data: wUsersData, error: wUsersError } = await wUsersQuery;
         if (wUsersError && wUsersError.code !== '42P01') throw wUsersError;
+
+        const { data: webInvitesData } = await webInvitesQuery;
         
         let accessibleWeddings = [];
 
-        // 4. Build objects and calculate event counts for the permitted weddings
         for (let wedding of (rawWeddings || [])) {
             const rawHosts = hostsData ? hostsData.filter(h => h.wedding_id === wedding.id) : [];
             wedding.hosts = rawHosts.map(h => {
@@ -177,6 +209,8 @@ async function loadWeddingsData(container) {
             });
 
             wedding.wedding_users = wUsersData ? wUsersData.filter(u => u.wedding_id === wedding.id) : [];
+            
+            wedding.has_web_invite = (wedding.id === '00000000-0000-0000-0000-000000000000') || (webInvitesData ? webInvitesData.some(w => w.wedding_id === wedding.id) : false);
 
             let eventsQuery = supabase.from('events').select('*', { count: 'exact' }).eq('wedding_id', wedding.id);
             
@@ -252,7 +286,6 @@ function filterAndRenderGalleries() {
         return;
     }
 
-    // --- THE FIX: Include the Archived section in the UI render ---
     container.innerHTML = `
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: var(--space-6); width: 100%; align-items: start;">
             ${buildGallerySection("In Progress", inProgress)}
@@ -263,7 +296,7 @@ function filterAndRenderGalleries() {
 
     container.querySelectorAll('.gallery-card').forEach(card => {
         card.addEventListener('click', (e) => {
-            if(!e.target.closest('.edit-wedding-btn')) {
+            if(!e.target.closest('.edit-wedding-btn') && !e.target.closest('a')) {
                 const id = card.getAttribute('data-wedding-id');
                 window.location.hash = `#wedding-details?id=${id}`;
             }
@@ -294,7 +327,6 @@ function buildGallerySection(title, weddings) {
     const listItems = weddings.map(wedding => {
         let editBtnHTML = '';
 
-        // Only show edit button if the user has permission for THIS specific wedding
         if (canEditWedding(wedding)) {
             editBtnHTML = `
                 <button class="edit-wedding-btn" style="position: absolute; right: var(--space-3); top: 1.25rem; background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'">
@@ -323,6 +355,21 @@ function buildGallerySection(title, weddings) {
             </div>`;
         }
 
+        let webInviteHTML = '';
+        if (wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000') {
+            let inviteUrl = `${window.location.origin}/invite.html?id=${wedding.id}`;
+            if (wedding.id === '00000000-0000-0000-0000-000000000000') {
+                inviteUrl = `${window.location.origin}/sample-invite.html`;
+            }
+
+            webInviteHTML = `
+            <div style="margin-top: 12px; display: flex; justify-content: center; width: 100%;">
+                <a href="${inviteUrl}" target="_blank" onclick="event.stopPropagation();" style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 8px 16px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation
+                </a>
+            </div>`;
+        }
+
         return `
         <div class="stat-card gallery-card" data-wedding-id="${wedding.id}" style="position: relative; cursor: pointer; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s ease;">
             
@@ -346,6 +393,8 @@ function buildGallerySection(title, weddings) {
                 ${hostsHTML}
 
                 <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary);"><i data-lucide="calendar-days" style="width:14px; height:14px;"></i> ${wedding.events_count || 0} Events</div>
+                
+                ${webInviteHTML}
             </div>
 
             ${editBtnHTML}
@@ -363,9 +412,6 @@ function buildGallerySection(title, weddings) {
     `;
 }
 
-// ==========================================
-// GLOBALS: MODALS & BUTTON STYLER
-// ==========================================
 function forceStyleModalButtons() {
     const btns = Array.from(document.querySelectorAll('button'));
     btns.forEach(btn => {
@@ -593,7 +639,6 @@ export function openCreateWeddingModal() {
 window.openEditWeddingModal = function(wedding) {
     const userRole = window.currentUser?.role || 'guest';
     
-    // Check if user is a creator OR explicitly assigned as a host to this wedding
     if (!canEditWedding(wedding)) {
         showAlert({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to edit this wedding.' });
         return;
@@ -660,10 +705,8 @@ window.openEditWeddingModal = function(wedding) {
         </form>
     `;
 
-    // Dynamically build actions based on role
     const modalActions = [];
 
-    // STRICT RULE: Only Creators can delete
     if (userRole === 'creator') {
         modalActions.push({
             label: "Delete",
@@ -814,37 +857,4 @@ window.openEditWeddingModal = function(wedding) {
         }
 
     }, 50);
-}
-
-export function formatWeddingDateRange(startIso, endIso) {
-    if (!startIso || !endIso) return "Dates TBD";
-    const start = new Date(startIso);
-    const end = new Date(endIso);
-    
-    const sDay = start.getDate();
-    const eDay = end.getDate();
-    
-    const getSuffix = (day) => {
-        if (day > 3 && day < 21) return 'th';
-        switch (day % 10) {
-            case 1: return "st";
-            case 2: return "nd";
-            case 3: return "rd";
-            default: return "th";
-        }
-    };
-
-    const sMonth = start.toLocaleString("en-IN", { month: "short" });
-    const eMonth = end.toLocaleString("en-IN", { month: "short" });
-    const year = start.getFullYear();
-
-    if (startIso === endIso) {
-        return `${sDay}${getSuffix(sDay)} ${start.toLocaleString("en-IN", { month: "long" })}, ${year}`;
-    }
-    
-    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-        return `${sDay}${getSuffix(sDay)} - ${eDay}${getSuffix(eDay)} ${start.toLocaleString("en-IN", { month: "long" })}, ${year}`;
-    }
-    
-    return `${sDay}${getSuffix(sDay)} ${sMonth} - ${eDay}${getSuffix(eDay)} ${eMonth}, ${year}`;
 }

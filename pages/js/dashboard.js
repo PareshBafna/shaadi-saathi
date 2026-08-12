@@ -23,7 +23,6 @@ export function renderDashboard() {
 // ==========================================
 // ASYNC DATA FETCHER
 // ==========================================
-// Inside pages/js/dashboard.js
 async function loadGlobalDashboardData(section) {
     try {
         let weddings = [];
@@ -34,13 +33,17 @@ async function loadGlobalDashboardData(section) {
             throw error;
         }
 
-        // --- THE FIX: Fetch Users alongside Hosts ---
+        // Fetch Users alongside Hosts
         const { data: allSysUsers, error: sysUsersErr } = await supabase.from('users').select('id, name, phone');
         if (sysUsersErr) throw sysUsersErr;
 
         const { data: hostsData, error: hostsError } = await supabase.from('wedding_hosts').select('*');
         if (hostsError && hostsError.code !== '42P01') throw hostsError;
         
+        // Fetch Web Invites to check existence
+        const { data: webInvitesData, error: webInvitesErr } = await supabase.from('wedding_web_invite').select('wedding_id');
+        if (webInvitesErr && webInvitesErr.code !== '42P01') throw webInvitesErr;
+
         for (let wedding of weddings) {
             // Attach hosts AND map their names from allSysUsers
             const rawHosts = hostsData ? hostsData.filter(h => h.wedding_id === wedding.id) : [];
@@ -48,6 +51,9 @@ async function loadGlobalDashboardData(section) {
                 const u = allSysUsers.find(u => u.id === h.user_id) || {};
                 return { ...h, name: u.name, phone: u.phone };
             });
+
+            // Check if Web Invite exists for this wedding
+            wedding.has_web_invite = webInvitesData ? webInvitesData.some(w => w.wedding_id === wedding.id) : false;
 
             const { count: eventsCount } = await supabase.from('events').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
             const { count: guestsCount } = await supabase.from('guests').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
@@ -116,7 +122,6 @@ async function loadGlobalDashboardData(section) {
 function buildStatsGrid(stats) {
     const grid = document.createElement("div");
     grid.className = "dashboard__stats";
-    // ADDED GRID CSS FIX HERE
     grid.style.cssText = `
         display: grid; 
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
@@ -186,7 +191,6 @@ function buildWeddingListSection(title, weddingsList) {
         
         let hostsHTML = '';
         if (wedding.hosts && wedding.hosts.length > 0) {
-            // Sort hosts alphabetically by name
             const sortedHosts = [...wedding.hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
             const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
             
@@ -198,6 +202,18 @@ function buildWeddingListSection(title, weddingsList) {
             hostsHTML = `
             <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span style="font-style: italic;">No wedding hosts added</span>
+            </div>`;
+        }
+
+        let webInviteHTML = '';
+        if (wedding.has_web_invite) {
+            // FIX: Using window.location.origin instead of hardcoded domain
+            const inviteUrl = `${window.location.origin}/invite.html?id=${wedding.id}`;
+            webInviteHTML = `
+            <div style="margin-top: 12px; display: flex; justify-content: center;">
+                <a href="${inviteUrl}" target="_blank" onclick="event.stopPropagation();" style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 8px 16px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation
+                </a>
             </div>`;
         }
 
@@ -232,6 +248,8 @@ function buildWeddingListSection(title, weddingsList) {
                 <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.guests_count || 0} Guests</div>
 
                 <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary);"><i data-lucide="calendar-days" style="width:14px; height:14px;"></i> ${wedding.events_count || 0} Events</div>
+                
+                ${webInviteHTML}
             </div>
         `;
 

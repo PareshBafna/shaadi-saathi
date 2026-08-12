@@ -1,6 +1,7 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/components/js/modal.js';
 import { showAlert } from '../../global/components/js/alerts.js';
+import { formatWeddingDateRange } from './weddings.js';
 
 // ==========================================
 // MAIN RENDER FUNCTION
@@ -35,6 +36,10 @@ async function loadWeddingData(container, weddingId) {
         // 1. Fetch Core Wedding Data
         const { data: wedding, error: weddingError } = await supabase.from('weddings').select('*').eq('id', weddingId).single();
         if (weddingError) throw weddingError;
+
+        // Fetch Web Invite to see if it exists
+        const { data: webInvite, error: webInviteError } = await supabase.from('wedding_web_invite').select('id').eq('wedding_id', weddingId).maybeSingle();
+        const hasWebInvite = !!webInvite;
 
         // 2. Fetch All System Users for Dropdowns
         const { data: allSysUsers, error: sysUsersErr } = await supabase.from('users').select('id, name, phone, role');
@@ -110,7 +115,7 @@ async function loadWeddingData(container, weddingId) {
 
         // 6. Render UI Components
         container.innerHTML = "";
-        container.appendChild(buildSpecificHeader(wedding));
+        container.appendChild(buildSpecificHeader(wedding, hasWebInvite));
         
         const statsSection = buildSpecificStats(wedding, displayEventCount, guests?.length || 0, hosts, canViewAll);
         if (statsSection) container.appendChild(statsSection);
@@ -135,9 +140,13 @@ async function loadWeddingData(container, weddingId) {
 // ==========================================
 // 1. HEADER SECTION
 // ==========================================
-function buildSpecificHeader(wedding) {
+function buildSpecificHeader(wedding, hasWebInvite = true) {
     const header = document.createElement("div");
-    header.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-8);";
+    header.style.cssText = "display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-8); flex-wrap: wrap; gap: 16px;";
+    
+    // Left Side: Names, Date, Hashtag
+    const leftSide = document.createElement("div");
+    leftSide.style.cssText = "display: flex; flex-direction: column; gap: var(--space-2);";
     
     const displayNames = wedding.primary_side === 'groom' 
         ? `${wedding.groom_name} & ${wedding.bride_name}` 
@@ -146,42 +155,59 @@ function buildSpecificHeader(wedding) {
     let hashtagHTML = '';
     if (wedding.hashtag) {
         const formattedHashtag = wedding.hashtag.startsWith('#') ? wedding.hashtag : `#${wedding.hashtag}`;
-        hashtagHTML = `<span style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 4px 12px; border-radius: 16px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); letter-spacing: 0.5px;">${formattedHashtag}</span>`;
+        hashtagHTML = `<div style="margin-top: 4px;"><span style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 4px 12px; border-radius: 16px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); letter-spacing: 0.5px; display: inline-flex; align-items: center; height: 28px; box-sizing: border-box;">${formattedHashtag}</span></div>`;
+    }
+
+    leftSide.innerHTML = `
+        <h1 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;">${displayNames}</h1>
+        <p style="color: var(--color-text-secondary); margin: 0; font-size: var(--font-size-base);">Date: <strong style="color: var(--color-primary);">${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</strong></p>
+        ${hashtagHTML}
+    `;
+
+    // Right Side: Web Invite & Instagram (Stacked)
+    const rightSide = document.createElement("div");
+    rightSide.style.cssText = "display: flex; flex-direction: column; align-items: flex-end; gap: 10px;";
+
+    let webInviteHTML = '';
+    if (hasWebInvite || wedding.id === '00000000-0000-0000-0000-000000000000') {
+        let inviteUrl = `${window.location.origin}/invite.html?id=${wedding.id}`;
+        if (wedding.id === '00000000-0000-0000-0000-000000000000') {
+            inviteUrl = `${window.location.origin}/sample-invite.html`;
+        }
+        webInviteHTML = `
+            <a href="${inviteUrl}" target="_blank" style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 0 16px; height: 36px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s; box-sizing: border-box;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation
+            </a>`;
     }
 
     let instagramHTML = '';
     if (wedding.instagram) {
         let igUrl = wedding.instagram.startsWith('http') ? wedding.instagram : `https://instagram.com/${wedding.instagram.replace('@', '')}`;
+        
+        let handle = wedding.instagram.trim();
+        if (handle.includes('instagram.com/')) {
+            handle = handle.split('instagram.com/')[1].replace(/\//g, '');
+        }
+        handle = handle.replace('@', ''); 
+
         instagramHTML = `
-            <a href="${igUrl}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" title="Instagram">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="url(#ig-grad)"></rect>
-                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line>
-                    <defs>
-                        <radialGradient id="ig-grad" cx="30%" cy="107%" r="150%" fx="30%" fy="107%">
-                            <stop offset="0%" stop-color="#fdf497" />
-                            <stop offset="5%" stop-color="#fdf497" />
-                            <stop offset="45%" stop-color="#fd5949" />
-                            <stop offset="60%" stop-color="#d6249f" />
-                            <stop offset="90%" stop-color="#285AEB" />
-                        </radialGradient>
-                    </defs>
-                </svg>
-            </a>
-        `;
+            <a href="${igUrl}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 0 16px; height: 32px; border-radius: 999px; color: white; transition: opacity 0.2s; box-sizing: border-box; font-size: 0.85rem; font-weight: bold; font-family: sans-serif;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'" title="Instagram">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.282.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.478 2.478 0 0 1-.92-.598 2.48 2.48 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233 0-2.136.008-2.388.046-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334z"/>
+                        </svg>
+                        ${handle}
+                    </a>
+                `;
     }
 
-    header.innerHTML = `
-        <div>
-            <h1 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;">${displayNames}</h1>
-            <p style="color: var(--color-text-secondary); margin: var(--space-2) 0 0 0; font-size: var(--font-size-base);">Date: <strong style="color: var(--color-primary);">${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</strong></p>
-            <div style="display: flex; align-items: center; gap: 8px; margin-top: var(--space-3);">
-                ${hashtagHTML}
-                ${instagramHTML}
-            </div>
-        </div>
+    rightSide.innerHTML = `
+        ${webInviteHTML}
+        ${instagramHTML}
     `;
+
+    header.appendChild(leftSide);
+    header.appendChild(rightSide);
+    
     return header;
 }
 
@@ -859,10 +885,7 @@ window.openSystemUserModal = async function(type, existingRecord = null) {
 
     setTimeout(() => {
         forceStyleModalButtons();
-        
-        // Convert the standard select into the searchable dropdown UI
         convertToSearchableDropdown('sysUserId');
-        
     }, 50);
 };
 
@@ -1145,11 +1168,11 @@ function convertToSearchableDropdown(selectId) {
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = 'Search...';
-    input.className = select.className; // Inherit existing classes
+    input.className = select.className; 
     input.style.cssText = 'width: 100%; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;';
     wrapper.appendChild(input);
 
-    // Create dropdown list container (Updated background color)
+    // Create dropdown list container 
     const list = document.createElement('div');
     list.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); z-index: 9999; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-top: 4px;';
     wrapper.appendChild(list);
@@ -1189,9 +1212,8 @@ function convertToSearchableDropdown(selectId) {
         });
     }
 
-    // Input interaction listeners
     input.addEventListener('focus', () => {
-        input.value = ''; // Clear input on focus for easy new searching
+        input.value = ''; 
         renderList('');
         list.style.display = 'block';
     });
@@ -1201,11 +1223,9 @@ function convertToSearchableDropdown(selectId) {
         list.style.display = 'block';
     });
 
-    // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
         if (!wrapper.contains(e.target)) {
             list.style.display = 'none';
-            // Revert input to the currently selected option's text if blurred
             const selectedOpt = options.find(o => o.value === select.value);
             if (selectedOpt && select.value !== "") {
                 input.value = selectedOpt.text;
@@ -1215,7 +1235,6 @@ function convertToSearchableDropdown(selectId) {
         }
     });
 
-    // Initial state setup
     const initialOpt = options.find(o => o.value === select.value);
     if (initialOpt && select.value !== "") {
         input.value = initialOpt.text;
@@ -1526,39 +1545,6 @@ window.openEditEventModal = function(weddingId, minDate, maxDate, ev) {
         });
     }, 50);
 };
-
-export function formatWeddingDateRange(startIso, endIso) {
-    if (!startIso || !endIso) return "Dates TBD";
-    const start = new Date(startIso);
-    const end = new Date(endIso);
-    
-    const sDay = start.getDate();
-    const eDay = end.getDate();
-    
-    const getSuffix = (day) => {
-        if (day > 3 && day < 21) return 'th';
-        switch (day % 10) {
-            case 1: return "st";
-            case 2: return "nd";
-            case 3: return "rd";
-            default: return "th";
-        }
-    };
-
-    const sMonth = start.toLocaleString("en-IN", { month: "short" });
-    const eMonth = end.toLocaleString("en-IN", { month: "short" });
-    const year = start.getFullYear();
-
-    if (startIso === endIso) {
-        return `${sDay}${getSuffix(sDay)} ${start.toLocaleString("en-IN", { month: "long" })}, ${year}`;
-    }
-    
-    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-        return `${sDay}${getSuffix(sDay)} - ${eDay}${getSuffix(eDay)} ${start.toLocaleString("en-IN", { month: "long" })}, ${year}`;
-    }
-    
-    return `${sDay}${getSuffix(sDay)} ${sMonth} - ${eDay}${getSuffix(eDay)} ${eMonth}, ${year}`;
-}
 
 window.openGuestModal = function(weddingId, events = []) {
     const sortedModalEvents = [...events].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());

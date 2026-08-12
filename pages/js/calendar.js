@@ -170,10 +170,11 @@ function updateCalendarUI() {
         </div>
     `;
 
+    // FIX: Wrapped the date input so clicking anywhere inside triggers the calendar popup
     const dateSearchHTML = `
-        <div style="display: flex; align-items: center; gap: 8px; background: var(--color-bg); padding: 2px 4px; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+        <div style="display: flex; align-items: center; gap: 8px; background: var(--color-bg); padding: 2px 4px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); cursor: pointer;" onclick="try { this.querySelector('input[type=date]').showPicker(); } catch(e) {}">
             <i data-lucide="calendar-search" style="width: 16px; height: 16px; color: var(--color-text-secondary); margin-left: 6px;"></i>
-            <input type="date" title="Search Date" style="border: none; background: transparent; font-size: 0.8rem; color: var(--color-text-primary); cursor: pointer; padding: 4px; outline: none;" onchange="searchCalendarDate(this.value)">
+            <input type="date" title="Search Date" style="border: none; background: transparent; font-size: 0.8rem; color: var(--color-text-primary); cursor: pointer; padding: 4px; outline: none;" onclick="try{this.showPicker()}catch(e){ event.stopPropagation(); }" onchange="searchCalendarDate(this.value)">
         </div>
     `;
 

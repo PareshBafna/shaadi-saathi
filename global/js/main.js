@@ -17,6 +17,12 @@ import { renderHosts } from '../../pages/js/hosts.js';
 import { renderSampleWedding } from '../../pages/js/sample-wedding.js';
 import { renderWebInvites } from '../../web-invites/js/web-invites.js';
 
+// Import the new Sample Web Invites function
+import { renderSampleWebInvites } from '../../web-invites/js/sample-web-invites.js';
+
+// --- NEW PUBLIC ROUTING WHITELIST ---
+const publicRoutes = ['#login', '#/', '#sample-web-invites'];
+
 document.addEventListener("DOMContentLoaded", async () => {
     document.body.style.opacity = '0.5';
     let user = await validateSession();
@@ -25,23 +31,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     const rawHash = window.location.hash || '#login';
     const [route] = rawHash.split('?');
 
-    if (!user) {
-        if (route !== '#login' && route !== '#/') {
-            Swal.fire({
-                title: 'Authentication Required',
-                text: 'No logged in user details found. Please re-login.',
-                icon: 'warning', allowOutsideClick: false, allowEscapeKey: false, showCancelButton: false,
-                confirmButtonText: 'Login', confirmButtonColor: '#0f172a'
-            }).then(() => { window.location.hash = '#login'; });
-        } else {
-            window.location.hash = '#login';
-        }
+    // Bypass strict authentication popups for public routes
+    if (!user && !publicRoutes.includes(route)) {
+        Swal.fire({
+            title: 'Authentication Required',
+            text: 'No logged in user details found. Please re-login.',
+            icon: 'warning', allowOutsideClick: false, allowEscapeKey: false, showCancelButton: false,
+            confirmButtonText: 'Login', confirmButtonColor: '#0f172a'
+        }).then(() => { window.location.hash = '#login'; });
         initApp(null);
         return;
     }
 
     // --- DYNAMIC ROLE EVALUATION ---
-    if (user.role !== 'creator') {
+    if (user && user.role !== 'creator') {
         try {
             const { data: hostData } = await supabase.from('wedding_hosts').select('wedding_id').eq('user_id', user.id);
             const { data: userData } = await supabase.from('wedding_users').select('wedding_id').eq('user_id', user.id);
@@ -75,16 +78,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     // --- END DYNAMIC ROLE EVALUATION ---
 
-    window.currentUser = user;
+    window.currentUser = user || null;
 
     // ROLE-BASED DEFAULT ROUTING
     if (route === '#login' || route === '#/') {
-        if (user.role === 'creator') {
-            window.location.hash = '#dashboard';
-        } else if (user.role === 'host' || user.role === 'wedding_user') {
-            window.location.hash = '#weddings';
+        if (user) {
+            if (user.role === 'creator') {
+                window.location.hash = '#dashboard';
+            } else if (user.role === 'host' || user.role === 'wedding_user') {
+                window.location.hash = '#weddings';
+            } else {
+                window.location.hash = '#calendar';
+            }
         } else {
-            window.location.hash = '#calendar';
+            window.location.hash = '#login';
         }
     }
 
@@ -92,60 +99,64 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function initApp(user) {
-    if (user) {
-        let defaultRoute = 'calendar';
-        if (user.role === 'creator') defaultRoute = 'dashboard';
-        if (user.role === 'host' || user.role === 'wedding_user') defaultRoute = 'weddings';
+    // Determine Default active link for Sidebar
+    let activeId = window.location.hash.replace('#', '').split('?')[0];
+    
+    // Always render structural DOM elements
+    const layout = document.getElementById("layout");
+    let mainContent = document.getElementById("main-content");
+    let rightWrapper = document.getElementById("right-wrapper");
+    let headerContainer = document.getElementById("header-container");
 
-        let activeId = window.location.hash.replace('#', '').split('?')[0] || defaultRoute;
+    if (layout && !rightWrapper && mainContent) {
+        rightWrapper = document.createElement("div");
+        rightWrapper.id = "right-wrapper";
         
-        // Force highlight "Weddings" in sidebar when nested in details
+        rightWrapper.style.display = "flex";
+        rightWrapper.style.flexDirection = "column";
+        rightWrapper.style.flexGrow = "1";
+        rightWrapper.style.minWidth = "0";
+        rightWrapper.style.height = "100vh";
+        
+        mainContent.parentNode.insertBefore(rightWrapper, mainContent);
+        
+        if (!headerContainer) {
+            headerContainer = document.createElement("div");
+            headerContainer.id = "header-container";
+        }
+        
+        rightWrapper.appendChild(headerContainer);
+        rightWrapper.appendChild(mainContent);
+        
+        mainContent.style.flexGrow = "1";
+        mainContent.style.overflowY = "auto";
+    }
+
+    // Attach Sidebar only if user exists
+    if (user) {
         if (activeId === 'wedding-details') {
             activeId = 'weddings';
         }
         
         const sidebar = createSidebar({ 
             role: user.role, 
-            activeItemId: activeId,
+            activeItemId: activeId || 'calendar',
             onNavigate: (pageId) => {
                 window.location.hash = `#${pageId}`;
             },
             onLogout: logoutUser 
         });
         
-        const layout = document.getElementById("layout");
-        if(layout && !document.querySelector('.sidebar')) layout.prepend(sidebar);
-
-        let mainContent = document.getElementById("main-content");
-        let headerContainer = document.getElementById("header-container");
-        let rightWrapper = document.getElementById("right-wrapper");
-
-        if (!rightWrapper && mainContent) {
-            rightWrapper = document.createElement("div");
-            rightWrapper.id = "right-wrapper";
-            
-            rightWrapper.style.display = "flex";
-            rightWrapper.style.flexDirection = "column";
-            rightWrapper.style.flexGrow = "1";
-            rightWrapper.style.minWidth = "0";
-            rightWrapper.style.height = "100vh";
-            
-            mainContent.parentNode.insertBefore(rightWrapper, mainContent);
-            
-            if (!headerContainer) {
-                headerContainer = document.createElement("div");
-                headerContainer.id = "header-container";
-            }
-            
-            rightWrapper.appendChild(headerContainer);
-            rightWrapper.appendChild(mainContent);
-            
-            mainContent.style.flexGrow = "1";
-            mainContent.style.overflowY = "auto";
+        if (layout && !document.querySelector('.sidebar')) {
+            layout.prepend(sidebar);
         }
     }
     
-    window.addEventListener("hashchange", router);
+    // Only attach listener once
+    if (!window.__routerAttached) {
+        window.addEventListener("hashchange", router);
+        window.__routerAttached = true;
+    }
     router();
 }
 
@@ -162,7 +173,7 @@ async function router() {
     const contentEl = document.getElementById("main-content");
     if (!contentEl) return;
     
-    // ---- HANDLE LOGIN VIEW ----
+    // ---- PUBLIC VIEWS ----
     if (route === '#login') {
         const sidebarEl = document.querySelector('.sidebar');
         const headerEl = document.getElementById('header-container');
@@ -173,6 +184,20 @@ async function router() {
         contentEl.style.marginLeft = '0';
         contentEl.style.padding = '0';
         contentEl.appendChild(renderLogin());
+        return;
+    }
+
+    if (route === '#sample-web-invites') {
+        // Completely bypass the standard layout for the full-screen invite
+        const layoutEl = document.getElementById('layout');
+        if (layoutEl) layoutEl.innerHTML = ""; // Wipe the dashboard layout
+        
+        document.body.innerHTML = "";
+        document.body.style.margin = "0";
+        document.body.style.padding = "0";
+        document.body.style.overflow = "hidden"; // The invite handles its own scrolling
+        
+        renderSampleWebInvites();
         return;
     }
 
