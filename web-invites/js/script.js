@@ -1,75 +1,36 @@
-// Pointing to your root database API file
 import { supabase } from '../../database/js/api.js';
 
 let weddingConfig = {};
 let weddingEventsData = [];
-let isThemeReady = false; // Locks the particle engine until colors load
+let isThemeReady = false; 
 
-// =========================================================================
-// ANTI-FLASH PRELOADER: Hides hardcoded blue elements until theme loads
-// =========================================================================
 const preloaderStyle = document.createElement('style');
 preloaderStyle.innerHTML = `
     body:not(.theme-loaded) .bg-image,
     body:not(.theme-loaded) .color-morph,
     body:not(.theme-loaded) .video-overlay,
     body:not(.theme-loaded) #particles,
-    body:not(.theme-loaded) .card {
-        opacity: 0 !important;
-        visibility: hidden !important;
-    }
-    html, body {
-        background-color: #000000 !important; /* Very dark neutral backdrop */
-    }
+    body:not(.theme-loaded) .card { opacity: 0 !important; visibility: hidden !important; }
+    html, body { background-color: #000000 !important; }
 `;
 document.head.appendChild(preloaderStyle);
 
-// Global variable to pass converted RGB colors to the canvas animation
-let currentThemeRGB = {
-    main: '29, 78, 216',   
-    accent: '96, 165, 250',
-    bgDark: '15, 23, 42'
-};
+let currentThemeRGB = { main: '29, 78, 216', accent: '96, 165, 250', bgDark: '15, 23, 42' };
 
-// Helper function to convert Hex to RGB for the canvas particles and CSS glows
 function hexToRgb(hex) {
     let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '255, 255, 255';
 }
 
-// 1. Stacked Full Names for the Splash Screen Envelope Seal
 function generateDynamicLogo(name1, name2, colors) {
-    const n1 = name1.split(' ')[0]; 
-    const n2 = name2.split(' ')[0];
+    const n1 = name1.split(' ')[0]; const n2 = name2.split(' ')[0];
     const strokeColor = colors ? colors.accent : '#a8d4ff'; 
-    
-    const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-            <circle cx="100" cy="100" r="90" fill="none" stroke="${strokeColor}" stroke-width="2"/>
-            <circle cx="100" cy="100" r="82" fill="none" stroke="${strokeColor}" stroke-width="1" stroke-dasharray="4 4"/>
-            <text x="100" y="85" font-family="'Lucida Handwriting', cursive, serif" font-size="28" fill="#ffffff" text-anchor="middle">${n1}</text>
-            <text x="100" y="115" font-family="sans-serif" font-size="20" fill="${strokeColor}" text-anchor="middle" font-style="italic">&amp;</text>
-            <text x="100" y="145" font-family="'Lucida Handwriting', cursive, serif" font-size="28" fill="#ffffff" text-anchor="middle">${n2}</text>
-        </svg>
-    `;
-    return 'data:image/svg+xml;base64,' + btoa(svg);
+    return 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><circle cx="100" cy="100" r="90" fill="none" stroke="${strokeColor}" stroke-width="2"/><circle cx="100" cy="100" r="82" fill="none" stroke="${strokeColor}" stroke-width="1" stroke-dasharray="4 4"/><text x="100" y="85" font-family="'Lucida Handwriting', cursive, serif" font-size="28" fill="#ffffff" text-anchor="middle">${n1}</text><text x="100" y="115" font-family="sans-serif" font-size="20" fill="${strokeColor}" text-anchor="middle" font-style="italic">&amp;</text><text x="100" y="145" font-family="'Lucida Handwriting', cursive, serif" font-size="28" fill="#ffffff" text-anchor="middle">${n2}</text></svg>`);
 }
 
-// Helper to generate initials SVG for the Favicon and First Page Logo Badge
 function generateInitialsLogo(name1, name2, colors) {
-    const init1 = name1.charAt(0).toUpperCase();
-    const init2 = name2.charAt(0).toUpperCase();
     const strokeColor = colors ? colors.accent : '#a8d4ff'; 
-    
-    const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-            <circle cx="100" cy="100" r="90" fill="none" stroke="${strokeColor}" stroke-width="4" stroke-dasharray="10 5"/>
-            <circle cx="100" cy="100" r="80" fill="none" stroke="${strokeColor}" stroke-width="1"/>
-            <text x="75" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${init1}</text>
-            <text x="125" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${init2}</text>
-        </svg>
-    `;
-    return 'data:image/svg+xml;base64,' + btoa(svg);
+    return 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><circle cx="100" cy="100" r="90" fill="none" stroke="${strokeColor}" stroke-width="4" stroke-dasharray="10 5"/><circle cx="100" cy="100" r="80" fill="none" stroke="${strokeColor}" stroke-width="1"/><text x="75" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${name1.charAt(0).toUpperCase()}</text><text x="125" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${name2.charAt(0).toUpperCase()}</text></svg>`);
 }
 
 async function initDynamicInvite() {
@@ -96,13 +57,8 @@ async function initDynamicInvite() {
             return;
         }
 
-        // Handle old database entries natively to prevent bugs
         let rawThemeName = inviteDetails.theme || 'blue';
-        const legacyThemeMap = {
-            'emerald': 'green',
-            'burgundy': 'maroon',
-            'rose': 'peach'
-        };
+        const legacyThemeMap = { 'emerald': 'green', 'burgundy': 'maroon', 'rose': 'peach' };
         const selectedThemeName = legacyThemeMap[rawThemeName] || rawThemeName;
 
         const themePalettes = {
@@ -123,117 +79,43 @@ async function initDynamicInvite() {
         currentThemeRGB.accent = hexToRgb(colors.accent);
         currentThemeRGB.bgDark = hexToRgb(colors.bgDark);
 
-        // =========================================================================
-        // DYNAMIC CSS INJECTOR: Overrides any hardcoded styles in style.css
-        // =========================================================================
         const dynamicStyle = document.createElement('style');
         dynamicStyle.innerHTML = `
-            :root {
-                --color-primary: ${colors.main} !important;
-                --color-secondary: ${colors.accent} !important;
-                --color-bg-dark: ${colors.bgDark} !important;
-                --theme-accent-rgb: ${currentThemeRGB.accent} !important;
-                --theme-bg-dark-rgb: ${currentThemeRGB.bgDark} !important;
-            }
+            :root { --color-primary: ${colors.main} !important; --color-secondary: ${colors.accent} !important; --color-bg-dark: ${colors.bgDark} !important; --theme-accent-rgb: ${currentThemeRGB.accent} !important; --theme-bg-dark-rgb: ${currentThemeRGB.bgDark} !important; }
+            html, body { background-color: var(--color-bg-dark) !important; background-image: url('web-invites/images/background/${selectedThemeName}-background.png') !important; background-size: cover !important; background-position: center !important; background-attachment: fixed !important; background-repeat: no-repeat !important; }
+            .video-overlay, .color-morph, #splash-screen { background: rgba(var(--theme-bg-dark-rgb), 0.75) !important; }
+            .card { background: linear-gradient(145deg, rgba(var(--theme-bg-dark-rgb), 0.95), #000000) !important; border: 1px solid var(--color-secondary) !important; animation: card-pop 0.9s ease-out, themeGlowPulse 4s ease-in-out 0.8s infinite alternate !important; }
+            .hero-divider, .event-divider, .garland-top { background: var(--color-secondary) !important; box-shadow: 0 0 10px var(--color-secondary) !important; border-top-color: var(--color-secondary) !important; }
+            .time-box, .couple-card { border: 1px solid var(--color-secondary) !important; background: rgba(var(--theme-bg-dark-rgb), 0.6) !important; box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.25) !important; }
+            .calendar-icon { background: var(--color-secondary) !important; box-shadow: 0 0 10px rgba(var(--theme-accent-rgb), 0.6) !important; } .calendar-icon .cal-month, .calendar-icon .cal-day { color: var(--color-bg-dark) !important; }
             
-            /* Force Background Image & Color */
-            html, body {
-                background-color: var(--color-bg-dark) !important;
-                background-image: url('web-invites/images/background/${selectedThemeName}-background.png') !important;
-                background-size: cover !important;
-                background-position: center !important;
-                background-attachment: fixed !important;
-                background-repeat: no-repeat !important;
-            }
-            
-            /* Ensure the text is readable by applying the dark theme overlay */
-            .video-overlay, .color-morph, #splash-screen {
-                background: rgba(var(--theme-bg-dark-rgb), 0.75) !important;
-            }
+            /* Fixed Flower Corner Positioning - Negatives to push outwards */
+            .flower-corner { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), rgba(var(--theme-accent-rgb), 0.2) 50%, rgba(var(--theme-bg-dark-rgb), 0.8) 90%) !important; box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.3), 0 0 20px rgba(var(--theme-accent-rgb), 0.5) !important; }
+            .flower-top-left { top: -40px !important; left: -30px !important; }
+            .flower-top-right { top: -40px !important; right: -30px !important; }
+            .flower-bottom-left { bottom: -40px !important; left: -30px !important; }
+            .flower-bottom-right { bottom: -40px !important; right: -30px !important; }
 
-            /* Cards & Borders */
-            .card {
-                background: linear-gradient(145deg, rgba(var(--theme-bg-dark-rgb), 0.95), #000000) !important;
-                border: 1px solid var(--color-secondary) !important;
-                animation: card-pop 0.9s ease-out, themeGlowPulse 4s ease-in-out 0.8s infinite alternate !important;
-            }
-            .hero-divider, .event-divider, .garland-top {
-                background: var(--color-secondary) !important;
-                box-shadow: 0 0 10px var(--color-secondary) !important;
-                border-top-color: var(--color-secondary) !important;
-            }
-            .time-box, .couple-card {
-                border: 1px solid var(--color-secondary) !important;
-                background: rgba(var(--theme-bg-dark-rgb), 0.6) !important;
-                box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.25) !important;
-            }
-            .calendar-icon {
-                background: var(--color-secondary) !important;
-                box-shadow: 0 0 10px rgba(var(--theme-accent-rgb), 0.6) !important;
-            }
-            .calendar-icon .cal-month, .calendar-icon .cal-day {
-                color: var(--color-bg-dark) !important;
-            }
-
-            /* Glass Orbs (Flower Corners) */
-            .flower-corner {
-                background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), rgba(var(--theme-accent-rgb), 0.2) 50%, rgba(var(--theme-bg-dark-rgb), 0.8) 90%) !important;
-                box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.3), 0 0 20px rgba(var(--theme-accent-rgb), 0.5) !important;
-            }
-
-            /* Buttons */
-            .btn {
-                background: radial-gradient(circle at 30% 30%, #ffffff, var(--color-secondary)) !important;
-                border: 1px solid rgba(255, 255, 255, 0.4) !important;
-                color: var(--color-bg-dark) !important;
-                box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.9), 0 0 30px rgba(var(--theme-accent-rgb), 0.8) !important;
-            }
-            .btn-secondary {
-                background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), var(--color-secondary)) !important;
-                border: 1px solid rgba(255, 255, 255, 0.6) !important;
-                color: var(--color-bg-dark) !important;
-                box-shadow: 0 0 12px rgba(var(--theme-accent-rgb), 0.85), 0 0 24px rgba(var(--theme-accent-rgb), 0.7) !important;
-            }
-            .btn-secondary:hover {
-                color: #ffffff !important;
-                background: rgba(var(--theme-bg-dark-rgb), 0.8) !important;
-                border: 1px solid var(--color-secondary) !important;
-                box-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 35px var(--color-secondary) !important;
-            }
-
-            /* Envelope */
-            .envelope::before { border-bottom-color: var(--color-bg-dark) !important; filter: brightness(1.35) !important; }
-            .envelope::after { border-left-color: var(--color-bg-dark) !important; border-right-color: var(--color-bg-dark) !important; filter: brightness(1.0) !important; }
-            .envelope-flap { border-top-color: var(--color-bg-dark) !important; filter: brightness(1.2) !important; }
+            .btn { background: radial-gradient(circle at 30% 30%, #ffffff, var(--color-secondary)) !important; border: 1px solid rgba(255, 255, 255, 0.4) !important; color: var(--color-bg-dark) !important; box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.9), 0 0 30px rgba(var(--theme-accent-rgb), 0.8) !important; }
+            .btn-secondary { background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), var(--color-secondary)) !important; border: 1px solid rgba(255, 255, 255, 0.6) !important; color: var(--color-bg-dark) !important; box-shadow: 0 0 12px rgba(var(--theme-accent-rgb), 0.85), 0 0 24px rgba(var(--theme-accent-rgb), 0.7) !important; } .btn-secondary:hover { color: #ffffff !important; background: rgba(var(--theme-bg-dark-rgb), 0.8) !important; border: 1px solid var(--color-secondary) !important; box-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 35px var(--color-secondary) !important; }
+            .envelope::before { border-bottom-color: var(--color-bg-dark) !important; filter: brightness(1.35) !important; } .envelope::after { border-left-color: var(--color-bg-dark) !important; border-right-color: var(--color-bg-dark) !important; filter: brightness(1.0) !important; } .envelope-flap { border-top-color: var(--color-bg-dark) !important; filter: brightness(1.2) !important; }
             .wax-seal { background: var(--color-primary) !important; border-color: var(--color-secondary) !important; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(var(--theme-accent-rgb), 0.8) !important; }
-
-            /* Nav Dots */
-            .nav-dots { background: rgba(var(--theme-bg-dark-rgb), 0.35) !important; border-color: rgba(var(--theme-accent-rgb), 0.2) !important; }
-            .nav-dot { border-color: var(--color-secondary) !important; background: rgba(var(--theme-bg-dark-rgb), 0.4) !important; }
-            .nav-dot.active { background: var(--color-secondary) !important; box-shadow: 0 0 10px var(--color-secondary) !important; border-color: #ffffff !important; }
-
-            /* Custom Keyframes */
-            @keyframes themeGlowPulse {
-                0% { box-shadow: 0 0 20px rgba(var(--theme-accent-rgb), 0.2), inset 0 0 10px rgba(var(--theme-accent-rgb), 0.1); }
-                100% { box-shadow: 0 0 40px rgba(var(--theme-accent-rgb), 0.5), inset 0 0 20px rgba(var(--theme-accent-rgb), 0.3); }
-            }
-            @keyframes countdownGlow {
-                0% { box-shadow: 0 0 8px rgba(var(--theme-accent-rgb), 0.5); }
-                100% { box-shadow: 0 0 16px rgba(var(--theme-accent-rgb), 0.8); }
-            }
+            .nav-dots { background: rgba(var(--theme-bg-dark-rgb), 0.35) !important; border-color: rgba(var(--theme-accent-rgb), 0.2) !important; } .nav-dot { border-color: var(--color-secondary) !important; background: rgba(var(--theme-bg-dark-rgb), 0.4) !important; } .nav-dot.active { background: var(--color-secondary) !important; box-shadow: 0 0 10px var(--color-secondary) !important; border-color: #ffffff !important; }
+            @keyframes themeGlowPulse { 0% { box-shadow: 0 0 20px rgba(var(--theme-accent-rgb), 0.2), inset 0 0 10px rgba(var(--theme-accent-rgb), 0.1); } 100% { box-shadow: 0 0 40px rgba(var(--theme-accent-rgb), 0.5), inset 0 0 20px rgba(var(--theme-accent-rgb), 0.3); } }
+            @keyframes countdownGlow { 0% { box-shadow: 0 0 8px rgba(var(--theme-accent-rgb), 0.5); } 100% { box-shadow: 0 0 16px rgba(var(--theme-accent-rgb), 0.8); } }
+            
+            /* Slim Scrollbar */
+            ::-webkit-scrollbar { width: 6px; height: 6px; }
+            ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2) !important; border-radius: 10px; }
+            ::-webkit-scrollbar-thumb { background: var(--color-secondary) !important; border-radius: 10px; }
+            ::-webkit-scrollbar-thumb:hover { background: var(--color-primary) !important; }
         `;
         document.head.appendChild(dynamicStyle);
 
-        // Tell the CSS and HTML that it's safe to reveal the page
         document.body.setAttribute('data-theme', selectedThemeName);
         document.body.classList.add('theme-loaded');
-        
-        // Unlock the Canvas Engine so particles can spawn in the correct color
         isThemeReady = true;
 
-        // =========================================================================
-        // PERMISSION HIERARCHY & EVENT FILTERING (Matching wedding-details.js)
-        // =========================================================================
         const ssUserId = localStorage.getItem('ss_user_id');
 
         if (!ssUserId) {
@@ -241,36 +123,29 @@ async function initDynamicInvite() {
             return;
         }
 
-        // 1. Fetch current user from system
         const { data: curUser, error: userErr } = await supabase.from('users').select('*').eq('id', ssUserId).single();
         if (userErr || !curUser) {
             window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
             return;
         }
 
-        // 2. Fetch Hosts & Wedding Users to establish permissions
         const { data: rawHosts } = await supabase.from('wedding_hosts').select('user_id').eq('wedding_id', wedding.id);
         const { data: rawWUsers } = await supabase.from('wedding_users').select('user_id').eq('wedding_id', wedding.id);
 
         const isCreator = wedding.user_id === curUser.id || curUser.role === 'creator';
         const isHost = (rawHosts || []).some(h => h.user_id === curUser.id);
         const isWeddingUser = (rawWUsers || []).some(w => w.user_id === curUser.id);
-        
-        // Match exact logic: Creators, Hosts, and Wedding Users see all events
         const canViewAll = isCreator || isHost || isWeddingUser;
 
-        // 3. Fetch All Events
         const { data: allEvents } = await supabase.from('events').select('*').eq('wedding_id', wedding.id).order('start_time', { ascending: true });
         
         let filteredEvents = [];
 
         if (!canViewAll) {
-            // Physical Guest Logic
             const { data: guests } = await supabase.from('guests').select('*').eq('wedding_id', wedding.id);
             const currentGuest = (guests || []).find(g => g.phone === curUser.phone);
 
             if (!currentGuest) {
-                // Not invited popup
                 document.body.innerHTML = `
                     <div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000; padding: 20px;'>
                         <div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center; max-width: 400px;'>
@@ -286,10 +161,8 @@ async function initDynamicInvite() {
                 return;
             }
 
-            // Fetch explicitly invited events from event_guests mapping
             const { data: eventGuests } = await supabase.from('event_guests').select('*').eq('guest_id', currentGuest.id);
             const invitedEventIds = (eventGuests || []).map(eg => eg.event_id);
-            
             filteredEvents = (allEvents || []).filter(e => invitedEventIds.includes(e.id));
         } else {
             filteredEvents = allEvents || [];
@@ -437,7 +310,47 @@ const generateWelcomeHTML = () => {
     </section>`;
 };
 
-const generateCoupleHTML = () => `
+const generateCoupleHTML = () => {
+    const brideCard = `
+        <div class="couple-card bride-card">
+            <div class="couple-role" style="font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">Bride</div>
+            <div class="hero-divider"></div>
+            <div class="couple-name" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${weddingConfig.bride.firstName}</div>
+            <p class="couple-role" style="color: var(--color-secondary);"><br/><br/><strong>Granddaughter of</strong></p><div class="hero-divider"></div>
+            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
+                ${weddingConfig.bride.grandfather}<br/>
+                ${weddingConfig.bride.grandmother}
+            </div>
+            <br/><p class="couple-role" style="color: var(--color-secondary);"><strong>Daughter of</strong></p><div class="hero-divider"></div>
+            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
+                ${weddingConfig.bride.father}<br/>
+                ${weddingConfig.bride.mother}
+            </div>
+        </div>
+    `;
+
+    const groomCard = `
+        <div class="couple-card groom-card">
+            <div class="couple-role" style="font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">Groom</div>
+            <div class="hero-divider"></div>
+            <div class="couple-name" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${weddingConfig.groom.firstName}</div>
+            <p class="couple-role" style="color: var(--color-secondary);"><br/><br/><strong>Grandson of</strong></p><div class="hero-divider"></div>
+            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
+                ${weddingConfig.groom.grandfather}<br/>
+                ${weddingConfig.groom.grandmother}
+            </div>
+            <br/><p class="couple-role" style="color: var(--color-secondary);"><strong>Son of</strong></p><div class="hero-divider"></div>
+            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
+                ${weddingConfig.groom.father}<br/>
+                ${weddingConfig.groom.mother}
+            </div>
+        </div>
+    `;
+
+    const isBridePrimary = weddingConfig.primarySide === 'bride';
+    const coupleSplitContent = isBridePrimary ? (brideCard + groomCard) : (groomCard + brideCard);
+
+    return `
     <section class="full-page js-reveal" id="couple">
         <div class="card">
             <div class="flower-corner flower-top-left"></div><div class="flower-corner flower-bottom-right"></div>
@@ -447,36 +360,7 @@ const generateCoupleHTML = () => `
                     <div class="tagline" style="font-size:2.4rem;font-weight:bold; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">The Couple</div>
                     <div class="hero-divider"></div>
                     <div class="couple-split">
-                        <div class="couple-card bride-card">
-                            <div class="couple-role" style="font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">Bride</div>
-                            <div class="hero-divider"></div>
-                            <div class="couple-name" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${weddingConfig.bride.firstName}</div>
-                            <p class="couple-role" style="color: var(--color-secondary);"><br/><br/><strong>Granddaughter of</strong></p><div class="hero-divider"></div>
-                            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
-                                ${weddingConfig.bride.grandfather}<br/>
-                                ${weddingConfig.bride.grandmother}
-                            </div>
-                            <br/><p class="couple-role" style="color: var(--color-secondary);"><strong>Daughter of</strong></p><div class="hero-divider"></div>
-                            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
-                                ${weddingConfig.bride.father}<br/>
-                                ${weddingConfig.bride.mother}
-                            </div>
-                        </div>
-                        <div class="couple-card groom-card">
-                            <div class="couple-role" style="font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">Groom</div>
-                            <div class="hero-divider"></div>
-                            <div class="couple-name" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${weddingConfig.groom.firstName}</div>
-                            <p class="couple-role" style="color: var(--color-secondary);"><br/><br/><strong>Grandson of</strong></p><div class="hero-divider"></div>
-                            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
-                                ${weddingConfig.groom.grandfather}<br/>
-                                ${weddingConfig.groom.grandmother}
-                            </div>
-                            <br/><p class="couple-role" style="color: var(--color-secondary);"><strong>Son of</strong></p><div class="hero-divider"></div>
-                            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
-                                ${weddingConfig.groom.father}<br/>
-                                ${weddingConfig.groom.mother}
-                            </div>
-                        </div>
+                        ${coupleSplitContent}
                     </div>
                 </div>
             </div>
@@ -484,6 +368,7 @@ const generateCoupleHTML = () => `
             <div class="card-footer" style="text-align: center;"><button class="btn btn-secondary" data-next="${weddingEventsData.length > 0 ? '#' + weddingEventsData[0].id : '#about-us'}">Next: ${weddingEventsData.length > 0 ? weddingEventsData[0].label : 'About Us'} ↓</button></div>
         </div>
     </section>`;
+};
 
 const generateEventHTML = (event) => `
     <section class="full-page js-reveal" id="${event.id}">
@@ -538,7 +423,6 @@ const generateEventHTML = (event) => `
     </section>`;
 
 const generateAboutUsHTML = () => {
-    // Dynamic family details block
     const familyDetailsText = weddingConfig.familyDetails ? weddingConfig.familyDetails.toUpperCase() : "OUR FAMILY";
 
     let instaHandle = weddingConfig.instagram || "";
@@ -593,7 +477,7 @@ const generateAboutUsHTML = () => {
                         <strong style="font-size:1.1rem">Created By</strong>
                         <br/>
                         <br/>
-                        <div class="signature-glow" style="font-weight: bold; font-size: 2.2rem; color: lightblue; font-family: 'Best Signature Font', sans-serif; margin-bottom: 4px;">
+                        <div class="signature-glow" style="font-weight: bold; font-size: 2.2rem; font-family: 'Best Signature Font', sans-serif; margin-bottom: 4px; color: inherit;">
                             Paresh Bafna
                         </div>
                         <div style="display: flex !important; justify-content: center !important; margin-top: 25px !important; margin-bottom: 25px !important; gap: 20px !important; align-items: center !important;">
@@ -635,66 +519,7 @@ const injectAllContent = () => {
     if (nav) nav.innerHTML = generateDotHTML('welcome', 'Welcome') + generateDotHTML('couple', 'The Couple') + weddingEventsData.map(e => generateDotHTML(e.id, e.label)).join('') + generateDotHTML('about-us', 'About Us');
 };
 
-let triggerBurst;
-(function () {
-    const canvas = document.getElementById("particles");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    let particles = [];
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-    window.addEventListener("resize", resize); resize();
-    
-    const spawnFallingParticle = (customX = null) => {
-        if (!isThemeReady) return; // Failsafe
-        const isPetal = Math.random() < 0.5;
-        const particleColor = isPetal ? `rgba(${currentThemeRGB.main}, 0.85)` : `rgba(${currentThemeRGB.accent}, 0.8)`;
-        particles.push({
-            x: customX !== null ? customX : Math.random() * canvas.width, y: -50, vx: Math.random() * 2 - 1, vy: Math.random() * 2.5 + 2, 
-            size: Math.random() * 14 + 10, color: particleColor, type: isPetal ? "petal" : "heart", 
-            rotation: Math.random() * 2, vr: Math.random() * 0.04, isBurst: false
-        });
-    };
-    
-    triggerBurst = (x, y, count = 60) => {
-        if (!isThemeReady) return; // Failsafe
-        for (let i = 0; i < count; i++) {
-            const isPetal = Math.random() < 0.6;
-            const particleColor = isPetal ? `rgba(${currentThemeRGB.main}, 0.95)` : `rgba(${currentThemeRGB.accent}, 0.9)`;
-            particles.push({
-                x: x + (Math.random() * 100 - 50), y: y - 20, vx: Math.random() * 4 - 2, vy: Math.random() * 3 + 2, size: Math.random() * 18 + 10, 
-                color: particleColor, type: isPetal ? "petal" : "heart", 
-                rotation: Math.random() * Math.PI * 2, vr: Math.random() * 0.1, isBurst: true, life: 0, maxLife: 150
-            });
-        }
-    };
-    
-    window.addEventListener("click", (e) => {
-        const splash = document.getElementById("splash-screen");
-        if (isThemeReady && splash && splash.classList.contains("splash-open") && !e.target.closest('button') && !e.target.closest('.nav-dot')) {
-            triggerBurst(e.clientX, e.clientY, 30); 
-            for(let i=0; i<15; i++) spawnFallingParticle();
-        }
-    });
-    
-    const animate = () => {
-        if (isThemeReady && particles.length < 350 && Math.random() < 0.5) spawnFallingParticle();
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles = particles.filter(p => {
-            p.x += p.vx; p.y += p.vy; p.rotation += p.vr;
-            if (p.isBurst && ++p.life > p.maxLife) return false;
-            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rotation);
-            ctx.fillStyle = p.color; ctx.beginPath();
-            if(p.type === "petal") { ctx.moveTo(0,-p.size*0.5); ctx.quadraticCurveTo(p.size*0.5,-p.size*0.1,0,p.size*0.5); ctx.quadraticCurveTo(-p.size*0.5,-p.size*0.1,0,-p.size*0.5); } 
-            else { ctx.moveTo(0, -p.size * 0.25); ctx.bezierCurveTo(-p.size*0.5,-p.size*0.9,-p.size,-p.size*0.1,0,p.size*0.7); ctx.bezierCurveTo(p.size,-p.size*0.1,p.size*0.5,-p.size*0.9,0,-p.size*0.25); }
-            ctx.fill(); ctx.restore();
-            return p.y < canvas.height + 100;
-        });
-        requestAnimationFrame(animate);
-    };
-    animate();
-})();
-
-const initNameAnimation = () => {
+function initNameAnimation() {
     const step = 0.5, start = 1.5;
     const left = document.querySelectorAll('.names .word-left .letter');
     left.forEach((l, i) => l.style.animationDelay = `${start + i * step}s`);
@@ -705,26 +530,26 @@ const initNameAnimation = () => {
     right.forEach((l, i) => l.style.animationDelay = `${delay + step + i * step}s`);
     const hashtag = document.querySelector('.hashtag-line-last');
     if (hashtag) hashtag.style.animationDelay = `${delay + step + (right.length * step)}s`;
-};
+}
 
-const syncNavDots = () => {
+function syncNavDots() {
     const dots = document.querySelectorAll(".nav-dot");
     const observer = new IntersectionObserver(entries => {
         entries.forEach(entry => { if (entry.isIntersecting) dots.forEach(d => d.classList.toggle("active", d.getAttribute("data-target") === `#${entry.target.id}`)); });
     }, { rootMargin: "-20% 0px -70% 0px" });
     document.querySelectorAll("section.full-page").forEach(sec => observer.observe(sec));
-};
+}
 
-const initButtonListeners = () => {
+function initButtonListeners() {
     document.querySelectorAll("[data-next], .nav-dot, .back-to-top").forEach(btn => {
         btn.addEventListener("click", (e) => {
             e.preventDefault();
             setTimeout(() => { document.querySelector(btn.getAttribute("data-next") || btn.getAttribute("data-target") || btn.getAttribute("href"))?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 100);
         });
     });
-};
+}
 
-const updateTimer = () => {
+function updateTimer() {
     const target = new Date(weddingConfig.timerTarget).getTime();
     const diff = target - Date.now();
     const d = document.getElementById("days"), h = document.getElementById("hours"), m = document.getElementById("minutes"), s = document.getElementById("seconds");
@@ -733,7 +558,7 @@ const updateTimer = () => {
     h.textContent = Math.floor((diff % 86400000) / 3600000).toString().padStart(2, "0");
     m.textContent = Math.floor((diff % 3600000) / 60000).toString().padStart(2, "0");
     s.textContent = Math.floor((diff % 60000) / 1000).toString().padStart(2, "0");
-};
+}
 
 window.addEventListener('DOMContentLoaded', () => {
     initDynamicInvite();
@@ -757,7 +582,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             setTimeout(() => {
                 document.querySelectorAll(".js-reveal, section.full-page").forEach(s => s.classList.add("visible"));
-                if (triggerBurst) triggerBurst(window.innerWidth / 2, 0, 120); 
+                if (window.triggerBurst) window.triggerBurst(window.innerWidth / 2, 0, 120); 
             }, 1200);
         });
     }
@@ -770,3 +595,78 @@ window.addEventListener("scroll", () => {
     const btt = document.querySelector(".back-to-top");
     if (btt) btt.classList.toggle("hidden", window.scrollY <= 400);
 });
+
+// ==========================================
+// RESTORED INTERACTIVE PARTICLES ENGINE 
+// ==========================================
+function initParticles() {
+    const canvas = document.getElementById("particles");
+    if (!canvas) return;
+    
+    // Ensure canvas stays on top of the DOM
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100vw';
+    canvas.style.height = '100vh';
+    canvas.style.zIndex = '9999';
+    canvas.style.pointerEvents = 'none';
+
+    const ctx = canvas.getContext("2d");
+    let particles = [];
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    window.addEventListener("resize", resize); resize();
+    
+    const spawnFallingParticle = (customX = null) => {
+        if (!isThemeReady) return; 
+        const isPetal = Math.random() < 0.5;
+        const particleColor = isPetal ? `rgba(${currentThemeRGB.main}, 0.85)` : `rgba(${currentThemeRGB.accent}, 0.8)`;
+        particles.push({
+            x: customX !== null ? customX : Math.random() * canvas.width, y: -50, vx: Math.random() * 2 - 1, vy: Math.random() * 2.5 + 2, 
+            size: Math.random() * 14 + 10, color: particleColor, type: isPetal ? "petal" : "heart", 
+            rotation: Math.random() * 2, vr: Math.random() * 0.04, isBurst: false
+        });
+    };
+    
+    // Bind to window so click event can trigger it safely globally
+    window.triggerBurst = (x, y, count = 60) => {
+        if (!isThemeReady) return; 
+        for (let i = 0; i < count; i++) {
+            const isPetal = Math.random() < 0.6;
+            const particleColor = isPetal ? `rgba(${currentThemeRGB.main}, 0.95)` : `rgba(${currentThemeRGB.accent}, 0.9)`;
+            particles.push({
+                x: x + (Math.random() * 100 - 50), y: y - 20, vx: Math.random() * 4 - 2, vy: Math.random() * 3 + 2, size: Math.random() * 18 + 10, 
+                color: particleColor, type: isPetal ? "petal" : "heart", 
+                rotation: Math.random() * Math.PI * 2, vr: Math.random() * 0.1, isBurst: true, life: 0, maxLife: 150
+            });
+        }
+    };
+    
+    window.addEventListener("click", (e) => {
+        const splash = document.getElementById("splash-screen");
+        if (isThemeReady && (!splash || splash.style.display === 'none' || splash.classList.contains("splash-open")) && !e.target.closest('button') && !e.target.closest('.nav-dot') && !e.target.closest('a')) {
+            window.triggerBurst(e.clientX, e.clientY, 30); 
+            for(let i=0; i<15; i++) spawnFallingParticle();
+        }
+    });
+    
+    const animate = () => {
+        if (isThemeReady && particles.length < 350 && Math.random() < 0.5) spawnFallingParticle();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles = particles.filter(p => {
+            p.x += p.vx; p.y += p.vy; p.rotation += p.vr;
+            if (p.isBurst && ++p.life > p.maxLife) return false;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rotation);
+            ctx.fillStyle = p.color; ctx.beginPath();
+            if(p.type === "petal") { ctx.moveTo(0,-p.size*0.5); ctx.quadraticCurveTo(p.size*0.5,-p.size*0.1,0,p.size*0.5); ctx.quadraticCurveTo(-p.size*0.5,-p.size*0.1,0,-p.size*0.5); } 
+            else { ctx.moveTo(0, -p.size * 0.25); ctx.bezierCurveTo(-p.size*0.5,-p.size*0.9,-p.size,-p.size*0.1,0,p.size*0.7); ctx.bezierCurveTo(p.size,-p.size*0.1,p.size*0.5,-p.size*0.9,0,-p.size*0.25); }
+            ctx.fill(); ctx.restore();
+            return p.y < canvas.height + 100;
+        });
+        requestAnimationFrame(animate);
+    };
+    animate();
+}
+
+// Call initParticles securely to launch the engine after everything loads
+window.addEventListener('load', () => setTimeout(initParticles, 100));
