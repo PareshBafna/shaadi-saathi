@@ -1,23 +1,27 @@
 // Step OUT of global/js and into database/js
 import { supabase } from '../../database/js/api.js';
 
-// Step OUT of global/js and into global/components
-import { validateSession, getWhatsAppVerificationLink, logoutUser } from '../components/js/auth.js';
-import { createSidebar } from '../components/js/sidebar.js';
-import { createHeader } from '../components/js/header.js';
+// Components are now directly inside global/js/
+import { validateSession, getWhatsAppVerificationLink, logoutUser } from './auth.js';
+import { createSidebar } from './sidebar.js';
+import { createHeader } from './header.js';
 
-// Step OUT of global/js, OUT of global, and into pages/js
-import { renderLogin } from '../../pages/js/login.js';
-import { renderDashboard } from '../../pages/js/dashboard.js';
-import { renderWeddings } from '../../pages/js/weddings.js';
-import { renderWeddingDetails } from '../../pages/js/wedding-details.js';
-import { renderCalendar } from '../../pages/js/calendar.js';
-import { renderUsers } from '../../pages/js/users.js';
-import { renderHosts } from '../../pages/js/hosts.js';
+// ==========================================
+// REFACTORED PAGES (New Architecture)
+// ==========================================
+import { renderLogin } from '../../pages/login/login.js';
+import { renderDashboard } from '../../pages/dashboard/dashboard.js';
+import { renderCalendar } from '../../pages/calendar/calendar.js';
+import { renderWeddings } from '../../pages/weddings/weddings.js';
+import { renderWeddingDetails } from '../../pages/wedding-details/wedding-details.js';
+import { renderUsers } from '../../pages/users/users.js';
+import { renderHosts } from '../../pages/hosts/hosts.js';
+
+// ==========================================
+// PENDING REFACTOR (Old Architecture Paths)
+// ==========================================
 import { renderSampleWedding } from '../../pages/js/sample-wedding.js';
 import { renderWebInvites } from '../../web-invites/js/web-invites.js';
-
-// Import the new Sample Web Invites function
 import { renderSampleWebInvites } from '../../web-invites/js/sample-web-invites.js';
 
 // --- NEW PUBLIC ROUTING WHITELIST ---
@@ -99,10 +103,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function initApp(user) {
-    // Determine Default active link for Sidebar
     let activeId = window.location.hash.replace('#', '').split('?')[0];
     
-    // Always render structural DOM elements
     const layout = document.getElementById("layout");
     let mainContent = document.getElementById("main-content");
     let rightWrapper = document.getElementById("right-wrapper");
@@ -132,7 +134,6 @@ function initApp(user) {
         mainContent.style.overflowY = "auto";
     }
 
-    // Attach Sidebar only if user exists
     if (user) {
         if (activeId === 'wedding-details') {
             activeId = 'weddings';
@@ -152,7 +153,6 @@ function initApp(user) {
         }
     }
     
-    // Only attach listener once
     if (!window.__routerAttached) {
         window.addEventListener("hashchange", router);
         window.__routerAttached = true;
@@ -161,10 +161,7 @@ function initApp(user) {
 }
 
 async function router() {
-    // 1. Force close any lingering popups from previous invalid routes
-    if (window.Swal && Swal.isVisible()) {
-        Swal.close();
-    }
+    if (window.Swal && Swal.isVisible()) Swal.close();
     
     const hash = window.location.hash || '#login';
     const [route, queryString] = hash.split('?');
@@ -173,7 +170,6 @@ async function router() {
     const contentEl = document.getElementById("main-content");
     if (!contentEl) return;
     
-    // ---- PUBLIC VIEWS ----
     if (route === '#login') {
         const sidebarEl = document.querySelector('.sidebar');
         const headerEl = document.getElementById('header-container');
@@ -188,20 +184,18 @@ async function router() {
     }
 
     if (route === '#sample-web-invites') {
-        // Completely bypass the standard layout for the full-screen invite
         const layoutEl = document.getElementById('layout');
-        if (layoutEl) layoutEl.innerHTML = ""; // Wipe the dashboard layout
+        if (layoutEl) layoutEl.innerHTML = ""; 
         
         document.body.innerHTML = "";
         document.body.style.margin = "0";
         document.body.style.padding = "0";
-        document.body.style.overflow = "hidden"; // The invite handles its own scrolling
+        document.body.style.overflow = "hidden"; 
         
         renderSampleWebInvites();
         return;
     }
 
-    // ---- PROTECTED VIEWS ----
     if (!window.currentUser) {
         window.location.hash = '#login';
         return;
@@ -214,61 +208,26 @@ async function router() {
     let pageArgs = null;
     let allowedRoles = []; 
 
-    // Route Definitions
-    if (route === "#dashboard") {
-        pageTitle = "Dashboard"; 
-        renderFunc = renderDashboard;
-        allowedRoles = ['creator']; 
-    } else if (route === "#weddings") {
-        pageTitle = "Weddings"; 
-        renderFunc = renderWeddings;
-        allowedRoles = ['creator', 'host', 'wedding_user', 'guest'];
-    } else if (route === "#wedding-details") {
+    if (route === "#dashboard") { pageTitle = "Dashboard"; renderFunc = renderDashboard; allowedRoles = ['creator']; } 
+    else if (route === "#weddings") { pageTitle = "Weddings"; renderFunc = renderWeddings; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; } 
+    else if (route === "#wedding-details") {
         pageArgs = params.get('id');
-        if (!pageArgs) {
-            showAccessRestricted();
-            return; // Instantly halt if no ID is present
-        }
-        pageTitle = "Wedding Details"; 
-        renderFunc = renderWeddingDetails; 
-        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
-    } else if (route === "#calendar") {
-        pageTitle = "Event Calendar";
-        renderFunc = renderCalendar;
-        allowedRoles = ['creator', 'host', 'wedding_user', 'guest'];
-    }  else if (route === "#users") {
-        pageTitle = "Users";
-        renderFunc = renderUsers;
-        allowedRoles = ['creator']; 
-    } else if (route === "#hosts") {
-        pageTitle = "Hosts";
-        renderFunc = renderHosts;
-        allowedRoles = ['creator'];
-    } else if (route === "#sample-wedding" || route === "#sample") {
-        pageTitle = "Sample Wedding";
-        renderFunc = renderSampleWedding; // Map to the new function
-        allowedRoles = ['creator', 'host', 'wedding_user', 'guest'];
-    } else if (route === "#web-invites") {
-        pageTitle = "Web Invites";
-        renderFunc = renderWebInvites;
-        allowedRoles = ['creator'];
-    } else if (route === "#profile") {
-        pageTitle = "Profile";
-        renderFunc = renderWeddings;
-        allowedRoles = ['creator', 'host', 'wedding_user', 'guest'];
-    } else {
-        // Route Not Found
-        showAccessRestricted();
-        return;
-    }
+        if (!pageArgs) { showAccessRestricted(); return; }
+        pageTitle = "Wedding Details"; renderFunc = renderWeddingDetails; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+    } 
+    else if (route === "#calendar") { pageTitle = "Event Calendar"; renderFunc = renderCalendar; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; }  
+    else if (route === "#users") { pageTitle = "Users"; renderFunc = renderUsers; allowedRoles = ['creator']; } 
+    else if (route === "#hosts") { pageTitle = "Hosts"; renderFunc = renderHosts; allowedRoles = ['creator']; } 
+    else if (route === "#sample-wedding" || route === "#sample") { pageTitle = "Sample Wedding"; renderFunc = renderSampleWedding; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; } 
+    else if (route === "#web-invites") { pageTitle = "Web Invites"; renderFunc = renderWebInvites; allowedRoles = ['creator']; } 
+    else if (route === "#profile") { pageTitle = "Profile"; renderFunc = renderWeddings; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; } 
+    else { showAccessRestricted(); return; }
 
-    // Evaluate Access
     if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
         showAccessRestricted();
         return; 
     }
 
-    // Render Page
     contentEl.innerHTML = "";
     
     let activeId = route.replace('#', '');
@@ -340,7 +299,6 @@ function updateHeader(title) {
     const headerContainer = document.getElementById("header-container");
     if (!headerContainer) return;
 
-    // Clean up role text formatting for the header display
     let displayRole = window.currentUser.role;
     if (displayRole === 'host') displayRole = 'HOST';
     else if (displayRole === 'wedding_user') displayRole = 'USER';

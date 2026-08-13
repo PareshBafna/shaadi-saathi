@@ -1,4 +1,4 @@
-import { registerUser, loginUser } from '../../global/components/js/auth.js';
+import { registerUser, loginUser } from '../../global/js/auth.js';
 
 export function renderLogin() {
     const container = document.createElement('div');

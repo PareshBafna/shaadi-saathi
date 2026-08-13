@@ -1,6 +1,6 @@
 import { supabase } from '../../database/js/api.js';
-import { openModal } from '../../global/components/js/modal.js';
-import { showAlert } from '../../global/components/js/alerts.js';
+import { openModal } from '../../global/js/modal.js';
+import { showAlert } from '../../global/js/alerts.js';
 
 let allSystemUsers = [];
 let allWeddings = [];

@@ -5,14 +5,14 @@ let allWeddings = [];
 
 // State variables for Calendar View
 let currentView = 'week'; // 'week' or 'month'
-let activeFilter = null; // 'this-week', 'next-week', 'this-month', 'next-month'
+let activeFilter = 'all-events'; // Set 'all-events' as the default filter
 let currentDate = new Date(); // Controls what month/week is visible in the grid
-let selectedDate = new Date(); // The specifically clicked day (null if a filter is active)
+let selectedDate = null; // Set to null by default so the filter takes precedence
 
 export function renderCalendar() {
     const section = document.createElement("div");
-    // Increased max-width to fit the new control layout comfortably
-    section.style.cssText = "width: 100%; max-width: 1100px; margin: 0 auto; padding-bottom: var(--space-8);";
+    // Removed max-width to occupy empty space and increase the width of the calendar
+    section.style.cssText = "width: 100%; margin: 0 auto; padding-bottom: var(--space-8);";
 
     // Calendar Card Container
     const calendarCard = document.createElement("div");
@@ -116,6 +116,8 @@ window.setEventFilter = function(filter) {
         currentView = 'month'; 
         currentDate = new Date(now); 
         currentDate.setMonth(now.getMonth() + 1); 
+    } else if (filter === 'all-events') {
+        // Do nothing to currentDate or currentView so the visual grid stays exactly as it is
     }
     updateCalendarUI();
 };
@@ -161,6 +163,7 @@ function updateCalendarUI() {
         <button onclick="setEventFilter('next-week')" style="padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: var(--font-weight-medium); cursor: pointer; transition: all 0.2s; ${getBtnStyle('next-week')}">Next Week</button>
         <button onclick="setEventFilter('this-month')" style="padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: var(--font-weight-medium); cursor: pointer; transition: all 0.2s; ${getBtnStyle('this-month')}">This Month</button>
         <button onclick="setEventFilter('next-month')" style="padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: var(--font-weight-medium); cursor: pointer; transition: all 0.2s; ${getBtnStyle('next-month')}">Next Month</button>
+        <button onclick="setEventFilter('all-events')" style="padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: var(--font-weight-medium); cursor: pointer; transition: all 0.2s; ${getBtnStyle('all-events')}">All Events</button>
     `;
 
     const viewToggleHTML = `
@@ -345,13 +348,19 @@ function renderFilteredEvents() {
             filterStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
             filterEnd = new Date(now.getFullYear(), now.getMonth() + 2, 0);
             titleText = 'Events for Next Month';
+        } else if (activeFilter === 'all-events') {
+            titleText = 'All Scheduled Events';
         }
 
-        displayEvents = allEvents.filter(e => {
-            const ed = new Date(e.date || e.start_time);
-            ed.setHours(0, 0, 0, 0);
-            return ed >= filterStart && ed <= filterEnd;
-        });
+        if (activeFilter === 'all-events') {
+            displayEvents = [...allEvents];
+        } else {
+            displayEvents = allEvents.filter(e => {
+                const ed = new Date(e.date || e.start_time);
+                ed.setHours(0, 0, 0, 0);
+                return ed >= filterStart && ed <= filterEnd;
+            });
+        }
         titleHTML = titleText;
 
     } else if (selectedDate) {

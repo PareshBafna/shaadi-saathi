@@ -1,4 +1,4 @@
-import { supabase } from '../../../database/js/api.js';
+import { supabase } from '../../database/js/api.js';
 
 const ADMIN_WHATSAPP_NUMBER = "919791146838";
 

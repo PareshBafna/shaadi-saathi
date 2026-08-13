@@ -1,5 +1,5 @@
 import { supabase } from '../../database/js/api.js';
-import { showAlert } from '../../global/components/js/alerts.js';
+import { showAlert } from '../../global/js/alerts.js';
 
 // ==========================================
 // MAIN RENDER FUNCTION
