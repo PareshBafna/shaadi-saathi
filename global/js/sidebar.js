@@ -4,6 +4,7 @@ const CREATOR_NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "layout-dashboard" },
   { id: 'calendar', label: 'Calendar', icon: 'calendar' },
   { id: "weddings", label: "Weddings", icon: "heart" },
+  { id: 'events', label: 'Events', icon: 'list' },
   { id: "users", label: "Users", icon: "users" },
   { id: "hosts", label: "Hosts", icon: "user-check" },
   { id: "sample", label: "Sample Wedding", icon: "eye" },

@@ -55,7 +55,8 @@ async function loadGlobalDashboardData(section) {
             // Check if Web Invite exists for this wedding
             wedding.has_web_invite = webInvitesData ? webInvitesData.some(w => w.wedding_id === wedding.id) : false;
 
-            const { count: eventsCount } = await supabase.from('events').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
+            // POINTING TO NEW TABLE
+            const { count: eventsCount } = await supabase.from('wedding_events').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
             const { count: guestsCount } = await supabase.from('guests').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
 
             wedding.events_count = eventsCount || 0;

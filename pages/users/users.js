@@ -169,8 +169,6 @@ function renderUsersList() {
     `;
 
     paginatedUsers.forEach(u => {
-        const uJson = JSON.stringify(u).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-        
         const verifiedBadge = u.is_verified 
             ? `<span style="color: #10b981; font-weight: bold;">Verified</span>` 
             : `<button class="verify-user-btn" data-id="${u.id}" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 4px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.75rem; font-weight: var(--font-weight-medium); transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">Verify</button>`;
@@ -182,7 +180,7 @@ function renderUsersList() {
         `;
 
         const editBtn = !u.is_verified ? `
-            <button onclick="openUserModal(JSON.parse('${uJson}'))" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
+            <button class="edit-sys-user-btn" data-id="${u.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
                 <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
             </button>
         ` : `<div></div>`;
@@ -272,6 +270,13 @@ function renderUsersList() {
     content.innerHTML = listHTML;
 
     setTimeout(() => {
+        content.querySelectorAll('.edit-sys-user-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openUserModal(btn.getAttribute('data-id'));
+            });
+        });
+
         const pageBtns = content.querySelectorAll('.pagination-btn');
         pageBtns.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -321,21 +326,34 @@ function renderUsersList() {
     }, 0);
 }
 
-// Attach globally for inline HTML handlers
-window.openUserModal = function(user = null) {
+// Global modal query by ID and safe injection
+window.openUserModal = async function(userId = null) {
+    let user = null;
+
+    if (userId) {
+        try {
+            const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
+            if (error) throw error;
+            user = data;
+        } catch (error) {
+            showAlert({ icon: 'error', title: 'Data Error', text: 'Could not fetch user details.' });
+            return;
+        }
+    }
+
     const formHTML = `
         <form id="sysUserForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Full Name *</label>
-                <input type="text" id="sysUserName" value="${user ? user.name.replace(/"/g, '&quot;') : ''}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                <input type="text" id="sysUserName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Phone Number *</label>
-                <input type="tel" id="sysUserPhone" value="${user ? user.phone : ''}" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                <input type="tel" id="sysUserPhone" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">PIN *</label>
-                <input type="password" id="sysUserPin" value="${user && user.pin ? user.pin : ''}" maxlength="4" placeholder="4 Digits" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                <input type="password" id="sysUserPin" maxlength="4" placeholder="4 Digits" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
             </div>
         </form>
     `;
@@ -355,7 +373,6 @@ window.openUserModal = function(user = null) {
                 const phoneInput = phoneInputEl.value.trim();
                 const pin = pinInput.value.trim();
 
-                // Reset borders
                 nameInput.style.borderColor = 'var(--color-border)';
                 phoneInputEl.style.borderColor = 'var(--color-border)';
                 pinInput.style.borderColor = 'var(--color-border)';
@@ -387,7 +404,6 @@ window.openUserModal = function(user = null) {
                 const cleanedPhone = phoneInput.replace(/[^0-9+]/g, '');
 
                 try {
-                    // Check for duplicate phone
                     const { data: existing } = await supabase.from('users').select('id, phone').eq('phone', cleanedPhone);
                     if (existing && existing.length > 0) {
                         const duplicate = existing.find(e => !user || e.id !== user.id);
@@ -399,7 +415,7 @@ window.openUserModal = function(user = null) {
 
                     const payload = { name, phone: cleanedPhone, pin };
                     if (!user) {
-                        payload.role = 'guest'; // Hardcoded default role for new users
+                        payload.role = 'guest'; 
                     }
 
                     if (user) {
@@ -427,7 +443,7 @@ window.openUserModal = function(user = null) {
             closesModal: false,
             onClick: async () => {
                 const result = await Swal.fire({
-                    title: 'Are you sure?', text: `Do you really want to permanently delete ${user.name}?`, icon: 'warning', 
+                    title: 'Are you sure?', text: `Do you really want to permanently delete this user?`, icon: 'warning', 
                     showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, delete!'
                 });
 
@@ -450,6 +466,13 @@ window.openUserModal = function(user = null) {
     const modal = openModal({ title: user ? "Edit User" : "Add New User", content: formHTML, actions: actions });
 
     setTimeout(() => {
+        // Safely inject values after DOM creation to avoid special character crashes
+        if (user) {
+            document.getElementById('sysUserName').value = user.name || '';
+            document.getElementById('sysUserPhone').value = user.phone || '';
+            document.getElementById('sysUserPin').value = user.pin || '';
+        }
+
         const btns = Array.from(document.querySelectorAll('button'));
         btns.forEach(btn => {
             const txt = btn.textContent.trim();
@@ -478,7 +501,7 @@ window.imitateUser = function(id, name) {
             localStorage.setItem('ss_user_id', id);
             
             const targetUser = allUsersData.find(u => u.id === id);
-            let targetHash = '#calendar'; // Default for Guests
+            let targetHash = '#calendar'; 
             
             if (targetUser) {
                 if (targetUser.role === 'creator') {

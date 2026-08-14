@@ -86,7 +86,7 @@ async function loadWeddingData(container, weddingId) {
         };
 
         // 5. Fetch Events & Guests
-        let eventsQuery = supabase.from('events').select('*').eq('wedding_id', weddingId);
+        let eventsQuery = supabase.from('wedding_events').select('*').eq('wedding_id', weddingId);
         const { data: guests, error: guestsError } = await supabase.from('guests').select('*').eq('wedding_id', weddingId);
         if (guestsError) throw guestsError;
 
@@ -390,7 +390,7 @@ function buildEventItinerarySection(wedding, events, canConfig) {
             `;
             
             dayEvents.forEach(ev => {
-                const editIcon = canConfig ? `<button class="edit-event-btn" data-event-id="${ev.id}" style="background:none; border:none; padding:4px; cursor:pointer; margin-left:auto; color: var(--color-text-muted);" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'"><i data-lucide="edit-2" style="width: 14px; height: 14px; color: currentColor;"></i></button>` : '';
+                const editIcon = canConfig ? `<button class="edit-event-btn" data-id="${ev.id}" style="background:none; border:none; padding:4px; cursor:pointer; margin-left:auto; color: var(--color-text-muted);" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'"><i data-lucide="edit-2" style="width: 14px; height: 14px; color: currentColor;"></i></button>` : '';
                 
                 htmlContent += `
                     <div class="timeline-event-card" style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
@@ -422,9 +422,8 @@ function buildEventItinerarySection(wedding, events, canConfig) {
             editBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const eventId = btn.getAttribute('data-event-id');
-                    const ev = events.find(e => e.id === eventId);
-                    if(ev) window.openEditEventModal(wedding.id, wedding.start_date, wedding.end_date, ev);
+                    const eventId = btn.getAttribute('data-id');
+                    window.openEditEventModal(wedding.id, wedding.start_date, wedding.end_date, eventId);
                 });
             });
         }
@@ -519,11 +518,10 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
         
         paginatedHosts.forEach((host, index) => {
             const globalIndex = startIndex + index + 1;
-            const hostJson = JSON.stringify(host).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
             const canEditThisHost = canConfig && (isCreator || host.user_id !== curUserId);
             
             const actionBtn = canEditThisHost ? `
-                <button class="edit-host-btn" data-host='${hostJson}' style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
+                <button class="edit-host-btn" data-id="${host.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
                     <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
                 </button>
             ` : `<div></div>`;
@@ -534,10 +532,10 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
                     ${actionBtn}
                     <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
                     <div style="display: flex; align-items: center; overflow: hidden;">
-                        <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${host.name}</h4>
+                        <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${host.name || '-'}</h4>
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> ${host.phone}
+                        <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> ${host.phone || '-'}
                     </div>
                 </div>
             </div>`;
@@ -570,8 +568,7 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
             editBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const hostData = JSON.parse(btn.getAttribute('data-host'));
-                    window.openSystemUserModal('host', hostData);
+                    window.openSystemUserModal('host', btn.getAttribute('data-id'));
                 });
             });
 
@@ -659,7 +656,7 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
         const paginatedUsers = sortedUsers.slice(startIndex, startIndex + itemsPerPage);
 
         if (!wUsers || wUsers.length === 0) {
-            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No wedding users assigned yet.</div>`;
+            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No wedding users assigned yet.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
@@ -681,10 +678,9 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
         
         paginatedUsers.forEach((u, index) => {
             const globalIndex = startIndex + index + 1;
-            const uJson = JSON.stringify(u).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
             
             const actionBtn = canConfig ? `
-                <button class="edit-wedding-user-btn" data-user='${uJson}' style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
+                <button class="edit-wedding-user-btn" data-id="${u.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
                     <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
                 </button>
             ` : `<div></div>`;
@@ -695,10 +691,10 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
                     ${actionBtn}
                     <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
                     <div style="display: flex; align-items: center; overflow: hidden;">
-                        <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${u.name}</h4>
+                        <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${u.name || '-'}</h4>
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> ${u.phone}
+                        <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> ${u.phone || '-'}
                     </div>
                 </div>
             </div>`;
@@ -731,8 +727,7 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
             editBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const uData = JSON.parse(btn.getAttribute('data-user'));
-                    window.openSystemUserModal('wedding_user', uData);
+                    window.openSystemUserModal('wedding_user', btn.getAttribute('data-id'));
                 });
             });
 
@@ -769,13 +764,25 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
 }
 
 // Global System Modal for Hosts & Wedding Users
-window.openSystemUserModal = async function(type, existingRecord = null) {
+window.openSystemUserModal = async function(type, existingRecordId = null) {
     const ctx = window.__weddingContext;
     if (!ctx || !ctx.canConfig) return;
 
     const isHost = type === 'host';
     const tableName = isHost ? 'wedding_hosts' : 'wedding_users';
     const titleType = isHost ? 'Wedding Host' : 'Wedding User';
+
+    let existingRecord = null;
+    if (existingRecordId) {
+        try {
+            const { data, error } = await supabase.from(tableName).select('*').eq('id', existingRecordId).single();
+            if (error) throw error;
+            existingRecord = data;
+        } catch (e) {
+            showAlert({ icon: 'error', title: 'Error', text: 'Failed to load record details.' });
+            return;
+        }
+    }
 
     let eligibleUsers = ctx.allSysUsers.filter(u => !ctx.assignedIds.has(u.id) && u.role !== 'creator');
     
@@ -1015,7 +1022,7 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
             }
 
             const editCol = canConfig ? `
-                <button class="edit-guest-btn" data-guest-id="${guest.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'">
+                <button class="edit-guest-btn" data-id="${guest.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'">
                     <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
                 </button>
             ` : '';
@@ -1033,11 +1040,11 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
                     <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
                     
                     <div style="display: flex; align-items: center; overflow: hidden;">
-                        <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${guest.name}</h4>
+                        <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${guest.name || '-'}</h4>
                     </div>
                     
                     <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> ${guest.phone}
+                        <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> ${guest.phone || '-'}
                     </div>
                     
                     <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
@@ -1084,9 +1091,7 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
                 editBtns.forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const guestId = btn.getAttribute('data-guest-id');
-                        const guestData = guests.find(g => g.id === guestId);
-                        if(guestData) window.openEditGuestModal(wedding.id, guestData, events);
+                        window.openEditGuestModal(wedding.id, btn.getAttribute('data-id'));
                     });
                 });
             }
@@ -1263,15 +1268,55 @@ function forceStyleModalButtons() {
     });
 }
 
-window.openEventModal = function(weddingId, minDate, maxDate) {
+// ==========================================
+// EVENTS MODALS
+// ==========================================
+window.openEventModal = async function(weddingId, minDate, maxDate) {
+    let templates = [];
+    try {
+        const { data } = await supabase.from('events').select('*');
+        templates = data || [];
+    } catch (e) {
+        console.error("Failed to load templates", e);
+    }
+
+    let templateOptions = `<option value="">-- Custom Event --</option>`;
+    templates.forEach(t => {
+        // Safe because it's just the ID, no quotes to break HTML
+        templateOptions += `<option value="${t.id}">${t.event_name}</option>`;
+    });
+
     const formHTML = `
-        <form id="createEventForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
+        <form id="createEventForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3); max-height: 70vh; overflow-y: auto; padding-right: 5px;">
+            <div style="margin-bottom: 8px;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Apply Template (Optional)</label>
+                <select id="eventTemplateSelect" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                    ${templateOptions}
+                </select>
+            </div>
+
+            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 140px;">
+                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Event Name *</label>
+                    <input type="text" id="eventName" required placeholder="e.g., Grithpaan" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                </div>
+                <div style="flex: 1; min-width: 140px;">
+                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Display Title</label>
+                    <input type="text" id="eventDisplayTitle" placeholder="e.g., Blessings & Beginnings" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                </div>
+            </div>
+
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Event Name *</label>
-                <input type="text" id="eventName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">One Liner Quote</label>
+                <input type="text" id="eventOneLiner" placeholder="e.g., Golden ghee, elders blessings..." style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+            </div>
+
+            <div>
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Description</label>
+                <textarea id="eventDescription" rows="3" placeholder="An auspicious start to our wedding celebrations..." style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;"></textarea>
             </div>
             
-            <div style="display: flex; gap: var(--space-3);">
+            <div style="display: flex; gap: var(--space-3); margin-top: 8px;">
                 <div style="flex: 1;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Date *</label>
                     <input type="date" id="eventDate" min="${minDate}" max="${maxDate}" 
@@ -1349,9 +1394,12 @@ window.openEventModal = function(weddingId, minDate, maxDate) {
                     const fullStartTimestamp = `${selectedDate}T${selectedTime}:00${formattedOffset}`;
 
                     try {
-                        const { error } = await supabase.from('events').insert([{ 
+                        const { error } = await supabase.from('wedding_events').insert([{ 
                             wedding_id: weddingId,
                             title: document.getElementById('eventName').value.trim(),
+                            display_title: document.getElementById('eventDisplayTitle').value.trim(),
+                            one_liner: document.getElementById('eventOneLiner').value.trim(),
+                            description: document.getElementById('eventDescription').value.trim(),
                             date: selectedDate,
                             start_time: fullStartTimestamp,
                             venue: document.getElementById('eventVenue').value.trim()
@@ -1371,6 +1419,25 @@ window.openEventModal = function(weddingId, minDate, maxDate) {
 
     setTimeout(() => {
         forceStyleModalButtons();
+        
+        const templateSelect = document.getElementById('eventTemplateSelect');
+        if (templateSelect) {
+            templateSelect.addEventListener('change', (e) => {
+                const selectedId = e.target.value;
+                if (!selectedId) return;
+                const template = templates.find(t => t.id === selectedId);
+                if (!template) return;
+                
+                const nameEl = document.getElementById('eventName');
+                nameEl.value = template.event_name || '';
+                nameEl.style.borderColor = nameEl.value.trim() === '' ? 'red' : 'green';
+
+                document.getElementById('eventDisplayTitle').value = template.display_title || '';
+                document.getElementById('eventOneLiner').value = template.one_liner || '';
+                document.getElementById('eventDescription').value = template.description || '';
+            });
+        }
+
         ['eventName', 'eventDate', 'eventTime', 'eventVenue'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -1383,7 +1450,28 @@ window.openEventModal = function(weddingId, minDate, maxDate) {
     }, 50);
 };
 
-window.openEditEventModal = function(weddingId, minDate, maxDate, ev) {
+window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId) {
+    let ev = null;
+    let templates = [];
+    
+    try {
+        const [evRes, tplRes] = await Promise.all([
+            supabase.from('wedding_events').select('*').eq('id', eventId).single(),
+            supabase.from('events').select('*')
+        ]);
+        if (evRes.error) throw evRes.error;
+        ev = evRes.data;
+        templates = tplRes.data || [];
+    } catch (e) {
+        showAlert({ icon: 'error', title: 'Error', text: 'Failed to load event data.' });
+        return;
+    }
+
+    let templateOptions = `<option value="">-- Apply a Template --</option>`;
+    templates.forEach(t => {
+        templateOptions += `<option value="${t.id}">${t.event_name}</option>`;
+    });
+
     let timeValue = '';
     if (ev.start_time) {
         const d = new Date(ev.start_time);
@@ -1399,13 +1487,36 @@ window.openEditEventModal = function(weddingId, minDate, maxDate, ev) {
     }
 
     const formHTML = `
-        <form id="editEventForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
+        <form id="editEventForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3); max-height: 70vh; overflow-y: auto; padding-right: 5px;">
+            <div style="margin-bottom: 8px;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Apply Template (Optional Overwrite)</label>
+                <select id="editTemplateSelect" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                    ${templateOptions}
+                </select>
+            </div>
+
+            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 140px;">
+                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Event Name *</label>
+                    <input type="text" id="editEventName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                </div>
+                <div style="flex: 1; min-width: 140px;">
+                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Display Title</label>
+                    <input type="text" id="editEventDisplayTitle" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                </div>
+            </div>
+
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Event Name *</label>
-                <input type="text" id="editEventName" value="${ev.title.replace(/"/g, '&quot;')}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">One Liner Quote</label>
+                <input type="text" id="editEventOneLiner" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+            </div>
+
+            <div>
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Description</label>
+                <textarea id="editEventDescription" rows="3" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;"></textarea>
             </div>
             
-            <div style="display: flex; gap: var(--space-3);">
+            <div style="display: flex; gap: var(--space-3); margin-top: 8px;">
                 <div style="flex: 1;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Date *</label>
                     <input type="date" id="editEventDate" value="${ev.date}" min="${minDate}" max="${maxDate}" 
@@ -1422,7 +1533,7 @@ window.openEditEventModal = function(weddingId, minDate, maxDate, ev) {
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Venue *</label>
-                <input type="text" id="editEventVenue" value="${ev.venue.replace(/"/g, '&quot;')}" required placeholder="e.g., The Grand Hotel" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editEventVenue" required placeholder="e.g., The Grand Hotel" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
         </form>
     `;
@@ -1448,7 +1559,7 @@ window.openEditEventModal = function(weddingId, minDate, maxDate, ev) {
 
                     if (result.isConfirmed) {
                         try {
-                            const { error } = await supabase.from('events').delete().eq('id', ev.id);
+                            const { error } = await supabase.from('wedding_events').delete().eq('id', ev.id);
                             if (error) throw error;
                             
                             modal.close();
@@ -1512,8 +1623,11 @@ window.openEditEventModal = function(weddingId, minDate, maxDate, ev) {
                     const fullStartTimestamp = `${selectedDate}T${selectedTime}:00${formattedOffset}`;
 
                     try {
-                        const { error } = await supabase.from('events').update({ 
+                        const { error } = await supabase.from('wedding_events').update({ 
                             title: document.getElementById('editEventName').value.trim(),
+                            display_title: document.getElementById('editEventDisplayTitle').value.trim(),
+                            one_liner: document.getElementById('editEventOneLiner').value.trim(),
+                            description: document.getElementById('editEventDescription').value.trim(),
                             date: selectedDate,
                             start_time: fullStartTimestamp,
                             venue: document.getElementById('editEventVenue').value.trim()
@@ -1534,6 +1648,34 @@ window.openEditEventModal = function(weddingId, minDate, maxDate, ev) {
 
     setTimeout(() => {
         forceStyleModalButtons();
+
+        // Safe injection
+        if (ev) {
+            document.getElementById('editEventName').value = ev.title || '';
+            document.getElementById('editEventDisplayTitle').value = ev.display_title || '';
+            document.getElementById('editEventOneLiner').value = ev.one_liner || '';
+            document.getElementById('editEventDescription').value = ev.description || '';
+            document.getElementById('editEventVenue').value = ev.venue || '';
+        }
+
+        const templateSelect = document.getElementById('editTemplateSelect');
+        if (templateSelect) {
+            templateSelect.addEventListener('change', (e) => {
+                const selectedId = e.target.value;
+                if (!selectedId) return;
+                const template = templates.find(t => t.id === selectedId);
+                if (!template) return;
+                
+                const nameEl = document.getElementById('editEventName');
+                nameEl.value = template.event_name || '';
+                nameEl.style.borderColor = nameEl.value.trim() === '' ? 'red' : 'green';
+
+                document.getElementById('editEventDisplayTitle').value = template.display_title || '';
+                document.getElementById('editEventOneLiner').value = template.one_liner || '';
+                document.getElementById('editEventDescription').value = template.description || '';
+            });
+        }
+
         ['editEventName', 'editEventDate', 'editEventTime', 'editEventVenue'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -1546,6 +1688,9 @@ window.openEditEventModal = function(weddingId, minDate, maxDate, ev) {
     }, 50);
 };
 
+// ==========================================
+// GUESTS MODALS
+// ==========================================
 window.openGuestModal = function(weddingId, events = []) {
     const sortedModalEvents = [...events].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
     
@@ -1665,7 +1810,26 @@ window.openGuestModal = function(weddingId, events = []) {
     }, 50);
 };
 
-window.openEditGuestModal = function(weddingId, guest, events = []) {
+window.openEditGuestModal = async function(weddingId, guestId) {
+    let guest = null;
+    let events = [];
+    
+    try {
+        const [guestRes, eventsRes] = await Promise.all([
+            supabase.from('guests').select('*').eq('id', guestId).single(),
+            supabase.from('wedding_events').select('*').eq('wedding_id', weddingId)
+        ]);
+        if (guestRes.error) throw guestRes.error;
+        guest = guestRes.data;
+        events = eventsRes.data || [];
+        
+        const { data: eventGuests } = await supabase.from('event_guests').select('event_id').eq('guest_id', guestId);
+        guest.invited_events = eventGuests ? eventGuests.map(eg => eg.event_id) : [];
+    } catch (e) {
+        showAlert({ icon: 'error', title: 'Error', text: 'Failed to load guest data.' });
+        return;
+    }
+
     const invitedList = guest.invited_events || [];
     const sortedModalEvents = [...events].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
     
@@ -1680,11 +1844,11 @@ window.openEditGuestModal = function(weddingId, guest, events = []) {
         <form id="editGuestForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Guest Name *</label>
-                <input type="text" id="editGuestName" value="${guest.name.replace(/"/g, '&quot;')}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editGuestName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Phone Number *</label>
-                <input type="text" id="editGuestPhone" value="${guest.phone.replace(/"/g, '&quot;')}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editGuestPhone" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div style="margin-top: var(--space-2);">
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:8px;">Invite to Events</label>
@@ -1803,6 +1967,13 @@ window.openEditGuestModal = function(weddingId, guest, events = []) {
 
     setTimeout(() => {
         forceStyleModalButtons();
+        
+        // Safe injection
+        if (guest) {
+            document.getElementById('editGuestName').value = guest.name || '';
+            document.getElementById('editGuestPhone').value = guest.phone || '';
+        }
+
         ['editGuestName', 'editGuestPhone'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {

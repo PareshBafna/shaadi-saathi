@@ -212,7 +212,8 @@ async function loadWeddingsData(container) {
             
             wedding.has_web_invite = (wedding.id === '00000000-0000-0000-0000-000000000000') || (webInvitesData ? webInvitesData.some(w => w.wedding_id === wedding.id) : false);
 
-            let eventsQuery = supabase.from('events').select('*', { count: 'exact' }).eq('wedding_id', wedding.id);
+            // UPDATED: Query the newly renamed 'wedding_events' table
+            let eventsQuery = supabase.from('wedding_events').select('*', { count: 'exact' }).eq('wedding_id', wedding.id);
             
             const isHost = wedding.hosts.some(h => h.user_id === userId);
             const isWUser = wedding.wedding_users.some(u => u.user_id === userId);

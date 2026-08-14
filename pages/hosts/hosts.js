@@ -158,8 +158,7 @@ function renderHostsList() {
             }).join('')
             : `<span style="color: var(--color-text-muted); font-size: 0.8rem; font-style: italic;">No active assignments</span>`;
 
-        const hostJson = JSON.stringify({id: host.id, name: host.name}).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-
+        // FIXED: Using data-id instead of JSON stringification
         listHTML += `
         <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">
             <div style="display: grid; grid-template-columns: ${gridTemplate}; align-items: center; padding: var(--space-3) var(--space-4); transition: background 0.2s ease; gap: 12px;" onmouseover="this.style.background='var(--color-border)';" onmouseout="this.style.background='transparent';">
@@ -169,7 +168,7 @@ function renderHostsList() {
                 </button>
 
                 <!-- Edit Icon Moved to the Left -->
-                <button class="edit-host-btn" data-host='${hostJson}' style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit Host">
+                <button class="edit-host-btn" data-id="${host.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit Host">
                     <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
                 </button>
 
@@ -242,12 +241,16 @@ function renderHostsList() {
         });
     });
 
+    // FIXED: Uses ID lookup instead of JSON parsing
     const editBtns = container.querySelectorAll('.edit-host-btn');
     editBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const hostData = JSON.parse(btn.getAttribute('data-host'));
-            openHostModal(hostData);
+            const hostId = btn.getAttribute('data-id');
+            const hostData = hostUsersData.find(h => h.id === hostId);
+            if (hostData) {
+                openHostModal(hostData);
+            }
         });
     });
 
@@ -323,7 +326,7 @@ function openHostModal(existingHost = null) {
         userSelectionHTML = `
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Host Name</label>
-                <input type="text" value="${existingHost.name}" disabled style="width:100%; background:var(--color-border); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; opacity: 0.7;">
+                <input type="text" id="hostDisplayInput" disabled style="width:100%; background:var(--color-border); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; opacity: 0.7;">
                 <input type="hidden" id="sysUserId" value="${existingHost.id}">
             </div>
         `;
@@ -377,7 +380,6 @@ function openHostModal(existingHost = null) {
 
                 const selectedWeddings = Array.from(document.getElementById('hostForm').querySelectorAll('input[name="host_weddings"]:checked')).map(cb => cb.value);
 
-                // --- NEW VALIDATION CHECK ---
                 if (selectedWeddings.length === 0) {
                     showAlert({ icon: 'warning', title: 'Missing Selection', text: 'Please assign the host to at least one wedding.' });
                     return;
@@ -414,7 +416,7 @@ function openHostModal(existingHost = null) {
             onClick: async () => {
                 const result = await Swal.fire({
                     title: 'Remove Host?',
-                    text: `This will remove ${existingHost.name} from ALL assigned weddings. Continue?`,
+                    text: `This will remove the host from ALL assigned weddings. Continue?`,
                     icon: 'warning', 
                     showCancelButton: true,
                     confirmButtonColor: '#dc2626',
@@ -445,6 +447,12 @@ function openHostModal(existingHost = null) {
     });
 
     setTimeout(() => {
+        // Safe injection of values
+        if (existingHost) {
+            const hostDisplayInput = document.getElementById('hostDisplayInput');
+            if (hostDisplayInput) hostDisplayInput.value = existingHost.name || '';
+        }
+
         const btns = Array.from(document.querySelectorAll('button'));
         btns.forEach(btn => {
             const txt = btn.textContent.trim();
@@ -465,7 +473,6 @@ function openHostModal(existingHost = null) {
             }
         });
 
-        // Initialize searchable dropdown if we are adding a new host
         if (!existingHost) {
             convertToSearchableDropdown('sysUserId');
         }

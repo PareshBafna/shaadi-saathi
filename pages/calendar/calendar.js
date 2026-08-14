@@ -46,7 +46,8 @@ async function loadUserEvents() {
         allWeddings = weddingsData || [];
 
         if (user.role === 'creator') {
-            const { data } = await supabase.from('events').select('*');
+            // POINTING TO NEW TABLE
+            const { data } = await supabase.from('wedding_events').select('*');
             allEvents = data || [];
             return;
         }
@@ -64,7 +65,8 @@ async function loadUserEvents() {
         let finalEvents = [];
 
         if (fullAccessWeddingIds.length > 0) {
-            const { data: fullEvents } = await supabase.from('events').select('*').in('wedding_id', fullAccessWeddingIds);
+            // POINTING TO NEW TABLE
+            const { data: fullEvents } = await supabase.from('wedding_events').select('*').in('wedding_id', fullAccessWeddingIds);
             if (fullEvents) finalEvents.push(...fullEvents);
         }
 
@@ -74,7 +76,8 @@ async function loadUserEvents() {
                     const { data: egData } = await supabase.from('event_guests').select('event_id').eq('guest_id', g.id);
                     if (egData && egData.length > 0) {
                         const eventIds = egData.map(eg => eg.event_id);
-                        const { data: specificEvents } = await supabase.from('events').select('*').in('id', eventIds);
+                        // POINTING TO NEW TABLE
+                        const { data: specificEvents } = await supabase.from('wedding_events').select('*').in('id', eventIds);
                         if (specificEvents) finalEvents.push(...specificEvents);
                     }
                 }

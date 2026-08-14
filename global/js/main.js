@@ -16,6 +16,7 @@ import { renderWeddings } from '../../pages/weddings/weddings.js';
 import { renderWeddingDetails } from '../../pages/wedding-details/wedding-details.js';
 import { renderUsers } from '../../pages/users/users.js';
 import { renderHosts } from '../../pages/hosts/hosts.js';
+import { renderEvents } from '../../pages/events/events.js'; 
 
 // ==========================================
 // PENDING REFACTOR (Old Architecture Paths)
@@ -218,6 +219,7 @@ async function router() {
     else if (route === "#calendar") { pageTitle = "Event Calendar"; renderFunc = renderCalendar; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; }  
     else if (route === "#users") { pageTitle = "Users"; renderFunc = renderUsers; allowedRoles = ['creator']; } 
     else if (route === "#hosts") { pageTitle = "Hosts"; renderFunc = renderHosts; allowedRoles = ['creator']; } 
+    else if (route === "#events") { pageTitle = "Events"; renderFunc = renderEvents; allowedRoles = ['creator']; } 
     else if (route === "#sample-wedding" || route === "#sample") { pageTitle = "Sample Wedding"; renderFunc = renderSampleWedding; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; } 
     else if (route === "#web-invites") { pageTitle = "Web Invites"; renderFunc = renderWebInvites; allowedRoles = ['creator']; } 
     else if (route === "#profile") { pageTitle = "Profile"; renderFunc = renderWeddings; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; } 
