@@ -14,14 +14,16 @@ import { renderDashboard } from '../../pages/dashboard/dashboard.js';
 import { renderCalendar } from '../../pages/calendar/calendar.js';
 import { renderWeddings } from '../../pages/weddings/weddings.js';
 import { renderWeddingDetails } from '../../pages/wedding-details/wedding-details.js';
+import { renderEvents } from '../../pages/events/events.js'; 
 import { renderUsers } from '../../pages/users/users.js';
 import { renderHosts } from '../../pages/hosts/hosts.js';
-import { renderEvents } from '../../pages/events/events.js'; 
+import { renderSampleWeddings } from '../../pages/sample-weddings/sample-weddings.js';
+import { renderSampleWeddingDetails } from '../../pages/sample-wedding-details/sample-wedding-details.js';
 
 // ==========================================
 // PENDING REFACTOR (Old Architecture Paths)
 // ==========================================
-import { renderSampleWedding } from '../../pages/js/sample-wedding.js';
+//import { renderSampleWedding } from '../../pages/js/sample-wedding.js';
 import { renderWebInvites } from '../../web-invites/js/web-invites.js';
 import { renderSampleWebInvites } from '../../web-invites/js/sample-web-invites.js';
 
@@ -209,18 +211,39 @@ async function router() {
     let pageArgs = null;
     let allowedRoles = []; 
 
-    if (route === "#dashboard") { pageTitle = "Dashboard"; renderFunc = renderDashboard; allowedRoles = ['creator']; } 
+    if (route === "#dashboard") 
+        { pageTitle = "Dashboard"; 
+            renderFunc = renderDashboard; 
+            allowedRoles = ['creator']; 
+        } 
+    else if (route === "#calendar") 
+    {
+        pageTitle = "Event Calendar"; 
+        renderFunc = renderCalendar; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+    }
     else if (route === "#weddings") { pageTitle = "Weddings"; renderFunc = renderWeddings; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; } 
     else if (route === "#wedding-details") {
         pageArgs = params.get('id');
         if (!pageArgs) { showAccessRestricted(); return; }
         pageTitle = "Wedding Details"; renderFunc = renderWeddingDetails; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
     } 
-    else if (route === "#calendar") { pageTitle = "Event Calendar"; renderFunc = renderCalendar; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; }  
+    
+    else if (route === "#events") { pageTitle = "Events"; renderFunc = renderEvents; allowedRoles = ['creator']; }
     else if (route === "#users") { pageTitle = "Users"; renderFunc = renderUsers; allowedRoles = ['creator']; } 
     else if (route === "#hosts") { pageTitle = "Hosts"; renderFunc = renderHosts; allowedRoles = ['creator']; } 
-    else if (route === "#events") { pageTitle = "Events"; renderFunc = renderEvents; allowedRoles = ['creator']; } 
-    else if (route === "#sample-wedding" || route === "#sample") { pageTitle = "Sample Wedding"; renderFunc = renderSampleWedding; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; } 
+    else if (route === "#sample-weddings" || route === "#sample") 
+    { 
+        pageTitle = "Sample Wedding"; 
+        renderFunc = renderSampleWeddings; 
+        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+    }
+    else if (route === "#sample-wedding-details") 
+    { 
+        pageArgs = params.get('id');
+        pageTitle = "Sample Wedding Details"; 
+        renderFunc = renderSampleWeddingDetails; 
+        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+    }
     else if (route === "#web-invites") { pageTitle = "Web Invites"; renderFunc = renderWebInvites; allowedRoles = ['creator']; } 
     else if (route === "#profile") { pageTitle = "Profile"; renderFunc = renderWeddings; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; } 
     else { showAccessRestricted(); return; }
