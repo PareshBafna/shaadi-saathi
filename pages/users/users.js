@@ -8,6 +8,13 @@ let searchQuery = '';
 let allUsersData = [];
 
 export function renderUsers() {
+    if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
+        const errSec = document.createElement("section");
+        errSec.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        errSec.textContent = "Please log in to manage users.";
+        return errSec;
+    }
+
     const section = document.createElement("section");
     section.className = "weddings-page-wrapper";
     section.style.cssText = "width: 100%; box-sizing: border-box;";
@@ -293,7 +300,7 @@ function renderUsersList() {
                     if (error) throw error;
                     openUserModal(userData);
                 } catch (err) {
-                    showAlert({ icon: 'error', title: 'Error', text: 'Could not fetch user details.' });
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Could not fetch user details.' });
                 }
             });
         });
@@ -333,10 +340,10 @@ function renderUsersList() {
                 try {
                     const { error } = await supabase.from('users').update({ is_verified: true }).eq('id', userId);
                     if (error) throw error;
-                    showAlert({ icon: 'success', title: 'Verified!', text: 'User has been successfully verified.', timer: 2000 });
+                    Swal.fire({ icon: 'success', title: 'Verified!', text: 'User has been successfully verified.', timer: 2000 });
                     loadUsersData();
                 } catch (error) {
-                    showAlert({ icon: 'error', title: 'Verification Failed', text: error.message });
+                    Swal.fire({ icon: 'error', title: 'Verification Failed', text: error.message });
                 }
             });
         });
@@ -354,7 +361,7 @@ window.openUserModal = async function(userOrId = null) {
             if (error) throw error;
             user = data;
         } catch (error) {
-            showAlert({ icon: 'error', title: 'Data Error', text: 'Could not fetch user details.' });
+            Swal.fire({ icon: 'error', title: 'Data Error', text: 'Could not fetch user details.' });
             return;
         }
     } else if (typeof userOrId === 'object') {
@@ -406,14 +413,14 @@ window.openUserModal = async function(userOrId = null) {
                 });
 
                 if (!isValid) {
-                    showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
+                    Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
                     return;
                 }
 
                 const pinInput = document.getElementById('sysUserPin');
                 if (!/^\d{4}$/.test(pinInput.value.trim())) {
                     pinInput.style.borderColor = "#dc2626";
-                    showAlert({ icon: 'error', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
+                    Swal.fire({ icon: 'error', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
                     return;
                 }
 
@@ -428,7 +435,8 @@ window.openUserModal = async function(userOrId = null) {
                         const duplicate = existing.find(e => !user || e.id !== user.id);
                         if (duplicate) {
                             document.getElementById('sysUserPhone').style.borderColor = '#dc2626';
-                            showAlert({ icon: 'error', title: 'Duplicate Warning', text: 'This phone number is already registered to another user.' });
+                            Swal.fire({ icon: 'question', title: 'Duplicate Warning', text: 'This phone number is already registered to another user.' });
+                            return;
                         }
                     }
 
@@ -447,9 +455,9 @@ window.openUserModal = async function(userOrId = null) {
 
                     modal.close();
                     window.dispatchEvent(new Event('systemUsersUpdated')); 
-                    showAlert({ icon: 'success', title: user ? 'Updated!' : 'Added!', text: `User saved successfully.`, timer: 2000 });
+                    Swal.fire({ icon: 'success', title: user ? 'Updated!' : 'Added!', text: `User saved successfully.`, timer: 2000 });
                 } catch (error) {
-                    showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                    Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                 }
             }
         }
@@ -462,7 +470,7 @@ window.openUserModal = async function(userOrId = null) {
             closesModal: false,
             onClick: async () => {
                 const result = await Swal.fire({
-                    title: 'Are you sure?', text: `Do you really want to permanently delete this user?`, icon: 'question', 
+                    title: 'Are you sure?', text: `Do you really want to permanently delete this user?`, icon: 'warning', 
                     showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, delete!'
                 });
 
@@ -473,9 +481,9 @@ window.openUserModal = async function(userOrId = null) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('systemUsersUpdated')); 
-                        showAlert({ icon: 'success', title: 'Deleted!', text: `User has been removed.`, timer: 2000 });
+                        Swal.fire({ icon: 'success', title: 'Deleted!', text: `User has been removed.`, timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }

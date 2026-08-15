@@ -142,13 +142,19 @@ function generateSampleData(weddingId) {
 // MAIN RENDER FUNCTION
 // ==========================================
 export function renderSampleWeddingDetails(weddingId) {
+    if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
+        const wrapper = document.createElement("div");
+        wrapper.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        wrapper.textContent = "Please log in to view sample wedding details.";
+        return wrapper;
+    }
+
     const data = generateSampleData(weddingId);
     let currentViewRole = 'guest'; 
 
     const wrapper = document.createElement("div");
     wrapper.style.cssText = "width: 100%; box-sizing: border-box; padding-bottom: var(--space-8);";
 
-    // View Toggle Bar
     const toggleBar = document.createElement("div");
     toggleBar.style.cssText = "display: flex; justify-content: center; gap: 8px; margin-bottom: var(--space-6); background: var(--color-bg); padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--color-border); max-width: 400px; margin-left: auto; margin-right: auto;";
     

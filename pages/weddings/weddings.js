@@ -48,65 +48,71 @@ export function formatWeddingDateRange(startIso, endIso) {
     return `${sDay}${getSuffix(sDay)} ${sMonth} - ${eDay}${getSuffix(eDay)} ${eMonth}, ${year}`;
 }
 
-// Helper to strictly determine if the current user can edit a specific wedding
 function canEditWedding(wedding) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const end = new Date(wedding.end_date);
     end.setHours(0, 0, 0, 0);
     
-    // Lock editing if the wedding is archived
     if (end.getTime() < today.getTime()) return false;
 
     const user = window.currentUser;
-    if (!user) return false;
+    if (!user) {
+        Swal.fire({ icon: 'error', title: 'Authentication Notice', text: 'Active session details (ss_user_id) are missing.' });
+        return false;
+    }
     if (user.role === 'creator') return true;
     if (wedding.hosts && wedding.hosts.some(h => h.user_id === user.id)) return true;
     return false;
 }
 
 export function renderWeddings() {
-    const userRole = window.currentUser?.role || 'guest';
+    if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
+        const wrapper = document.createElement('section');
+        wrapper.className = "weddings-page-wrapper";
+        wrapper.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        wrapper.textContent = "Please log in to view weddings.";
+        return wrapper;
+    }
 
     const wrapper = document.createElement('section');
     wrapper.className = "weddings-page-wrapper"; 
     wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
 
-    // ==========================================
-    // 1. CONTROL BAR
-    // ==========================================
     const controls = document.createElement('div');
     controls.className = "weddings-control-bar";
-    controls.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); background: var(--color-white); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border);";
+    controls.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); background: var(--color-white); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border); flex-wrap: wrap; gap: 16px;";
 
     const sortContainer = document.createElement('div');
+    sortContainer.style.cssText = "display: flex; align-items: center; gap: var(--space-2); min-width: 200px;";
     sortContainer.innerHTML = `
-        <div style="display: flex; align-items: center; gap: var(--space-2);">
-            <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Sort by:</span>
-            <select id="sortWeddings" style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); font-size: var(--font-size-sm); cursor: pointer; outline: none;">
-                <option value="date-asc">Date (Earliest first)</option>
-                <option value="date-desc">Date (Latest first)</option>
-                <option value="name-asc">Couple Names (A-Z)</option>
-            </select>
-        </div>
+        <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Sort by:</span>
+        <select id="sortWeddings" style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); font-size: var(--font-size-sm); cursor: pointer; outline: none;">
+            <option value="date-asc">Date (Earliest first)</option>
+            <option value="date-desc">Date (Latest first)</option>
+            <option value="name-asc">Couple Names (A-Z)</option>
+        </select>
     `;
 
     const centerContainer = document.createElement('div');
+    centerContainer.style.cssText = "display: flex; justify-content: center; flex: 1; min-width: 150px;";
+    const user = window.currentUser || {};
     
-    // STRICT RULE: Only Creators can add weddings
-    if (userRole === 'creator') {
+    if (user.role === 'creator') {
         const createBtn = document.createElement("button");
+        createBtn.id = "add-wedding-btn";
         createBtn.innerHTML = `<i data-lucide="plus" style="width:16px; height:16px; margin-right:4px; vertical-align:middle;"></i> Wedding`;
-        createBtn.style.cssText = "background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display:flex; align-items:center; transition: opacity 0.2s;";
-        createBtn.addEventListener('click', openCreateWeddingModal);
+        createBtn.style.cssText = "background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;";
+        createBtn.addEventListener('click', () => window.openWeddingModal());
         centerContainer.appendChild(createBtn);
     }
 
     const searchContainer = document.createElement('div');
+    searchContainer.style.cssText = "width: 250px; display: flex; justify-content: flex-end;";
     searchContainer.innerHTML = `
-        <div style="position: relative;">
+        <div style="position: relative; width: 100%;">
             <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--color-text-secondary);"></i>
-            <input type="text" id="searchWeddings" placeholder="Search weddings..." style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3) var(--space-2) 32px; border-radius: var(--radius-sm); font-size: var(--font-size-sm); width: 250px; outline: none;">
+            <input type="text" id="weddingSearchInput" placeholder="Search weddings..." style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3) var(--space-2) 32px; border-radius: var(--radius-sm); font-size: var(--font-size-sm); width: 100%; outline: none;">
         </div>
     `;
 
@@ -115,26 +121,22 @@ export function renderWeddings() {
     controls.appendChild(searchContainer);
     wrapper.appendChild(controls);
 
-    // ==========================================
-    // 2. GALLERIES CONTAINER
-    // ==========================================
     const sectionsContainer = document.createElement('div');
-    sectionsContainer.id = "weddings-galleries";
+    sectionsContainer.id = "weddings-galleries-container";
     wrapper.appendChild(sectionsContainer);
 
-    loadWeddingsData(sectionsContainer);
-
-    window.addEventListener('weddingDataUpdated', () => {
-        if (document.getElementById('weddings-galleries')) {
-            loadWeddingsData(document.getElementById('weddings-galleries'));
-        }
-    });
-
     setTimeout(() => {
-        document.getElementById('searchWeddings')?.addEventListener('input', () => filterAndRenderGalleries());
-        document.getElementById('sortWeddings')?.addEventListener('change', () => filterAndRenderGalleries());
+        loadWeddingsData();
+        document.getElementById('weddingSearchInput')?.addEventListener('input', filterAndRenderGalleries);
+        document.getElementById('sortWeddings')?.addEventListener('change', filterAndRenderGalleries);
         if (window.lucide) window.lucide.createIcons();
-    }, 0);
+    }, 50);
+
+    const updateHandler = () => {
+        if (document.body.contains(wrapper)) loadWeddingsData();
+        else window.removeEventListener('weddingsDataUpdated', updateHandler);
+    };
+    window.addEventListener('weddingsDataUpdated', updateHandler);
 
     return wrapper;
 }
@@ -212,7 +214,6 @@ async function loadWeddingsData(container) {
             
             wedding.has_web_invite = (wedding.id === '00000000-0000-0000-0000-000000000000') || (webInvitesData ? webInvitesData.some(w => w.wedding_id === wedding.id) : false);
 
-            // UPDATED: Query the newly renamed 'wedding_events' table
             let eventsQuery = supabase.from('wedding_events').select('*', { count: 'exact' }).eq('wedding_id', wedding.id);
             
             const isHost = wedding.hosts.some(h => h.user_id === userId);
@@ -438,9 +439,8 @@ function forceStyleModalButtons() {
 export function openCreateWeddingModal() {
     const userRole = window.currentUser?.role || 'guest';
     
-    // STRICT RULE: Only Creators can add weddings
     if (userRole !== 'creator') {
-        showAlert({ icon: 'error', title: 'Access Denied', text: 'Only creators have permission to add new weddings.' });
+        Swal.fire({ icon: 'error', title: 'Access Denied', text: 'Only creators have permission to add new weddings.' });
         return;
     }
 
@@ -463,11 +463,11 @@ export function openCreateWeddingModal() {
             <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Bride's Name *</label>
-                    <input type="text" id="brideName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                    <input type="text" id="brideName" required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
                 </div>
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Groom's Name *</label>
-                    <input type="text" id="groomName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                    <input type="text" id="groomName" required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
@@ -485,22 +485,22 @@ export function openCreateWeddingModal() {
             <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Start Date *</label>
-                    <input type="date" id="startDate" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
+                    <input type="date" id="startDate" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
                 </div>
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">End Date *</label>
-                    <input type="date" id="endDate" disabled required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
+                    <input type="date" id="endDate" disabled required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Name *</label>
-                <input type="text" id="familyName" required placeholder="e.g., Bafna Family" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                <input type="text" id="familyName" required placeholder="e.g., Bafna Family" style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
             </div>
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Details *</label>
-                <input type="text" id="familyDetails" required placeholder="e.g., The Bafna & Sharma Families" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                <input type="text" id="familyDetails" required placeholder="e.g., The Bafna & Sharma Families" style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
             </div>
         </form>
     `;
@@ -530,11 +530,11 @@ export function openCreateWeddingModal() {
                     fields.forEach(field => {
                         const el = document.getElementById(field.id);
                         if (!el.value.trim()) {
-                            el.style.borderColor = "red";
+                            el.style.borderColor = "#dc2626";
                             isValid = false;
                             if (!firstEmptyField) firstEmptyField = field.name;
                         } else {
-                            el.style.borderColor = "green";
+                            el.style.borderColor = "#16a34a";
                         }
                     });
 
@@ -545,22 +545,22 @@ export function openCreateWeddingModal() {
                         const startOnlyDate = new Date(startDate + 'T00:00:00');
                         const todayOnlyDate = new Date(getLocalTodayString() + 'T00:00:00');
                         if (startOnlyDate < todayOnlyDate) {
-                            document.getElementById('startDate').style.borderColor = "red";
-                            showAlert({ icon: 'error', title: 'Invalid Date', text: 'Start date cannot be in the past.' });
+                            document.getElementById('startDate').style.borderColor = "#dc2626";
+                            Swal.fire({ icon: 'error', title: 'Invalid Date', text: 'Start date cannot be in the past.' });
                             return;
                         }
                     }
 
                     if (startDate && endDate) {
                         if (new Date(endDate) < new Date(startDate)) {
-                            document.getElementById('endDate').style.borderColor = "red";
-                            showAlert({ icon: 'error', title: 'Invalid Dates', text: 'End date cannot be earlier than the start date.' });
+                            document.getElementById('endDate').style.borderColor = "#dc2626";
+                            Swal.fire({ icon: 'error', title: 'Invalid Dates', text: 'End date cannot be earlier than the start date.' });
                             return;
                         }
                     }
 
                     if (!isValid) {
-                        showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
+                        Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
                         return;
                     }
 
@@ -591,9 +591,9 @@ export function openCreateWeddingModal() {
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated'));
 
-                        showAlert({ icon: 'success', title: 'Added!', text: 'The wedding has been successfully added.', timer: 2000 });
+                        Swal.fire({ icon: 'success', title: 'Added!', text: 'The wedding has been successfully added.', timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'Database Error', text: 'Failed to add wedding: ' + error.message });
+                        Swal.fire({ icon: 'error', title: 'Database Error', text: 'Failed to add wedding: ' + error.message });
                     }
                 }
             }
@@ -606,8 +606,8 @@ export function openCreateWeddingModal() {
         requiredIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
-                el.addEventListener('input', () => { el.style.borderColor = el.value.trim() === '' ? 'red' : 'green'; });
+                el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
+                el.addEventListener('input', () => { el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a'; });
             }
         });
 
@@ -619,11 +619,11 @@ export function openCreateWeddingModal() {
                     endEl.disabled = false;
                     endEl.min = startEl.value;
                     endEl.value = ''; 
-                    endEl.style.borderColor = 'red';
+                    endEl.style.borderColor = '#dc2626';
                 } else {
                     endEl.disabled = true;
                     endEl.value = '';
-                    endEl.style.borderColor = 'red';
+                    endEl.style.borderColor = '#dc2626';
                 }
             });
             
@@ -641,7 +641,7 @@ window.openEditWeddingModal = function(wedding) {
     const userRole = window.currentUser?.role || 'guest';
     
     if (!canEditWedding(wedding)) {
-        showAlert({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to edit this wedding.' });
+        Swal.fire({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to edit this wedding.' });
         return;
     }
 
@@ -664,11 +664,11 @@ window.openEditWeddingModal = function(wedding) {
             <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Bride's Name *</label>
-                    <input type="text" id="editBrideName" value="${(wedding.bride_name || '').replace(/"/g, '&quot;')}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                    <input type="text" id="editBrideName" value="${(wedding.bride_name || '').replace(/"/g, '&quot;')}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
                 </div>
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Groom's Name *</label>
-                    <input type="text" id="editGroomName" value="${(wedding.groom_name || '').replace(/"/g, '&quot;')}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                    <input type="text" id="editGroomName" value="${(wedding.groom_name || '').replace(/"/g, '&quot;')}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
@@ -686,22 +686,22 @@ window.openEditWeddingModal = function(wedding) {
             <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Start Date *</label>
-                    <input type="date" id="editStartDate" value="${wedding.start_date}" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
+                    <input type="date" id="editStartDate" value="${wedding.start_date}" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
                 </div>
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">End Date *</label>
-                    <input type="date" id="editEndDate" value="${wedding.end_date}" min="${wedding.start_date || todayStr}" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
+                    <input type="date" id="editEndDate" value="${wedding.end_date}" min="${wedding.start_date || todayStr}" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Name *</label>
-                <input type="text" id="editFamilyName" value="${(wedding.family_name || '').replace(/"/g, '&quot;')}" required placeholder="e.g., Bafna Family" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editFamilyName" value="${(wedding.family_name || '').replace(/"/g, '&quot;')}" required placeholder="e.g., Bafna Family" style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
             </div>
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Details *</label>
-                <input type="text" id="editFamilyDetails" value="${(wedding.family_details || '').replace(/"/g, '&quot;')}" required placeholder="e.g., The Bafna & Sharma Families" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editFamilyDetails" value="${(wedding.family_details || '').replace(/"/g, '&quot;')}" required placeholder="e.g., The Bafna & Sharma Families" style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
             </div>
         </form>
     `;
@@ -731,9 +731,9 @@ window.openEditWeddingModal = function(wedding) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        showAlert({ icon: 'success', title: 'Deleted!', text: 'The wedding has been removed.', timer: 2000 });
+                        Swal.fire({ icon: 'success', title: 'Deleted!', text: 'The wedding has been removed.', timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }
@@ -762,11 +762,11 @@ window.openEditWeddingModal = function(wedding) {
             fields.forEach(field => {
                 const el = document.getElementById(field.id);
                 if (!el.value.trim()) {
-                    el.style.borderColor = "red";
+                    el.style.borderColor = "#dc2626";
                     isValid = false;
                     if (!firstEmptyField) firstEmptyField = field.name;
                 } else {
-                    el.style.borderColor = "green";
+                    el.style.borderColor = "#16a34a";
                 }
             });
 
@@ -777,22 +777,22 @@ window.openEditWeddingModal = function(wedding) {
                 const startOnlyDate = new Date(startDate + 'T00:00:00');
                 const todayOnlyDate = new Date(getLocalTodayString() + 'T00:00:00');
                 if (startOnlyDate < todayOnlyDate && startDate !== wedding.start_date) {
-                    document.getElementById('editStartDate').style.borderColor = "red";
-                    showAlert({ icon: 'error', title: 'Invalid Date', text: 'Start date cannot be changed to a past date.' });
+                    document.getElementById('editStartDate').style.borderColor = "#dc2626";
+                    Swal.fire({ icon: 'error', title: 'Invalid Date', text: 'Start date cannot be changed to a past date.' });
                     return;
                 }
             }
 
             if (startDate && endDate) {
                 if (new Date(endDate) < new Date(startDate)) {
-                    document.getElementById('editEndDate').style.borderColor = "red";
-                    showAlert({ icon: 'error', title: 'Invalid Dates', text: 'End date cannot be earlier than the start date.' });
+                    document.getElementById('editEndDate').style.borderColor = "#dc2626";
+                    Swal.fire({ icon: 'error', title: 'Invalid Dates', text: 'End date cannot be earlier than the start date.' });
                     return;
                 }
             }
 
             if (!isValid) {
-                showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
+                Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
                 return;
             }
 
@@ -816,9 +816,9 @@ window.openEditWeddingModal = function(wedding) {
                 
                 modal.close();
                 window.dispatchEvent(new Event('weddingDataUpdated'));
-                showAlert({ icon: 'success', title: 'Updated!', text: 'Wedding details updated successfully.', timer: 2000 });
+                Swal.fire({ icon: 'success', title: 'Updated!', text: 'Wedding details updated successfully.', timer: 2000 });
             } catch (error) {
-                showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
             }
         }
     });
@@ -835,8 +835,8 @@ window.openEditWeddingModal = function(wedding) {
         requiredIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
-                el.addEventListener('input', () => { el.style.borderColor = el.value.trim() === '' ? 'red' : 'green'; });
+                el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
+                el.addEventListener('input', () => { el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a'; });
             }
         });
 
@@ -848,11 +848,11 @@ window.openEditWeddingModal = function(wedding) {
                     editEndEl.disabled = false;
                     editEndEl.min = editStartEl.value;
                     editEndEl.value = ''; 
-                    editEndEl.style.borderColor = 'red';
+                    editEndEl.style.borderColor = '#dc2626';
                 } else {
                     editEndEl.disabled = true;
                     editEndEl.value = '';
-                    editEndEl.style.borderColor = 'red';
+                    editEndEl.style.borderColor = '#dc2626';
                 }
             });
         }

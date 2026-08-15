@@ -26,6 +26,29 @@ import { renderWebInvites } from '../../pages/web-invites/web-invites.js';
 // ==========================================
 import { renderSampleWebInvites } from '../../web-invites/js/sample-web-invites.js';
 
+// --- CENTRALIZED SESSION VALIDATION HELPER ---
+export function checkSessionOrShowAlert() {
+    const userId = localStorage.getItem('ss_user_id');
+    if (!userId || !window.currentUser) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Session Expired',
+            text: 'Please log in to continue',
+            confirmButtonText: 'Login Page',
+            confirmButtonColor: 'var(--color-primary)',
+            allowOutsideClick: false,
+            allowEscapeKey: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.hash = '#login';
+            }
+        });
+        return false;
+    }
+    return true;
+}
+window.checkSessionOrShowAlert = checkSessionOrShowAlert;
+
 // --- NEW PUBLIC ROUTING WHITELIST ---
 const publicRoutes = ['#login', '#/', '#sample-web-invites'];
 
@@ -39,12 +62,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Bypass strict authentication popups for public routes
     if (!user && !publicRoutes.includes(route)) {
-        Swal.fire({
-            title: 'Authentication Required',
-            text: 'No logged in user details found. Please re-login.',
-            icon: 'warning', allowOutsideClick: false, allowEscapeKey: false, showCancelButton: false,
-            confirmButtonText: 'Login', confirmButtonColor: '#0f172a'
-        }).then(() => { window.location.hash = '#login'; });
+        checkSessionOrShowAlert();
         initApp(null);
         return;
     }
@@ -163,7 +181,7 @@ function initApp(user) {
 }
 
 async function router() {
-    if (window.Swal && Swal.isVisible()) Swal.close();
+    if (window.Swal && Swal.isVisible() && Swal.getTitle()?.textContent !== 'Session Expired') Swal.close();
     
     const hash = window.location.hash || '#login';
     const [route, queryString] = hash.split('?');
@@ -198,12 +216,13 @@ async function router() {
         return;
     }
 
-    if (!window.currentUser) {
-        window.location.hash = '#login';
+    if (!window.currentUser && !publicRoutes.includes(route)) {
+        checkSessionOrShowAlert();
+        contentEl.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to continue.</div>`;
         return;
     }
 
-    const userRole = window.currentUser.role;
+    const userRole = window.currentUser?.role || 'guest';
     
     let pageTitle = "";
     let renderFunc = null;

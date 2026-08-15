@@ -11,8 +11,13 @@ function startOfDay(date) {
 }
 
 export function renderWebInvites() {
-    const userRole = window.currentUser?.role || 'guest';
-
+    if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
+        const wrapper = document.createElement('section');
+        wrapper.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        wrapper.textContent = "Please log in to manage web invites.";
+        return wrapper;
+    }
+    
     const wrapper = document.createElement('section');
     wrapper.className = "weddings-page-wrapper"; 
     wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
@@ -152,7 +157,6 @@ function renderInviteGalleries(container, invites) {
 function buildGallerySection(title, invites, isArchived) {
     if (!invites || invites.length === 0) return '';
     
-    // Theme mapping restored for dashboard cards
     const themePalettes = {
         blue:   { bgDark: '#0f172a', accent: '#60a5fa' },
         green:  { bgDark: '#064e3b', accent: '#34d399' },
@@ -176,8 +180,6 @@ function buildGallerySection(title, invites, isArchived) {
         
         const inviteUrl = `/invite.html?id=${w.id}`;
         const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-        
-        // Grab specific theme colors based on invite selection
         const t = themePalettes[inv.theme] || themePalettes.blue;
 
         const editButtonHtml = isArchived ? '' : `
@@ -366,10 +368,10 @@ async function openInviteModal(existingInvite = null) {
                 });
 
                 if (firstError) {
-                    showAlert({ 
+                    Swal.fire({ 
                         icon: 'error', 
-                        title: 'Missing Info', 
-                        text: `Please fill out mandatory field: ${firstError}` 
+                        title: 'Missing Information', 
+                        text: `Please fill out all mandatory fields. Missing: ${firstError}` 
                     });
                     return;
                 }
@@ -403,15 +405,20 @@ async function openInviteModal(existingInvite = null) {
                         const { error } = await supabase.from('wedding_web_invite').update(payload).eq('id', existingInvite.id);
                         if (error) throw error;
                     } else {
+                        const { data: existingInv } = await supabase.from('wedding_web_invite').select('id').eq('wedding_id', selectEl.value);
+                        if (existingInv && existingInv.length > 0) {
+                            Swal.fire({ icon: 'question', title: 'Duplicate Warning', text: 'A web invite for this wedding already exists.' });
+                        }
+
                         const { error } = await supabase.from('wedding_web_invite').insert([payload]);
                         if (error) throw error;
                     }
 
                     modal.close();
                     window.dispatchEvent(new Event('invitesDataUpdated')); 
-                    showAlert({ icon: 'success', title: 'Success', text: `Web Invite ${existingInvite ? 'updated' : 'created'} successfully!`, timer: 2000 });
+                    Swal.fire({ icon: 'success', title: 'Success', text: `Web Invite ${existingInvite ? 'updated' : 'created'} successfully!`, timer: 2000 });
                 } catch (error) {
-                    showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                    Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                 }
             }
         }
@@ -435,9 +442,9 @@ async function openInviteModal(existingInvite = null) {
                         if (error) throw error;
                         modal.close();
                         window.dispatchEvent(new Event('invitesDataUpdated')); 
-                        showAlert({ icon: 'success', title: 'Deleted!', text: 'Invite removed.', timer: 2000 });
+                        Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Invite removed.', timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }

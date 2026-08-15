@@ -40,6 +40,13 @@ export function formatWeddingDateRange(startIso, endIso) {
 }
 
 export function renderSampleWeddings() {
+    if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
+        const wrapper = document.createElement('section');
+        wrapper.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        wrapper.textContent = "Please log in to view sample weddings.";
+        return wrapper;
+    }
+
     if (!document.getElementById('weddings-styles')) {
         const link = document.createElement('link');
         link.id = 'weddings-styles';

@@ -10,6 +10,12 @@ export function renderWeddingDetails(weddingId) {
     const wrapper = document.createElement("div");
     wrapper.className = "wedding-details-wrapper"; 
     wrapper.style.cssText = "width: 100%; box-sizing: border-box; padding-bottom: var(--space-8);";
+    
+    if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
+        wrapper.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to view wedding details.</div>`;
+        return wrapper;
+    }
+
     wrapper.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Loading wedding details...</div>`;
 
     loadWeddingData(wrapper, weddingId);
@@ -71,11 +77,9 @@ async function loadWeddingData(container, weddingId) {
         endDateTime.setHours(0, 0, 0, 0);
         const isArchived = endDateTime.getTime() < todayTime.getTime();
 
-        // If archived, force canConfig to false locking ALL modification buttons
         const canConfig = (isCreator || isHost) && !isArchived; 
         const canViewAll = isCreator || isHost || isWeddingUser; 
 
-        // Store context globally for modal operations
         window.__weddingContext = {
             weddingId,
             allSysUsers,
@@ -98,17 +102,16 @@ async function loadWeddingData(container, weddingId) {
             });
         }
 
-        // Filter events based on permissions
         let filteredEvents = [];
         const { data: allEvents, error: eventsError } = await eventsQuery;
         if (eventsError) throw eventsError;
 
-        if (!canViewAll) { // Physical Guest
+        if (!canViewAll) { 
             const currentGuest = guests?.find(g => g.phone === curUser.phone);
             const invitedEventIds = currentGuest ? currentGuest.invited_events : [];
             filteredEvents = allEvents ? allEvents.filter(e => invitedEventIds.includes(e.id)) : [];
         } else {
-            filteredEvents = allEvents || []; // Creators, Hosts, and Wedding Users see all events
+            filteredEvents = allEvents || []; 
         }
 
         const displayEventCount = canViewAll ? (allEvents?.length || 0) : filteredEvents.length;
@@ -775,7 +778,7 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
             if (error) throw error;
             existingRecord = data;
         } catch (e) {
-            showAlert({ icon: 'error', title: 'Error', text: 'Failed to load record details.' });
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load record details.' });
             return;
         }
     }
@@ -829,7 +832,7 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
 
                 if (!selectedUserId) {
                     targetInputEl.style.borderColor = "#dc2626";
-                    showAlert({ icon: 'error', title: 'Missing Information', text: `Please select a ${titleType.toLowerCase()}.` });
+                    Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${titleType}` });
                     return;
                 } else {
                     targetInputEl.style.borderColor = "#16a34a";
@@ -848,9 +851,9 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
 
                     modal.close();
                     window.dispatchEvent(new Event('weddingDataUpdated')); 
-                    showAlert({ icon: 'success', title: existingRecord ? 'Updated!' : 'Added!', text: `${titleType} saved successfully.`, timer: 2000 });
+                    Swal.fire({ icon: 'success', title: existingRecord ? 'Updated!' : 'Added!', text: `${titleType} saved successfully.`, timer: 2000 });
                 } catch (error) {
-                    showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                    Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                 }
             }
         }
@@ -879,9 +882,9 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        showAlert({ icon: 'success', title: 'Removed!', text: `${titleType} has been removed.`, timer: 2000 });
+                        Swal.fire({ icon: 'success', title: 'Removed!', text: `${titleType} has been removed.`, timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }
@@ -1401,12 +1404,12 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                     if (selectedDate && (selectedDate < minDate || selectedDate > maxDate)) {
                         isValid = false;
                         document.getElementById('eventDate').style.borderColor = "#dc2626";
-                        showAlert({ icon: 'error', title: 'Invalid Date', text: `Event date must be between ${minDate} and ${maxDate}.` });
+                        Swal.fire({ icon: 'error', title: 'Invalid Date', text: `Event date must be between ${minDate} and ${maxDate}.` });
                         return;
                     }
 
                     if (!isValid) {
-                        showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
+                        Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
                         return;
                     }
 
@@ -1434,9 +1437,9 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        showAlert({ icon: 'success', title: 'Added!', text: 'Event saved successfully.', timer: 2000 });
+                        Swal.fire({ icon: 'success', title: 'Added!', text: 'Event saved successfully.', timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }
@@ -1495,7 +1498,7 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
         ev = evRes.data;
         templates = tplRes.data || [];
     } catch (e) {
-        showAlert({ icon: 'error', title: 'Error', text: 'Failed to load event data.' });
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load event data.' });
         return;
     }
 
@@ -1596,9 +1599,9 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                             
                             modal.close();
                             window.dispatchEvent(new Event('weddingDataUpdated')); 
-                            showAlert({ icon: 'success', title: 'Deleted!', text: 'Event has been removed.', timer: 2000 });
+                            Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Event has been removed.', timer: 2000 });
                         } catch (error) {
-                            showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                            Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                         }
                     }
                 }
@@ -1639,12 +1642,12 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                     if (selectedDate && (selectedDate < minDate || selectedDate > maxDate)) {
                         isValid = false;
                         document.getElementById('editEventDate').style.borderColor = "#dc2626";
-                        showAlert({ icon: 'error', title: 'Invalid Date', text: `Event date must be between ${minDate} and ${maxDate}.` });
+                        Swal.fire({ icon: 'error', title: 'Invalid Date', text: `Event date must be between ${minDate} and ${maxDate}.` });
                         return;
                     }
 
                     if (!isValid) {
-                        showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
+                        Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
                         return;
                     }
 
@@ -1672,9 +1675,9 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                         
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        showAlert({ icon: 'success', title: 'Updated!', text: 'Event details updated successfully.', timer: 2000 });
+                        Swal.fire({ icon: 'success', title: 'Updated!', text: 'Event details updated successfully.', timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }
@@ -1790,7 +1793,7 @@ window.openGuestModal = function(weddingId, events = []) {
                     });
 
                     if (!isValid) {
-                        showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
+                        Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
                         return;
                     }
 
@@ -1803,7 +1806,7 @@ window.openGuestModal = function(weddingId, events = []) {
 
                         if (existingGuests.some(g => g.phone === cleanedPhone)) {
                             document.getElementById('guestPhone').style.borderColor = '#dc2626';
-                            showAlert({ icon: 'error', title: 'Duplicate Phone', text: 'Phone number is already in use' });
+                            Swal.fire({ icon: 'question', title: 'Duplicate Warning', text: 'Phone number is already in use.' });
                             return;
                         }
 
@@ -1828,9 +1831,9 @@ window.openGuestModal = function(weddingId, events = []) {
 
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        showAlert({ icon: 'success', title: 'Added!', text: 'Guest saved successfully.', timer: 2000 });
+                        Swal.fire({ icon: 'success', title: 'Added!', text: 'Guest saved successfully.', timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }
@@ -1867,7 +1870,7 @@ window.openEditGuestModal = async function(weddingId, guestId) {
         const { data: eventGuests } = await supabase.from('event_guests').select('event_id').eq('guest_id', guestId);
         guest.invited_events = eventGuests ? eventGuests.map(eg => eg.event_id) : [];
     } catch (e) {
-        showAlert({ icon: 'error', title: 'Error', text: 'Failed to load guest data.' });
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load guest data.' });
         return;
     }
 
@@ -1926,9 +1929,9 @@ window.openEditGuestModal = async function(weddingId, guestId) {
                             
                             modal.close();
                             window.dispatchEvent(new Event('weddingDataUpdated')); 
-                            showAlert({ icon: 'success', title: 'Removed!', text: 'Guest has been removed.', timer: 2000 });
+                            Swal.fire({ icon: 'success', title: 'Removed!', text: 'Guest has been removed.', timer: 2000 });
                         } catch (error) {
-                            showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                            Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                         }
                     }
                 }
@@ -1959,7 +1962,7 @@ window.openEditGuestModal = async function(weddingId, guestId) {
                     });
 
                     if (!isValid) {
-                        showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
+                        Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
                         return;
                     }
 
@@ -1972,7 +1975,7 @@ window.openEditGuestModal = async function(weddingId, guestId) {
 
                         if (existingGuests.some(g => g.phone === cleanedPhone && g.id !== guest.id)) {
                             document.getElementById('editGuestPhone').style.borderColor = '#dc2626';
-                            showAlert({ icon: 'error', title: 'Duplicate Phone', text: 'Phone number is already in use' });
+                            Swal.fire({ icon: 'question', title: 'Duplicate Warning', text: 'Phone number is already in use.' });
                             return;
                         }
 
@@ -1998,9 +2001,9 @@ window.openEditGuestModal = async function(weddingId, guestId) {
 
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        showAlert({ icon: 'success', title: 'Updated!', text: 'Guest details updated successfully.', timer: 2000 });
+                        Swal.fire({ icon: 'success', title: 'Updated!', text: 'Guest details updated successfully.', timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }
@@ -2029,7 +2032,7 @@ window.openEditGuestModal = async function(weddingId, guestId) {
 
 window.downloadSampleExcel = function() {
     if (typeof XLSX === 'undefined') {
-        showAlert({ icon: 'error', title: 'Library Missing', text: 'Excel library failed to load. Please refresh the page.' });
+        Swal.fire({ icon: 'error', title: 'Library Missing', text: 'Excel library failed to load. Please refresh the page.' });
         return;
     }
 

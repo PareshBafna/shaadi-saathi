@@ -5,6 +5,14 @@ import { showAlert } from '../../global/js/alerts.js';
 // MAIN RENDER FUNCTION
 // ==========================================
 export function renderDashboard() {
+    if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
+        const wrapper = document.createElement('section');
+        wrapper.className = "dashboard";
+        wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
+        wrapper.innerHTML = `<div class="dashboard-section__empty" style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Please log in to view dashboard contents.</div>`;
+        return wrapper;
+    }
+
     const curUser = window.currentUser || { role: 'guest' };
     const wrapper = document.createElement('section');
     wrapper.className = "dashboard";
@@ -18,7 +26,7 @@ export function renderDashboard() {
 
     loadGlobalDashboardData(wrapper);
     return wrapper;
-}
+}     
 
 // ==========================================
 // ASYNC DATA FETCHER
@@ -208,7 +216,6 @@ function buildWeddingListSection(title, weddingsList) {
 
         let webInviteHTML = '';
         if (wedding.has_web_invite) {
-            // FIX: Using window.location.origin instead of hardcoded domain
             const inviteUrl = `${window.location.origin}/invite.html?id=${wedding.id}`;
             webInviteHTML = `
             <div style="margin-top: 12px; display: flex; justify-content: center;">

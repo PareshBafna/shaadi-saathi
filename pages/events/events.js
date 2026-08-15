@@ -8,6 +8,13 @@ let searchQuery = '';
 let allEventsData = [];
 
 export function renderEvents() {
+    if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
+        const errSec = document.createElement("section");
+        errSec.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        errSec.textContent = "Please log in to manage events.";
+        return errSec;
+    }
+
     const section = document.createElement("section");
     section.className = "weddings-page-wrapper"; 
     section.style.cssText = "width: 100%; box-sizing: border-box;";
@@ -209,7 +216,7 @@ window.openMasterEventModal = async function(eventId = null) {
             if (error) throw error;
             eventObj = data;
         } catch (error) {
-            showAlert({ icon: 'error', title: 'Data Error', text: 'Could not fetch event details.' });
+            Swal.fire({ icon: 'error', title: 'Data Error', text: 'Could not fetch event details.' });
             return;
         }
     }
@@ -218,19 +225,19 @@ window.openMasterEventModal = async function(eventId = null) {
         <form id="masterEventForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Event Name *</label>
-                <input type="text" id="tplEventName" required placeholder="e.g., Grithpaan" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="tplEventName" required placeholder="e.g., Grithpaan" style="width:100%; background:var(--color-bg); border:1px solid ${eventObj?.event_name ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Display Title *</label>
-                <input type="text" id="tplDisplayTitle" required placeholder="e.g., Blessings & Beginnings" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="tplDisplayTitle" required placeholder="e.g., Blessings & Beginnings" style="width:100%; background:var(--color-bg); border:1px solid ${eventObj?.display_title ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">One Liner Quote *</label>
-                <input type="text" id="tplOneLiner" required placeholder="e.g., Golden ghee, elders blessings..." style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="tplOneLiner" required placeholder="e.g., Golden ghee, elders blessings..." style="width:100%; background:var(--color-bg); border:1px solid ${eventObj?.one_liner ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Description *</label>
-                <textarea id="tplDescription" rows="4" required placeholder="An auspicious start to our wedding celebrations..." style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;"></textarea>
+                <textarea id="tplDescription" rows="4" required placeholder="An auspicious start to our wedding celebrations..." style="width:100%; background:var(--color-bg); border:1px solid ${eventObj?.description ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;"></textarea>
             </div>
         </form>
     `;
@@ -255,16 +262,16 @@ window.openMasterEventModal = async function(eventId = null) {
                 requiredFields.forEach(field => {
                     const el = document.getElementById(field.id);
                     if (!el.value.trim()) {
-                        el.style.borderColor = 'red';
+                        el.style.borderColor = '#dc2626';
                         isValid = false;
                         if (!firstEmpty) firstEmpty = field.name;
                     } else {
-                        el.style.borderColor = 'green';
+                        el.style.borderColor = '#16a34a';
                     }
                 });
 
                 if (!isValid) {
-                    showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
+                    Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
                     return;
                 }
 
@@ -280,8 +287,8 @@ window.openMasterEventModal = async function(eventId = null) {
 
                     const duplicate = existingEvents.find(e => !eventObj || e.id !== eventObj.id);
                     if (duplicate) {
-                        document.getElementById('tplEventName').style.borderColor = 'red';
-                        showAlert({ icon: 'error', title: 'Duplicate Event Name', text: 'An event with this name already exists.' });
+                        document.getElementById('tplEventName').style.borderColor = '#dc2626';
+                        Swal.fire({ icon: 'question', title: 'Duplicate Warning', text: 'An event with this name already exists.' });
                         return;
                     }
 
@@ -302,9 +309,9 @@ window.openMasterEventModal = async function(eventId = null) {
 
                     modal.close();
                     window.dispatchEvent(new Event('masterEventsUpdated')); 
-                    showAlert({ icon: 'success', title: eventObj ? 'Updated!' : 'Added!', text: `Event saved successfully.`, timer: 2000 });
+                    Swal.fire({ icon: 'success', title: eventObj ? 'Updated!' : 'Added!', text: `Event saved successfully.`, timer: 2000 });
                 } catch (error) {
-                    showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                    Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                 }
             }
         }
@@ -328,9 +335,9 @@ window.openMasterEventModal = async function(eventId = null) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('masterEventsUpdated')); 
-                        showAlert({ icon: 'success', title: 'Deleted!', text: `Event has been removed.`, timer: 2000 });
+                        Swal.fire({ icon: 'success', title: 'Deleted!', text: `Event has been removed.`, timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }
@@ -350,9 +357,9 @@ window.openMasterEventModal = async function(eventId = null) {
         ['tplEventName', 'tplDisplayTitle', 'tplOneLiner', 'tplDescription'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
                 el.addEventListener('input', () => {
-                    el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                    el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
                 });
             }
         });

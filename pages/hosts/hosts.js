@@ -8,6 +8,13 @@ let allWeddingHosts = [];
 let hostUsersData = []; 
 
 export function renderHosts() {
+    if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
+        const errSec = document.createElement("section");
+        errSec.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        errSec.textContent = "Please log in to manage hosts.";
+        return errSec;
+    }
+
     const section = document.createElement("section");
     section.className = "weddings-page-wrapper";
     section.style.cssText = "width: 100%; box-sizing: border-box;";
@@ -258,7 +265,7 @@ function renderHostsList() {
                     openHostModal(hostData);
                 }
             } catch (err) {
-                showAlert({ icon: 'error', title: 'Error', text: 'Could not fetch host details.' });
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Could not fetch host details.' });
             }
         });
     });
@@ -351,7 +358,7 @@ function openHostModal(existingHost = null) {
         userSelectionHTML = `
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Select User *</label>
-                <select id="sysUserId" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <select id="sysUserId" required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                     <option value="" disabled selected>-- Select a User --</option>
                     ${optionsHtml}
                 </select>
@@ -390,7 +397,7 @@ function openHostModal(existingHost = null) {
 
                 if (!userId) {
                     targetInputEl.style.borderColor = '#dc2626';
-                    showAlert({ icon: 'error', title: 'Missing Selection', text: 'Please select a user to become a host.' });
+                    Swal.fire({ icon: 'error', title: 'Missing Information', text: 'Please fill out all mandatory fields. Missing: User Selection' });
                     return;
                 } else {
                     targetInputEl.style.borderColor = '#16a34a';
@@ -400,7 +407,7 @@ function openHostModal(existingHost = null) {
 
                 if (selectedWeddings.length === 0) {
                     if (containerEl) containerEl.style.borderColor = '#dc2626';
-                    showAlert({ icon: 'error', title: 'Missing Selection', text: 'Please assign the host to at least one wedding.' });
+                    Swal.fire({ icon: 'error', title: 'Missing Information', text: 'Please fill out all mandatory fields. Missing: Assigned Weddings' });
                     return;
                 } else {
                     if (containerEl) containerEl.style.borderColor = '#16a34a';
@@ -421,9 +428,9 @@ function openHostModal(existingHost = null) {
 
                     modal.close();
                     window.dispatchEvent(new Event('hostsDataUpdated')); 
-                    showAlert({ icon: 'success', title: existingHost ? 'Updated!' : 'Added!', text: 'Host assignments saved successfully.', timer: 2000 });
+                    Swal.fire({ icon: 'success', title: existingHost ? 'Updated!' : 'Added!', text: 'Host assignments saved successfully.', timer: 2000 });
                 } catch (error) {
-                    showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                    Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                 }
             }
         }
@@ -452,9 +459,9 @@ function openHostModal(existingHost = null) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('hostsDataUpdated')); 
-                        showAlert({ icon: 'success', title: 'Removed!', text: 'Host has been removed from all weddings.', timer: 2000 });
+                        Swal.fire({ icon: 'success', title: 'Removed!', text: 'Host has been removed from all weddings.', timer: 2000 });
                     } catch (error) {
-                        showAlert({ icon: 'error', title: 'Database Error', text: error.message });
+                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
                     }
                 }
             }

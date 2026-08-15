@@ -10,16 +10,20 @@ let currentDate = new Date(); // Controls what month/week is visible in the grid
 let selectedDate = null; // Set to null by default so the filter takes precedence
 
 export function renderCalendar() {
+    if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
+        const errSec = document.createElement("div");
+        errSec.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        errSec.textContent = "Please log in to view your calendar.";
+        return errSec;
+    }
+
     const section = document.createElement("div");
-    // Removed max-width to occupy empty space and increase the width of the calendar
     section.style.cssText = "width: 100%; margin: 0 auto; padding-bottom: var(--space-8);";
 
-    // Calendar Card Container
     const calendarCard = document.createElement("div");
     calendarCard.id = "calendar-card-container";
     calendarCard.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6); box-shadow: 0 1px 3px rgba(0,0,0,0.05);";
     
-    // Events List Container (Below Calendar)
     const eventsContainer = document.createElement("div");
     eventsContainer.id = "calendar-events-list";
 
