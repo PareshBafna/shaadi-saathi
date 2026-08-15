@@ -4,98 +4,155 @@ import { showAlert } from '../../global/js/alerts.js';
 
 const INVITE_BASE_URL = "/invite.html"; 
 
+function startOfDay(date) {
+    const copy = new Date(date);
+    copy.setHours(0, 0, 0, 0);
+    return copy;
+}
+
 export function renderWebInvites() {
-    const section = document.createElement("div");
-    section.style.cssText = "width: 100%; max-width: 1200px; margin: 0 auto; padding-bottom: var(--space-8);";
+    const userRole = window.currentUser?.role || 'guest';
 
-    // Add the Card Wrapper
-    const cardContainer = document.createElement("div");
-    cardContainer.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);";
+    const wrapper = document.createElement('section');
+    wrapper.className = "weddings-page-wrapper"; 
+    wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
 
-    const controlsRow = document.createElement("div");
-    controlsRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); flex-wrap: wrap; gap: 16px;";
-    
-    controlsRow.innerHTML = `
-        <div style="flex: 1;"></div>
-        <div style="display: flex; justify-content: center; gap: 12px;">
-            <button id="add-invite-btn" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                <i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Web Invite
-            </button>
-        </div>
-        <div style="flex: 1; display: flex; justify-content: flex-end;">
-            <div style="position: relative; display: flex; align-items: center; width: 100%; max-width: 300px;">
-                <i data-lucide="search" style="position: absolute; left: 10px; width: 16px; height: 16px; color: var(--color-text-muted);"></i>
-                <input type="text" id="inviteSearchInput" placeholder="Search by name or hashtag..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
-            </div>
+    const controls = document.createElement('div');
+    controls.className = "weddings-control-bar";
+    controls.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); background: var(--color-white); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border); flex-wrap: wrap; gap: 16px;";
+
+    const sortContainer = document.createElement('div');
+    sortContainer.innerHTML = `<div style="width: 150px;"></div>`;
+
+    const centerContainer = document.createElement('div');
+    const createBtn = document.createElement("button");
+    createBtn.id = "add-invite-btn";
+    createBtn.innerHTML = `<i data-lucide="plus" style="width:16px; height:16px; margin-right:4px; vertical-align:middle;"></i> Web Invite`;
+    createBtn.style.cssText = "background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;";
+    createBtn.addEventListener('click', () => openInviteModal());
+    centerContainer.appendChild(createBtn);
+
+    const searchContainer = document.createElement('div');
+    searchContainer.style.cssText = "width: 250px; display: flex; justify-content: flex-end;";
+    searchContainer.innerHTML = `
+        <div style="position: relative; width: 100%;">
+            <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--color-text-secondary);"></i>
+            <input type="text" id="inviteSearchInput" placeholder="Search web invites..." style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3) var(--space-2) 32px; border-radius: var(--radius-sm); font-size: var(--font-size-sm); width: 100%; outline: none;">
         </div>
     `;
 
-    const gridContainer = document.createElement("div");
-    gridContainer.id = "invites-grid";
-    gridContainer.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--space-5);";
+    controls.appendChild(sortContainer);
+    controls.appendChild(centerContainer);
+    controls.appendChild(searchContainer);
+    wrapper.appendChild(controls);
 
-    // Append to card instead of directly to section
-    cardContainer.appendChild(controlsRow);
-    cardContainer.appendChild(gridContainer);
-    section.appendChild(cardContainer);
+    const sectionsContainer = document.createElement('div');
+    sectionsContainer.id = "invites-galleries";
+    wrapper.appendChild(sectionsContainer);
 
-    gridContainer.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading web invites...</div>`;
+    loadInvitesData(sectionsContainer);
 
-    setTimeout(() => loadInvitesData(gridContainer), 0);
-
-    const updateHandler = () => {
-        if (document.body.contains(section)) loadInvitesData(gridContainer);
-        else window.removeEventListener('invitesDataUpdated', updateHandler);
-    };
-    window.addEventListener('invitesDataUpdated', updateHandler);
+    window.addEventListener('invitesDataUpdated', () => {
+        if (document.getElementById('invites-galleries')) {
+            loadInvitesData(document.getElementById('invites-galleries'));
+        }
+    });
 
     setTimeout(() => {
-        document.getElementById('add-invite-btn').addEventListener('click', () => openInviteModal());
-    }, 50);
+        document.getElementById('inviteSearchInput')?.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = window.__invitesData.filter(inv => {
+                const w = inv.weddings;
+                return (w.bride_name || '').toLowerCase().includes(query) || 
+                       (w.groom_name || '').toLowerCase().includes(query) ||
+                       (w.hashtag || '').toLowerCase().includes(query);
+            });
+            renderInviteGalleries(sectionsContainer, filtered);
+        });
+        if (window.lucide) window.lucide.createIcons();
+    }, 0);
 
-    return section;
+    return wrapper;
 }
 
 async function loadInvitesData(container) {
+    container.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading web invites...</div>`;
+    
     try {
         const { data: invites, error } = await supabase
             .from('wedding_web_invite')
             .select(`
                 *,
-                weddings ( id, bride_name, groom_name, start_date, hashtag )
+                weddings ( id, bride_name, groom_name, start_date, end_date, hashtag, primary_side )
             `);
             
         if (error) throw error;
 
         window.__invitesData = invites || [];
-        renderInviteCards(container, window.__invitesData);
-
-        const searchInput = document.getElementById('inviteSearchInput');
-        if (searchInput && !searchInput.hasAttribute('data-bound')) {
-            searchInput.addEventListener('input', (e) => {
-                const query = e.target.value.toLowerCase();
-                const filtered = window.__invitesData.filter(inv => {
-                    const w = inv.weddings;
-                    return (w.bride_name || '').toLowerCase().includes(query) || 
-                           (w.groom_name || '').toLowerCase().includes(query) ||
-                           (w.hashtag || '').toLowerCase().includes(query);
-                });
-                renderInviteCards(container, filtered);
-            });
-            searchInput.setAttribute('data-bound', 'true');
-        }
+        renderInviteGalleries(container, window.__invitesData);
     } catch (err) {
-        container.innerHTML = `<div style="grid-column: 1/-1; color: var(--color-danger); text-align: center; padding: var(--space-8);">Failed to load invites: ${err.message}</div>`;
+        container.innerHTML = `<div style="color: var(--color-danger); text-align: center; padding: var(--space-8);">Failed to load invites: ${err.message}</div>`;
     }
 }
 
-function renderInviteCards(container, invites) {
+function renderInviteGalleries(container, invites) {
     if (invites.length === 0) {
-        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: var(--space-8); background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: var(--radius-lg); color: var(--color-text-muted);">No web invitations found.</div>`;
+        container.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-muted); background: var(--color-white); border-radius: var(--radius-lg); border: 1px solid var(--color-border);">No web invitations found.</div>`;
         return;
     }
 
-    // Theme mapping for the dashboard cards
+    const todayTime = startOfDay(new Date()).getTime();
+
+    const inProgress = [];
+    const upcoming = [];
+    const archived = [];
+
+    invites.forEach(inv => {
+        const w = inv.weddings;
+        const start = w.start_date ? startOfDay(new Date(w.start_date)).getTime() : todayTime;
+        const end = w.end_date ? startOfDay(new Date(w.end_date)).getTime() : start;
+
+        if (todayTime >= start && todayTime <= end) {
+            inProgress.push(inv);
+        } else if (todayTime < start) {
+            upcoming.push(inv);
+        } else {
+            archived.push(inv);
+        }
+    });
+
+    const sortByEarliest = (a, b) => {
+        const dateA = new Date(a.weddings.start_date || a.weddings.end_date || 0);
+        const dateB = new Date(b.weddings.start_date || b.weddings.end_date || 0);
+        return dateA - dateB;
+    };
+
+    inProgress.sort(sortByEarliest);
+    upcoming.sort(sortByEarliest);
+    archived.sort(sortByEarliest);
+
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: var(--space-6); width: 100%; align-items: start;">
+            ${buildGallerySection("In Progress", inProgress, false)}
+            ${buildGallerySection("Upcoming", upcoming, false)}
+            ${buildGallerySection("Archived", archived, true)}
+        </div>
+    `;
+
+    container.querySelectorAll('.edit-invite-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const data = JSON.parse(btn.getAttribute('data-invite'));
+            openInviteModal(data);
+        });
+    });
+
+    if (window.lucide) window.lucide.createIcons();
+}
+
+function buildGallerySection(title, invites, isArchived) {
+    if (!invites || invites.length === 0) return '';
+    
+    // Theme mapping restored for dashboard cards
     const themePalettes = {
         blue:   { bgDark: '#0f172a', accent: '#60a5fa' },
         green:  { bgDark: '#064e3b', accent: '#34d399' },
@@ -108,22 +165,31 @@ function renderInviteCards(container, invites) {
         pink:   { bgDark: '#500724', accent: '#f472b6' }
     };
 
-    container.innerHTML = invites.map(inv => {
+    const listItems = invites.map(inv => {
         const w = inv.weddings;
-        const displayNames = `${w.bride_name} & ${w.groom_name}`;
-        const dateStr = new Date(w.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const displayNames = w.primary_side === 'groom' 
+            ? `${w.groom_name} & ${w.bride_name}` 
+            : `${w.bride_name} & ${w.groom_name}`;
+            
+        const targetDate = w.end_date || w.start_date;
+        const dateStr = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
+        
         const inviteUrl = `/invite.html?id=${w.id}`;
         const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-
-        // Grab specific theme colors
+        
+        // Grab specific theme colors based on invite selection
         const t = themePalettes[inv.theme] || themePalettes.blue;
+
+        const editButtonHtml = isArchived ? '' : `
+            <button class="edit-invite-btn" data-invite='${invJson}' style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='${t.accent}'; this.style.color='#000';" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.color='#fff';" title="Edit Invite">
+                <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i>
+            </button>
+        `;
 
         return `
         <div style="background: ${t.bgDark}; border: 1px solid ${t.accent}; border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.2)';">
             <div style="background: rgba(0,0,0,0.2); padding: var(--space-6); text-align: center; position: relative; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <button class="edit-invite-btn" data-invite='${invJson}' style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='${t.accent}'; this.style.color='#000';" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.color='#fff';">
-                    <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i>
-                </button>
+                ${editButtonHtml}
                 <div style="width: 60px; height: 60px; background: ${t.accent}; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
                     <i data-lucide="mail" style="width: 28px; height: 28px; color: ${t.bgDark};"></i>
                 </div>
@@ -131,7 +197,6 @@ function renderInviteCards(container, invites) {
             <div style="padding: var(--space-5); display: flex; flex-direction: column; flex-grow: 1;">
                 <h3 style="margin: 0 0 12px 0; font-size: 1.15rem; color: #ffffff; text-align: center;">${displayNames}</h3>
                 
-                <!-- Hashtag on top, Date below -->
                 <p style="margin: 0 0 16px 0; font-size: 0.85rem; color: #cbd5e1; text-align: center; font-weight: var(--font-weight-medium);">
                     <span style="color: ${t.accent}; font-weight: bold; font-size: 1rem; letter-spacing: 0.05em;">${w.hashtag || ''}</span><br/>
                     <span style="display:inline-block; margin-top: 6px;">${dateStr}</span>
@@ -150,14 +215,14 @@ function renderInviteCards(container, invites) {
         `;
     }).join('');
 
-    container.querySelectorAll('.edit-invite-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const data = JSON.parse(btn.getAttribute('data-invite'));
-            openInviteModal(data);
-        });
-    });
-
-    if (window.lucide) window.lucide.createIcons();
+    return `
+        <div style="background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
+            <h2 style="font-size: 1.25rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;">${title}</h2>
+            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                ${listItems}
+            </div>
+        </div>
+    `;
 }
 
 async function openInviteModal(existingInvite = null) {
@@ -171,7 +236,8 @@ async function openInviteModal(existingInvite = null) {
     }
 
     const optionsHtml = eligibleWeddings.map(w => {
-        const formattedDate = w.end_date ? new Date(w.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
+        const targetDate = w.end_date || w.start_date;
+        const formattedDate = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
         const hashtagStr = w.hashtag ? ` (${w.hashtag})` : ''; 
         return `<option value="${w.id}" data-side="${w.primary_side}">${w.bride_name} & ${w.groom_name}${hashtagStr} - ${formattedDate}</option>`;
     }).join('');
@@ -184,7 +250,7 @@ async function openInviteModal(existingInvite = null) {
            </div>`
         : `<div>
             <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Select Wedding *</label>
-            <select id="inviteWeddingId" required style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+            <select id="inviteWeddingId" required style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 <option value="" disabled selected>-- Select a Wedding --</option>
                 ${optionsHtml}
             </select>
@@ -198,19 +264,19 @@ async function openInviteModal(existingInvite = null) {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
                 <div>
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Grandfather *</label>
-                    <input type="text" id="bGrandfather" required placeholder="e.g., Shri Jain" value="${existingInvite?.bride_grandfather || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                    <input type="text" id="bGrandfather" required placeholder="e.g., Shri Jain" value="${existingInvite?.bride_grandfather || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.bride_grandfather ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
                 <div>
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Grandmother *</label>
-                    <input type="text" id="bGrandmother" required placeholder="e.g., Smt. Jain" value="${existingInvite?.bride_grandmother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                    <input type="text" id="bGrandmother" required placeholder="e.g., Smt. Jain" value="${existingInvite?.bride_grandmother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.bride_grandmother ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
                 <div>
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Father *</label>
-                    <input type="text" id="bFather" required placeholder="e.g., Rajesh" value="${existingInvite?.bride_father || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                    <input type="text" id="bFather" required placeholder="e.g., Rajesh" value="${existingInvite?.bride_father || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.bride_father ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
                 <div>
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Mother *</label>
-                    <input type="text" id="bMother" required placeholder="e.g., Sunita" value="${existingInvite?.bride_mother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                    <input type="text" id="bMother" required placeholder="e.g., Sunita" value="${existingInvite?.bride_mother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.bride_mother ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
@@ -218,55 +284,38 @@ async function openInviteModal(existingInvite = null) {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
                 <div>
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Grandfather *</label>
-                    <input type="text" id="gGrandfather" required placeholder="e.g., Shri Mutha" value="${existingInvite?.groom_grandfather || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                    <input type="text" id="gGrandfather" required placeholder="e.g., Shri Mutha" value="${existingInvite?.groom_grandfather || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.groom_grandfather ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
                 <div>
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Grandmother *</label>
-                    <input type="text" id="gGrandmother" required placeholder="e.g., Smt. Mutha" value="${existingInvite?.groom_grandmother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                    <input type="text" id="gGrandmother" required placeholder="e.g., Smt. Mutha" value="${existingInvite?.groom_grandmother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.groom_grandmother ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
                 <div>
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Father *</label>
-                    <input type="text" id="gFather" required placeholder="e.g., Vijayji" value="${existingInvite?.groom_father || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                    <input type="text" id="gFather" required placeholder="e.g., Vijayji" value="${existingInvite?.groom_father || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.groom_father ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
                 <div>
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Mother *</label>
-                    <input type="text" id="gMother" required placeholder="e.g., Kavita" value="${existingInvite?.groom_mother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                    <input type="text" id="gMother" required placeholder="e.g., Kavita" value="${existingInvite?.groom_mother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.groom_mother ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Story / About Us Quote *</label>
-                <textarea id="storyText" required rows="3" placeholder="A short quote or story for the About Us page..." style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; resize: vertical;">${existingInvite ? existingInvite.story_text : ''}</textarea>
+                <textarea id="storyText" required rows="3" placeholder="A short quote or story for the About Us page..." style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.story_text ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;">${existingInvite ? existingInvite.story_text : ''}</textarea>
             </div>
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Invite Theme Color *</label>
-                <select id="inviteTheme" required style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
-                    <!-- #1d4ed8 is a vibrant, deep jewel-tone blue -->
+                <select id="inviteTheme" required style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                     <option value="blue" ${existingInvite?.theme === 'blue' ? 'selected' : ''}>Sapphire Blue (Default)</option>
-                    
-                    <!-- #047857 is a rich, dark jewel green -->
                     <option value="green" ${existingInvite?.theme === 'green' ? 'selected' : ''}>Emerald Green</option>
-                    
-                    <!-- #881337 is a deep, dark wine red -->
                     <option value="maroon" ${existingInvite?.theme === 'maroon' ? 'selected' : ''}>Burgundy Maroon</option>
-                    
-                    <!-- #b45309 is a warm, brownish-orange gold -->
                     <option value="gold" ${existingInvite?.theme === 'gold' ? 'selected' : ''}>Amber Gold</option>
-                    
-                    <!-- #fb7185 is a warm, pinkish-orange -->
                     <option value="peach" ${existingInvite?.theme === 'peach' ? 'selected' : ''}>Coral Peach</option>
-                    
-                    <!-- #5b21b6 is a deep, bluish-purple -->
                     <option value="violet" ${existingInvite?.theme === 'violet' ? 'selected' : ''}>Indigo Violet</option>
-                    
-                    <!-- #6b21a8 is a rich, true purple -->
                     <option value="purple" ${existingInvite?.theme === 'purple' ? 'selected' : ''}>Amethyst Purple</option>
-                    
-                    <!-- #b91c1c is a strong, classic red -->
                     <option value="red" ${existingInvite?.theme === 'red' ? 'selected' : ''}>Ruby Red</option>
-                    
-                    <!-- #be185d is a vivid, dark purplish-red -->
                     <option value="pink" ${existingInvite?.theme === 'pink' ? 'selected' : ''}>Magenta Pink</option>
                 </select>
             </div>
@@ -318,9 +367,9 @@ async function openInviteModal(existingInvite = null) {
 
                 if (firstError) {
                     showAlert({ 
-                        icon: 'warning', 
+                        icon: 'error', 
                         title: 'Missing Info', 
-                        text: `Please fill out the following mandatory field: ${firstError}` 
+                        text: `Please fill out mandatory field: ${firstError}` 
                     });
                     return;
                 }
@@ -377,7 +426,7 @@ async function openInviteModal(existingInvite = null) {
                 const result = await Swal.fire({
                     title: 'Delete Invite?',
                     text: `Are you sure you want to permanently delete this web invite?`,
-                    icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, delete it!'
+                    icon: 'question', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, delete it!'
                 });
 
                 if (result.isConfirmed) {
@@ -419,6 +468,9 @@ async function openInviteModal(existingInvite = null) {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener('input', (e) => {
+                    e.target.style.borderColor = e.target.value.trim() ? '#16a34a' : '#dc2626';
+                });
+                el.addEventListener('change', (e) => {
                     e.target.style.borderColor = e.target.value.trim() ? '#16a34a' : '#dc2626';
                 });
             }
@@ -467,7 +519,7 @@ function convertToSearchableDropdown(selectId) {
     input.type = 'text';
     input.placeholder = 'Search...';
     input.className = select.className; 
-    input.style.cssText = 'width: 100%; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;';
+    input.style.cssText = 'width: 100%; padding: var(--space-2); border: 1px solid #dc2626; border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;';
     wrapper.appendChild(input);
     
     const list = document.createElement('div');
@@ -495,9 +547,9 @@ function convertToSearchableDropdown(selectId) {
             item.addEventListener('click', () => {
                 select.value = opt.value; 
                 input.value = opt.text; 
+                input.style.borderColor = '#16a34a';
                 list.style.display = 'none'; 
                 
-                // Remove padding dynamically
                 const form = select.closest('form');
                 if (form) form.style.paddingBottom = '0px';
                 
@@ -512,7 +564,6 @@ function convertToSearchableDropdown(selectId) {
         renderList(''); 
         list.style.display = 'block'; 
         
-        // Add padding dynamically
         const form = select.closest('form');
         if (form) form.style.paddingBottom = '150px';
     });
@@ -529,13 +580,23 @@ function convertToSearchableDropdown(selectId) {
         if (!wrapper.contains(e.target)) {
             list.style.display = 'none';
             
-            // Remove padding dynamically
             const form = select.closest('form');
             if (form) form.style.paddingBottom = '0px';
             
             const selectedOpt = options.find(o => o.value === select.value);
-            if (selectedOpt && select.value !== "") input.value = selectedOpt.text;
-            else input.value = '';
+            if (selectedOpt && select.value !== "") {
+                input.value = selectedOpt.text;
+                input.style.borderColor = '#16a34a';
+            } else {
+                input.value = '';
+                input.style.borderColor = '#dc2626';
+            }
         }
     });
+
+    const initialOpt = options.find(o => o.value === select.value);
+    if (initialOpt && select.value !== "") {
+        input.value = initialOpt.text;
+        input.style.borderColor = '#16a34a';
+    }
 }

@@ -8,34 +8,48 @@ let searchQuery = '';
 let allUsersData = [];
 
 export function renderUsers() {
-    const section = document.createElement("div");
-    section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
+    const section = document.createElement("section");
+    section.className = "weddings-page-wrapper";
+    section.style.cssText = "width: 100%; box-sizing: border-box;";
 
-    const controlsRow = document.createElement("div");
-    controlsRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4); flex-wrap: wrap; gap: 12px;";
+    const controls = document.createElement('div');
+    controls.className = "weddings-control-bar";
+    controls.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); background: var(--color-white); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border); flex-wrap: wrap; gap: 16px;";
 
-    controlsRow.innerHTML = `
-        <div style="flex: 1 1 0; display: flex; gap: 8px; min-width: 200px;"></div>
-        <div style="flex: 1 1 0; display: flex; justify-content: center; min-width: 150px;">
-            <button id="add-user-btn" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.5rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                <i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> User
-            </button>
-        </div>
-        <div style="flex: 1 1 0; display: flex; justify-content: flex-end; min-width: 200px;">
-            <div style="position: relative; display: flex; align-items: center; width: 100%; max-width: 300px;">
-                <i data-lucide="search" style="position: absolute; left: 10px; width: 16px; height: 16px; color: var(--color-text-muted);"></i>
-                <input type="text" id="userSearchInput" placeholder="Search by name or phone..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
-            </div>
+    const sortContainer = document.createElement('div');
+    sortContainer.innerHTML = `<div style="width: 150px;"></div>`;
+
+    const centerContainer = document.createElement('div');
+    const createBtn = document.createElement("button");
+    createBtn.id = "add-user-btn";
+    createBtn.innerHTML = `<i data-lucide="plus" style="width:16px; height:16px; margin-right:4px; vertical-align:middle;"></i> User`;
+    createBtn.style.cssText = "background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;";
+    createBtn.addEventListener('click', () => openUserModal());
+    centerContainer.appendChild(createBtn);
+
+    const searchContainer = document.createElement('div');
+    searchContainer.style.cssText = "width: 250px; display: flex; justify-content: flex-end;";
+    searchContainer.innerHTML = `
+        <div style="position: relative; width: 100%;">
+            <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--color-text-secondary);"></i>
+            <input type="text" id="userSearchInput" placeholder="Search by name or phone..." style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3) var(--space-2) 32px; border-radius: var(--radius-sm); font-size: var(--font-size-sm); width: 100%; outline: none;">
         </div>
     `;
-    section.appendChild(controlsRow);
+
+    controls.appendChild(sortContainer);
+    controls.appendChild(centerContainer);
+    controls.appendChild(searchContainer);
+    section.appendChild(controls);
+
+    const cardContainer = document.createElement("div");
+    cardContainer.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);";
 
     const content = document.createElement("div");
     content.id = "users-content";
-    section.appendChild(content);
+    cardContainer.appendChild(content);
+    section.appendChild(cardContainer);
 
     setTimeout(() => {
-        document.getElementById('add-user-btn').addEventListener('click', () => openUserModal());
         const searchInput = document.getElementById('userSearchInput');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -271,9 +285,16 @@ function renderUsersList() {
 
     setTimeout(() => {
         content.querySelectorAll('.edit-sys-user-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                openUserModal(btn.getAttribute('data-id'));
+                const userId = btn.getAttribute('data-id');
+                try {
+                    const { data: userData, error } = await supabase.from('users').select('*').eq('id', userId).single();
+                    if (error) throw error;
+                    openUserModal(userData);
+                } catch (err) {
+                    showAlert({ icon: 'error', title: 'Error', text: 'Could not fetch user details.' });
+                }
             });
         });
 
@@ -286,7 +307,6 @@ function renderUsersList() {
             });
         });
 
-        // Add Toggle Logic
         const toggleBtns = content.querySelectorAll('.toggle-weddings-btn');
         toggleBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -305,7 +325,6 @@ function renderUsersList() {
             });
         });
 
-        // Add Verification Button Logic
         const verifyBtns = content.querySelectorAll('.verify-user-btn');
         verifyBtns.forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -326,34 +345,35 @@ function renderUsersList() {
     }, 0);
 }
 
-// Global modal query by ID and safe injection
-window.openUserModal = async function(userId = null) {
+window.openUserModal = async function(userOrId = null) {
     let user = null;
 
-    if (userId) {
+    if (typeof userOrId === 'string') {
         try {
-            const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
+            const { data, error } = await supabase.from('users').select('*').eq('id', userOrId).single();
             if (error) throw error;
             user = data;
         } catch (error) {
             showAlert({ icon: 'error', title: 'Data Error', text: 'Could not fetch user details.' });
             return;
         }
+    } else if (typeof userOrId === 'object') {
+        user = userOrId;
     }
 
     const formHTML = `
         <form id="sysUserForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Full Name *</label>
-                <input type="text" id="sysUserName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                <input type="text" id="sysUserName" required style="width:100%; background:var(--color-bg); border:1px solid ${user?.name ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Phone Number *</label>
-                <input type="tel" id="sysUserPhone" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                <input type="tel" id="sysUserPhone" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required style="width:100%; background:var(--color-bg); border:1px solid ${user?.phone ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">PIN *</label>
-                <input type="password" id="sysUserPin" maxlength="4" placeholder="4 Digits" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                <input type="password" id="sysUserPin" maxlength="4" placeholder="4 Digits" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required style="width:100%; background:var(--color-bg); border:1px solid ${user?.pin ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
         </form>
     `;
@@ -365,42 +385,41 @@ window.openUserModal = async function(userId = null) {
             variant: "primary", 
             closesModal: false,
             onClick: async () => {
-                const nameInput = document.getElementById('sysUserName');
-                const phoneInputEl = document.getElementById('sysUserPhone');
+                const requiredFields = [
+                    { id: 'sysUserName', name: "Full Name" },
+                    { id: 'sysUserPhone', name: "Phone Number" },
+                    { id: 'sysUserPin', name: "PIN" }
+                ];
+
+                let isValid = true;
+                let firstEmpty = null;
+
+                requiredFields.forEach(field => {
+                    const el = document.getElementById(field.id);
+                    if (!el.value.trim()) {
+                        el.style.borderColor = '#dc2626';
+                        isValid = false;
+                        if (!firstEmpty) firstEmpty = field.name;
+                    } else {
+                        el.style.borderColor = '#16a34a';
+                    }
+                });
+
+                if (!isValid) {
+                    showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
+                    return;
+                }
+
                 const pinInput = document.getElementById('sysUserPin');
+                if (!/^\d{4}$/.test(pinInput.value.trim())) {
+                    pinInput.style.borderColor = "#dc2626";
+                    showAlert({ icon: 'error', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
+                    return;
+                }
 
-                const name = nameInput.value.trim();
-                const phoneInput = phoneInputEl.value.trim();
+                const name = document.getElementById('sysUserName').value.trim();
+                const phoneInput = document.getElementById('sysUserPhone').value.trim();
                 const pin = pinInput.value.trim();
-
-                nameInput.style.borderColor = 'var(--color-border)';
-                phoneInputEl.style.borderColor = 'var(--color-border)';
-                pinInput.style.borderColor = 'var(--color-border)';
-
-                if (!name) {
-                    nameInput.style.borderColor = 'red';
-                    showAlert({ icon: 'warning', title: 'Missing Information', text: 'Please enter the Full Name.' });
-                    return;
-                }
-
-                if (!phoneInput) {
-                    phoneInputEl.style.borderColor = 'red';
-                    showAlert({ icon: 'warning', title: 'Missing Information', text: 'Please enter the Phone Number.' });
-                    return;
-                }
-
-                if (!pin) {
-                    pinInput.style.borderColor = 'red';
-                    showAlert({ icon: 'warning', title: 'Missing Information', text: 'Please enter the 4-Digit PIN.' });
-                    return;
-                }
-
-                if (!/^\d{4}$/.test(pin)) {
-                    pinInput.style.borderColor = "red";
-                    showAlert({ icon: 'warning', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
-                    return;
-                }
-
                 const cleanedPhone = phoneInput.replace(/[^0-9+]/g, '');
 
                 try {
@@ -408,8 +427,8 @@ window.openUserModal = async function(userId = null) {
                     if (existing && existing.length > 0) {
                         const duplicate = existing.find(e => !user || e.id !== user.id);
                         if (duplicate) {
-                            showAlert({ icon: 'error', title: 'Duplicate Phone', text: 'This phone number is already registered to another user.' });
-                            return;
+                            document.getElementById('sysUserPhone').style.borderColor = '#dc2626';
+                            showAlert({ icon: 'error', title: 'Duplicate Warning', text: 'This phone number is already registered to another user.' });
                         }
                     }
 
@@ -443,7 +462,7 @@ window.openUserModal = async function(userId = null) {
             closesModal: false,
             onClick: async () => {
                 const result = await Swal.fire({
-                    title: 'Are you sure?', text: `Do you really want to permanently delete this user?`, icon: 'warning', 
+                    title: 'Are you sure?', text: `Do you really want to permanently delete this user?`, icon: 'question', 
                     showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, delete!'
                 });
 
@@ -466,12 +485,21 @@ window.openUserModal = async function(userId = null) {
     const modal = openModal({ title: user ? "Edit User" : "Add New User", content: formHTML, actions: actions });
 
     setTimeout(() => {
-        // Safely inject values after DOM creation to avoid special character crashes
         if (user) {
             document.getElementById('sysUserName').value = user.name || '';
             document.getElementById('sysUserPhone').value = user.phone || '';
             document.getElementById('sysUserPin').value = user.pin || '';
         }
+
+        ['sysUserName', 'sysUserPhone', 'sysUserPin'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
+                el.addEventListener('input', () => {
+                    el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
+                });
+            }
+        });
 
         const btns = Array.from(document.querySelectorAll('button'));
         btns.forEach(btn => {

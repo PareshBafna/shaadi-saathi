@@ -144,7 +144,6 @@ function buildSpecificHeader(wedding, hasWebInvite = true) {
     const header = document.createElement("div");
     header.style.cssText = "display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-8); flex-wrap: wrap; gap: 16px;";
     
-    // Left Side: Names, Date, Hashtag
     const leftSide = document.createElement("div");
     leftSide.style.cssText = "display: flex; flex-direction: column; gap: var(--space-2);";
     
@@ -164,7 +163,6 @@ function buildSpecificHeader(wedding, hasWebInvite = true) {
         ${hashtagHTML}
     `;
 
-    // Right Side: Web Invite & Instagram (Stacked)
     const rightSide = document.createElement("div");
     rightSide.style.cssText = "display: flex; flex-direction: column; align-items: flex-end; gap: 10px;";
 
@@ -194,10 +192,10 @@ function buildSpecificHeader(wedding, hasWebInvite = true) {
             <a href="${igUrl}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 0 16px; height: 32px; border-radius: 999px; color: white; transition: opacity 0.2s; box-sizing: border-box; font-size: 0.85rem; font-weight: bold; font-family: sans-serif;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'" title="Instagram">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.282.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.478 2.478 0 0 1-.92-.598 2.48 2.48 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233 0-2.136.008-2.388.046-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334z"/>
-                        </svg>
-                        ${handle}
-                    </a>
-                `;
+                </svg>
+                ${handle}
+            </a>
+        `;
     }
 
     rightSide.innerHTML = `
@@ -220,7 +218,6 @@ function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0, hosts = [
     const container = document.createElement("div");
     container.style.cssText = "display: flex; flex-direction: column; gap: var(--space-6); margin-bottom: var(--space-8);";
 
-    // Top Row: Family Name & Details
     if (wedding.family_name || wedding.family_details) {
         const topRow = document.createElement("div");
         topRow.style.cssText = "display: flex; gap: var(--space-6); width: 100%; flex-wrap: wrap;";
@@ -445,7 +442,7 @@ function buildEventItinerarySection(wedding, events, canConfig) {
 }
 
 // ==========================================
-// 4. HOST SECTION LOGIC (DROPDOWN BASED + PAGINATION)
+// 4. HOST SECTION LOGIC 
 // ==========================================
 function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
     const section = document.createElement("div");
@@ -605,7 +602,7 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
 }
 
 // ==========================================
-// 5. WEDDING USERS SECTION (DROPDOWN BASED + PAGINATION)
+// 5. WEDDING USERS SECTION 
 // ==========================================
 function buildWeddingUserListSection(wedding, wUsers, canConfig) {
     const section = document.createElement("div");
@@ -656,7 +653,7 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
         const paginatedUsers = sortedUsers.slice(startIndex, startIndex + itemsPerPage);
 
         if (!wUsers || wUsers.length === 0) {
-            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No wedding users assigned yet.</div>`;
+            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No wedding users assigned yet.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
@@ -763,7 +760,6 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
     return section;
 }
 
-// Global System Modal for Hosts & Wedding Users
 window.openSystemUserModal = async function(type, existingRecordId = null) {
     const ctx = window.__weddingContext;
     if (!ctx || !ctx.canConfig) return;
@@ -807,7 +803,7 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
         <form id="sysUserForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3); padding-bottom: 200px;">
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Select ${titleType} *</label>
-                <select id="sysUserId" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <select id="sysUserId" required style="width:100%; background:var(--color-bg); border:1px solid ${existingRecord ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                     ${existingRecord ? '' : `<option value="" disabled selected>-- Select --</option>`}
                     ${optionsHtml}
                 </select>
@@ -823,12 +819,20 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
             closesModal: false,
             onClick: async () => {
                 const selectEl = document.getElementById('sysUserId');
+                let targetInputEl = selectEl;
+                if (selectEl.style.display === 'none') {
+                    const wrapper = selectEl.previousElementSibling;
+                    if (wrapper) targetInputEl = wrapper.querySelector('input') || selectEl;
+                }
+
                 const selectedUserId = selectEl.value;
 
                 if (!selectedUserId) {
-                    selectEl.style.borderColor = "red";
-                    showAlert({ icon: 'warning', title: 'Missing Selection', text: `Please select a ${titleType.toLowerCase()}.` });
+                    targetInputEl.style.borderColor = "#dc2626";
+                    showAlert({ icon: 'error', title: 'Missing Information', text: `Please select a ${titleType.toLowerCase()}.` });
                     return;
+                } else {
+                    targetInputEl.style.borderColor = "#16a34a";
                 }
 
                 try {
@@ -893,6 +897,16 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
     setTimeout(() => {
         forceStyleModalButtons();
         convertToSearchableDropdown('sysUserId');
+        const selectEl = document.getElementById('sysUserId');
+        if (selectEl) {
+            selectEl.addEventListener('change', (e) => {
+                const wrapper = selectEl.previousElementSibling;
+                if (wrapper) {
+                    const input = wrapper.querySelector('input');
+                    if (input) input.style.borderColor = e.target.value ? '#16a34a' : '#dc2626';
+                }
+            });
+        }
     }, 50);
 };
 
@@ -1154,37 +1168,29 @@ function generateInviteCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// ==========================================
-// SEARCHABLE DROPDOWN UTILITY
-// ==========================================
 function convertToSearchableDropdown(selectId) {
     const select = document.getElementById(selectId);
     if (!select) return;
 
-    // Hide original select
     select.style.display = 'none';
 
-    // Create wrapper
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'position: relative; width: 100%; text-align: left;';
     select.parentNode.insertBefore(wrapper, select);
 
-    // Create search input
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = 'Search...';
     input.className = select.className; 
-    input.style.cssText = 'width: 100%; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;';
+    input.style.cssText = 'width: 100%; padding: var(--space-2); border: 1px solid #16a34a; border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;';
     wrapper.appendChild(input);
 
-    // Create dropdown list container 
     const list = document.createElement('div');
     list.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); z-index: 9999; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-top: 4px;';
     wrapper.appendChild(list);
 
     const options = Array.from(select.options);
     
-    // Function to filter and render options
     function renderList(filter = '') {
         list.innerHTML = '';
         const filtered = options.filter(opt => opt.text.toLowerCase().includes(filter.toLowerCase()) && opt.value !== "");
@@ -1202,15 +1208,18 @@ function convertToSearchableDropdown(selectId) {
             item.style.cssText = 'padding: 10px; cursor: pointer; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; color: var(--color-text-primary); transition: background 0.2s;';
             item.textContent = opt.text;
             
-            // Hover effects
             item.addEventListener('mouseover', () => item.style.background = 'var(--color-border)');
             item.addEventListener('mouseout', () => item.style.background = 'transparent');
             
-            // Selection event
             item.addEventListener('click', () => {
                 select.value = opt.value;
                 input.value = opt.text;
+                input.style.borderColor = '#16a34a';
                 list.style.display = 'none';
+                
+                const form = select.closest('form');
+                if (form) form.style.paddingBottom = '0px';
+
                 select.dispatchEvent(new Event('change')); 
             });
             list.appendChild(item);
@@ -1221,21 +1230,33 @@ function convertToSearchableDropdown(selectId) {
         input.value = ''; 
         renderList('');
         list.style.display = 'block';
+        
+        const form = select.closest('form');
+        if (form) form.style.paddingBottom = '200px';
     });
 
     input.addEventListener('input', (e) => {
         renderList(e.target.value);
         list.style.display = 'block';
+        
+        const form = select.closest('form');
+        if (form) form.style.paddingBottom = '200px';
     });
 
     document.addEventListener('click', (e) => {
         if (!wrapper.contains(e.target)) {
             list.style.display = 'none';
+            
+            const form = select.closest('form');
+            if (form) form.style.paddingBottom = '0px';
+
             const selectedOpt = options.find(o => o.value === select.value);
             if (selectedOpt && select.value !== "") {
                 input.value = selectedOpt.text;
+                input.style.borderColor = '#16a34a';
             } else {
                 input.value = '';
+                input.style.borderColor = '#dc2626';
             }
         }
     });
@@ -1243,6 +1264,9 @@ function convertToSearchableDropdown(selectId) {
     const initialOpt = options.find(o => o.value === select.value);
     if (initialOpt && select.value !== "") {
         input.value = initialOpt.text;
+        input.style.borderColor = '#16a34a';
+    } else {
+        input.style.borderColor = '#dc2626';
     }
 }
 
@@ -1282,7 +1306,6 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
 
     let templateOptions = `<option value="">-- Custom Event --</option>`;
     templates.forEach(t => {
-        // Safe because it's just the ID, no quotes to break HTML
         templateOptions += `<option value="${t.id}">${t.event_name}</option>`;
     });
 
@@ -1298,22 +1321,22 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
             <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Event Name *</label>
-                    <input type="text" id="eventName" required placeholder="e.g., Grithpaan" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <input type="text" id="eventName" required placeholder="e.g., Grithpaan" style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
                 <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Display Title</label>
-                    <input type="text" id="eventDisplayTitle" placeholder="e.g., Blessings & Beginnings" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Display Title *</label>
+                    <input type="text" id="eventDisplayTitle" required placeholder="e.g., Blessings & Beginnings" style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">One Liner Quote</label>
-                <input type="text" id="eventOneLiner" placeholder="e.g., Golden ghee, elders blessings..." style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">One Liner Quote *</label>
+                <input type="text" id="eventOneLiner" required placeholder="e.g., Golden ghee, elders blessings..." style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
 
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Description</label>
-                <textarea id="eventDescription" rows="3" placeholder="An auspicious start to our wedding celebrations..." style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;"></textarea>
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Description *</label>
+                <textarea id="eventDescription" rows="3" required placeholder="An auspicious start to our wedding celebrations..." style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;"></textarea>
             </div>
             
             <div style="display: flex; gap: var(--space-3); margin-top: 8px;">
@@ -1323,17 +1346,17 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                         onclick="try{this.showPicker()}catch(e){}" 
                         onkeydown="if(event.key !== 'Tab' && event.key !== 'Shift') event.preventDefault();" 
                         onpaste="return false;" 
-                        required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); cursor:pointer; outline:none; transition: border-color 0.2s;">
+                        required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); cursor:pointer; outline:none; transition: border-color 0.2s;">
                 </div>
                 <div style="flex: 1;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Time *</label>
-                    <input type="time" id="eventTime" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); cursor:pointer; outline:none; transition: border-color 0.2s;">
+                    <input type="time" id="eventTime" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); cursor:pointer; outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Venue *</label>
-                <input type="text" id="eventVenue" required placeholder="e.g., The Grand Hotel" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="eventVenue" required placeholder="e.g., The Grand Hotel" style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
         </form>
     `;
@@ -1350,6 +1373,9 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                 onClick: async () => {
                     const requiredFields = [
                         { id: 'eventName', name: "Event Name" },
+                        { id: 'eventDisplayTitle', name: "Display Title" },
+                        { id: 'eventOneLiner', name: "One Liner Quote" },
+                        { id: 'eventDescription', name: "Description" },
                         { id: 'eventDate', name: "Date" },
                         { id: 'eventTime', name: "Time" },
                         { id: 'eventVenue', name: "Venue" }
@@ -1361,11 +1387,11 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                     requiredFields.forEach(field => {
                         const el = document.getElementById(field.id);
                         if (!el.value.trim()) { 
-                            el.style.borderColor = "red"; 
+                            el.style.borderColor = "#dc2626"; 
                             isValid = false; 
                             if(!firstEmpty) firstEmpty = field.name; 
                         } else { 
-                            el.style.borderColor = "green"; 
+                            el.style.borderColor = "#16a34a"; 
                         }
                     });
 
@@ -1374,13 +1400,13 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
 
                     if (selectedDate && (selectedDate < minDate || selectedDate > maxDate)) {
                         isValid = false;
-                        document.getElementById('eventDate').style.borderColor = "red";
+                        document.getElementById('eventDate').style.borderColor = "#dc2626";
                         showAlert({ icon: 'error', title: 'Invalid Date', text: `Event date must be between ${minDate} and ${maxDate}.` });
                         return;
                     }
 
                     if (!isValid) {
-                        showAlert({ icon: 'warning', title: 'Missing Information', text: `Please fill out: ${firstEmpty}` });
+                        showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
                         return;
                     }
 
@@ -1428,22 +1454,28 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                 const template = templates.find(t => t.id === selectedId);
                 if (!template) return;
                 
-                const nameEl = document.getElementById('eventName');
-                nameEl.value = template.event_name || '';
-                nameEl.style.borderColor = nameEl.value.trim() === '' ? 'red' : 'green';
-
-                document.getElementById('eventDisplayTitle').value = template.display_title || '';
-                document.getElementById('eventOneLiner').value = template.one_liner || '';
-                document.getElementById('eventDescription').value = template.description || '';
+                ['eventName', 'eventDisplayTitle', 'eventOneLiner', 'eventDescription'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        if (id === 'eventName') el.value = template.event_name || '';
+                        if (id === 'eventDisplayTitle') el.value = template.display_title || '';
+                        if (id === 'eventOneLiner') el.value = template.one_liner || '';
+                        if (id === 'eventDescription') el.value = template.description || '';
+                        el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
+                    }
+                });
             });
         }
 
-        ['eventName', 'eventDate', 'eventTime', 'eventVenue'].forEach(id => {
+        ['eventName', 'eventDisplayTitle', 'eventOneLiner', 'eventDescription', 'eventDate', 'eventTime', 'eventVenue'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
                 el.addEventListener('input', () => {
-                    el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                    el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
+                });
+                el.addEventListener('change', () => {
+                    el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
                 });
             }
         });
@@ -1498,22 +1530,22 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
             <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Event Name *</label>
-                    <input type="text" id="editEventName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <input type="text" id="editEventName" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
                 <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Display Title</label>
-                    <input type="text" id="editEventDisplayTitle" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Display Title *</label>
+                    <input type="text" id="editEventDisplayTitle" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">One Liner Quote</label>
-                <input type="text" id="editEventOneLiner" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">One Liner Quote *</label>
+                <input type="text" id="editEventOneLiner" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
 
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Description</label>
-                <textarea id="editEventDescription" rows="3" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;"></textarea>
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Description *</label>
+                <textarea id="editEventDescription" rows="3" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;"></textarea>
             </div>
             
             <div style="display: flex; gap: var(--space-3); margin-top: 8px;">
@@ -1523,17 +1555,17 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                         onclick="try{this.showPicker()}catch(e){}" 
                         onkeydown="if(event.key !== 'Tab' && event.key !== 'Shift') event.preventDefault();" 
                         onpaste="return false;" 
-                        required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); cursor:pointer; outline:none; transition: border-color 0.2s;">
+                        required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); cursor:pointer; outline:none; transition: border-color 0.2s;">
                 </div>
                 <div style="flex: 1;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Time *</label>
-                    <input type="time" id="editEventTime" value="${timeValue}" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); cursor:pointer; outline:none; transition: border-color 0.2s;">
+                    <input type="time" id="editEventTime" value="${timeValue}" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); cursor:pointer; outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Venue *</label>
-                <input type="text" id="editEventVenue" required placeholder="e.g., The Grand Hotel" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editEventVenue" required placeholder="e.g., The Grand Hotel" style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
         </form>
     `;
@@ -1579,6 +1611,9 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                 onClick: async () => {
                     const requiredFields = [
                         { id: 'editEventName', name: "Event Name" },
+                        { id: 'editEventDisplayTitle', name: "Display Title" },
+                        { id: 'editEventOneLiner', name: "One Liner Quote" },
+                        { id: 'editEventDescription', name: "Description" },
                         { id: 'editEventDate', name: "Date" },
                         { id: 'editEventTime', name: "Time" },
                         { id: 'editEventVenue', name: "Venue" }
@@ -1590,11 +1625,11 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                     requiredFields.forEach(field => {
                         const el = document.getElementById(field.id);
                         if (!el.value.trim()) { 
-                            el.style.borderColor = "red"; 
+                            el.style.borderColor = "#dc2626"; 
                             isValid = false; 
                             if(!firstEmpty) firstEmpty = field.name; 
                         } else { 
-                            el.style.borderColor = "green"; 
+                            el.style.borderColor = "#16a34a"; 
                         }
                     });
 
@@ -1603,13 +1638,13 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
 
                     if (selectedDate && (selectedDate < minDate || selectedDate > maxDate)) {
                         isValid = false;
-                        document.getElementById('editEventDate').style.borderColor = "red";
+                        document.getElementById('editEventDate').style.borderColor = "#dc2626";
                         showAlert({ icon: 'error', title: 'Invalid Date', text: `Event date must be between ${minDate} and ${maxDate}.` });
                         return;
                     }
 
                     if (!isValid) {
-                        showAlert({ icon: 'warning', title: 'Missing Information', text: `Please fill out: ${firstEmpty}` });
+                        showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
                         return;
                     }
 
@@ -1649,7 +1684,6 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
     setTimeout(() => {
         forceStyleModalButtons();
 
-        // Safe injection
         if (ev) {
             document.getElementById('editEventName').value = ev.title || '';
             document.getElementById('editEventDisplayTitle').value = ev.display_title || '';
@@ -1666,22 +1700,28 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                 const template = templates.find(t => t.id === selectedId);
                 if (!template) return;
                 
-                const nameEl = document.getElementById('editEventName');
-                nameEl.value = template.event_name || '';
-                nameEl.style.borderColor = nameEl.value.trim() === '' ? 'red' : 'green';
-
-                document.getElementById('editEventDisplayTitle').value = template.display_title || '';
-                document.getElementById('editEventOneLiner').value = template.one_liner || '';
-                document.getElementById('editEventDescription').value = template.description || '';
+                ['editEventName', 'editEventDisplayTitle', 'editEventOneLiner', 'editEventDescription'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        if (id === 'editEventName') el.value = template.event_name || '';
+                        if (id === 'editEventDisplayTitle') el.value = template.display_title || '';
+                        if (id === 'editEventOneLiner') el.value = template.one_liner || '';
+                        if (id === 'editEventDescription') el.value = template.description || '';
+                        el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
+                    }
+                });
             });
         }
 
-        ['editEventName', 'editEventDate', 'editEventTime', 'editEventVenue'].forEach(id => {
+        ['editEventName', 'editEventDisplayTitle', 'editEventOneLiner', 'editEventDescription', 'editEventDate', 'editEventTime', 'editEventVenue'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
                 el.addEventListener('input', () => {
-                    el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                    el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
+                });
+                el.addEventListener('change', () => {
+                    el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
                 });
             }
         });
@@ -1705,11 +1745,11 @@ window.openGuestModal = function(weddingId, events = []) {
         <form id="createGuestForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Guest Name *</label>
-                <input type="text" id="guestName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="guestName" required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Phone Number *</label>
-                <input type="text" id="guestPhone" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="guestPhone" required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div style="margin-top: var(--space-2);">
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:8px;">Invite to Events</label>
@@ -1741,16 +1781,16 @@ window.openGuestModal = function(weddingId, events = []) {
                     requiredFields.forEach(field => {
                         const el = document.getElementById(field.id);
                         if (!el.value.trim()) { 
-                            el.style.borderColor = "red"; 
+                            el.style.borderColor = "#dc2626"; 
                             isValid = false; 
                             if(!firstEmpty) firstEmpty = field.name; 
                         } else { 
-                            el.style.borderColor = "green"; 
+                            el.style.borderColor = "#16a34a"; 
                         }
                     });
 
                     if (!isValid) {
-                        showAlert({ icon: 'warning', title: 'Missing Information', text: `Please fill out: ${firstEmpty}` });
+                        showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
                         return;
                     }
 
@@ -1762,6 +1802,7 @@ window.openGuestModal = function(weddingId, events = []) {
                         if (fetchErr) throw fetchErr;
 
                         if (existingGuests.some(g => g.phone === cleanedPhone)) {
+                            document.getElementById('guestPhone').style.borderColor = '#dc2626';
                             showAlert({ icon: 'error', title: 'Duplicate Phone', text: 'Phone number is already in use' });
                             return;
                         }
@@ -1801,9 +1842,9 @@ window.openGuestModal = function(weddingId, events = []) {
         ['guestName', 'guestPhone'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
                 el.addEventListener('input', () => {
-                    el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                    el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
                 });
             }
         });
@@ -1844,11 +1885,11 @@ window.openEditGuestModal = async function(weddingId, guestId) {
         <form id="editGuestForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Guest Name *</label>
-                <input type="text" id="editGuestName" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editGuestName" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Phone Number *</label>
-                <input type="text" id="editGuestPhone" required style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editGuestPhone" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div style="margin-top: var(--space-2);">
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:8px;">Invite to Events</label>
@@ -1909,16 +1950,16 @@ window.openEditGuestModal = async function(weddingId, guestId) {
                     requiredFields.forEach(field => {
                         const el = document.getElementById(field.id);
                         if (!el.value.trim()) { 
-                            el.style.borderColor = "red"; 
+                            el.style.borderColor = "#dc2626"; 
                             isValid = false; 
                             if(!firstEmpty) firstEmpty = field.name; 
                         } else { 
-                            el.style.borderColor = "green"; 
+                            el.style.borderColor = "#16a34a"; 
                         }
                     });
 
                     if (!isValid) {
-                        showAlert({ icon: 'warning', title: 'Missing Information', text: `Please fill out: ${firstEmpty}` });
+                        showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
                         return;
                     }
 
@@ -1930,6 +1971,7 @@ window.openEditGuestModal = async function(weddingId, guestId) {
                         if (fetchErr) throw fetchErr;
 
                         if (existingGuests.some(g => g.phone === cleanedPhone && g.id !== guest.id)) {
+                            document.getElementById('editGuestPhone').style.borderColor = '#dc2626';
                             showAlert({ icon: 'error', title: 'Duplicate Phone', text: 'Phone number is already in use' });
                             return;
                         }
@@ -1968,7 +2010,6 @@ window.openEditGuestModal = async function(weddingId, guestId) {
     setTimeout(() => {
         forceStyleModalButtons();
         
-        // Safe injection
         if (guest) {
             document.getElementById('editGuestName').value = guest.name || '';
             document.getElementById('editGuestPhone').value = guest.phone || '';
@@ -1977,9 +2018,9 @@ window.openEditGuestModal = async function(weddingId, guestId) {
         ['editGuestName', 'editGuestPhone'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
                 el.addEventListener('input', () => {
-                    el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                    el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
                 });
             }
         });

@@ -125,7 +125,7 @@ export function renderLogin() {
         });
 
         if (!isValid) {
-            return Swal.fire({ icon: 'warning', title: 'Missing Info', text: `Please fill out: ${firstEmpty}` });
+            return Swal.fire({ icon: 'error', title: 'Missing Info', text: `Please fill out: ${firstEmpty}` });
         }
         
         const phone = container.querySelector('#login-phone').value.trim();
@@ -133,7 +133,7 @@ export function renderLogin() {
 
         if (!/^\d{4}$/.test(pin)) {
             container.querySelector('#login-pin').style.borderColor = "red";
-            return Swal.fire({ icon: 'warning', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
+            return Swal.fire({ icon: 'error', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
         }
 
         try {
@@ -144,7 +144,7 @@ export function renderLogin() {
         } catch (err) {
             if (err.message.includes("User not found")) {
                 Swal.fire({
-                    icon: 'warning', 
+                    icon: 'error', 
                     title: 'Not Registered', 
                     text: 'User is not registered. Please register first.',
                     confirmButtonText: 'Go to Register', 
@@ -181,7 +181,7 @@ export function renderLogin() {
         });
 
         if (!isValid) {
-            return Swal.fire({ icon: 'warning', title: 'Missing Info', text: `Please fill out: ${firstEmpty}` });
+            return Swal.fire({ icon: 'error', title: 'Missing Info', text: `Please fill out: ${firstEmpty}` });
         }
 
         const name = container.querySelector('#reg-name').value.trim();
@@ -190,7 +190,7 @@ export function renderLogin() {
 
         if (!/^\d{4}$/.test(pin)) {
             container.querySelector('#reg-pin').style.borderColor = "red";
-            return Swal.fire({ icon: 'warning', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
+            return Swal.fire({ icon: 'error', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
         }
 
         try {

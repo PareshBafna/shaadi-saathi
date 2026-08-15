@@ -8,34 +8,48 @@ let searchQuery = '';
 let allEventsData = [];
 
 export function renderEvents() {
-    const section = document.createElement("div");
-    section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
+    const section = document.createElement("section");
+    section.className = "weddings-page-wrapper"; 
+    section.style.cssText = "width: 100%; box-sizing: border-box;";
 
-    const controlsRow = document.createElement("div");
-    controlsRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4); flex-wrap: wrap; gap: 12px;";
+    const controls = document.createElement('div');
+    controls.className = "weddings-control-bar";
+    controls.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); background: var(--color-white); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border); flex-wrap: wrap; gap: 16px;";
 
-    controlsRow.innerHTML = `
-        <div style="flex: 1 1 0; display: flex; gap: 8px; min-width: 200px;"></div>
-        <div style="flex: 1 1 0; display: flex; justify-content: center; min-width: 150px;">
-            <button id="add-master-event-btn" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.5rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                <i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Event
-            </button>
-        </div>
-        <div style="flex: 1 1 0; display: flex; justify-content: flex-end; min-width: 200px;">
-            <div style="position: relative; display: flex; align-items: center; width: 100%; max-width: 300px;">
-                <i data-lucide="search" style="position: absolute; left: 10px; width: 16px; height: 16px; color: var(--color-text-muted);"></i>
-                <input type="text" id="eventSearchInput" placeholder="Search events..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
-            </div>
+    const sortContainer = document.createElement('div');
+    sortContainer.innerHTML = `<div style="width: 150px;"></div>`;
+
+    const centerContainer = document.createElement('div');
+    const createBtn = document.createElement("button");
+    createBtn.id = "add-master-event-btn";
+    createBtn.innerHTML = `<i data-lucide="plus" style="width:16px; height:16px; margin-right:4px; vertical-align:middle;"></i> Event`;
+    createBtn.style.cssText = "background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;";
+    createBtn.addEventListener('click', () => openMasterEventModal());
+    centerContainer.appendChild(createBtn);
+
+    const searchContainer = document.createElement('div');
+    searchContainer.style.cssText = "width: 250px; display: flex; justify-content: flex-end;";
+    searchContainer.innerHTML = `
+        <div style="position: relative; width: 100%;">
+            <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--color-text-secondary);"></i>
+            <input type="text" id="eventSearchInput" placeholder="Search events..." style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3) var(--space-2) 32px; border-radius: var(--radius-sm); font-size: var(--font-size-sm); width: 100%; outline: none;">
         </div>
     `;
-    section.appendChild(controlsRow);
+
+    controls.appendChild(sortContainer);
+    controls.appendChild(centerContainer);
+    controls.appendChild(searchContainer);
+    section.appendChild(controls);
+
+    const cardContainer = document.createElement("div");
+    cardContainer.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);";
 
     const content = document.createElement("div");
     content.id = "master-events-content";
-    section.appendChild(content);
+    cardContainer.appendChild(content);
+    section.appendChild(cardContainer);
 
     setTimeout(() => {
-        document.getElementById('add-master-event-btn').addEventListener('click', () => openMasterEventModal());
         const searchInput = document.getElementById('eventSearchInput');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -186,7 +200,6 @@ function renderEventsList() {
     }, 0);
 }
 
-// Global modal query by ID and safe injection
 window.openMasterEventModal = async function(eventId = null) {
     let eventObj = null;
 
@@ -205,19 +218,19 @@ window.openMasterEventModal = async function(eventId = null) {
         <form id="masterEventForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Event Name *</label>
-                <input type="text" id="tplEventName" required placeholder="e.g., Grithpaan" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                <input type="text" id="tplEventName" required placeholder="e.g., Grithpaan" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Display Title</label>
-                <input type="text" id="tplDisplayTitle" placeholder="e.g., Blessings & Beginnings" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Display Title *</label>
+                <input type="text" id="tplDisplayTitle" required placeholder="e.g., Blessings & Beginnings" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">One Liner Quote</label>
-                <input type="text" id="tplOneLiner" placeholder="e.g., Golden ghee, elders blessings..." style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">One Liner Quote *</label>
+                <input type="text" id="tplOneLiner" required placeholder="e.g., Golden ghee, elders blessings..." style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Description</label>
-                <textarea id="tplDescription" rows="4" placeholder="An auspicious start to our wedding celebrations..." style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; resize: vertical;"></textarea>
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Description *</label>
+                <textarea id="tplDescription" rows="4" required placeholder="An auspicious start to our wedding celebrations..." style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;"></textarea>
             </div>
         </form>
     `;
@@ -229,25 +242,56 @@ window.openMasterEventModal = async function(eventId = null) {
             variant: "primary", 
             closesModal: false,
             onClick: async () => {
-                const nameInput = document.getElementById('tplEventName');
-                const eventName = nameInput.value.trim();
+                const requiredFields = [
+                    { id: 'tplEventName', name: "Event Name" },
+                    { id: 'tplDisplayTitle', name: "Display Title" },
+                    { id: 'tplOneLiner', name: "One Liner Quote" },
+                    { id: 'tplDescription', name: "Description" }
+                ];
 
-                nameInput.style.borderColor = 'var(--color-border)';
+                let isValid = true;
+                let firstEmpty = null;
 
-                if (!eventName) {
-                    nameInput.style.borderColor = 'red';
-                    showAlert({ icon: 'warning', title: 'Missing Information', text: 'Please enter the Event Name.' });
+                requiredFields.forEach(field => {
+                    const el = document.getElementById(field.id);
+                    if (!el.value.trim()) {
+                        el.style.borderColor = 'red';
+                        isValid = false;
+                        if (!firstEmpty) firstEmpty = field.name;
+                    } else {
+                        el.style.borderColor = 'green';
+                    }
+                });
+
+                if (!isValid) {
+                    showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out mandatory field: ${firstEmpty}` });
                     return;
                 }
 
-                const payload = { 
-                    event_name: eventName,
-                    display_title: document.getElementById('tplDisplayTitle').value.trim(),
-                    one_liner: document.getElementById('tplOneLiner').value.trim(),
-                    description: document.getElementById('tplDescription').value.trim()
-                };
+                const eventName = document.getElementById('tplEventName').value.trim();
 
                 try {
+                    const { data: existingEvents, error: checkError } = await supabase
+                        .from('events')
+                        .select('id')
+                        .ilike('event_name', eventName);
+
+                    if (checkError) throw checkError;
+
+                    const duplicate = existingEvents.find(e => !eventObj || e.id !== eventObj.id);
+                    if (duplicate) {
+                        document.getElementById('tplEventName').style.borderColor = 'red';
+                        showAlert({ icon: 'error', title: 'Duplicate Event Name', text: 'An event with this name already exists.' });
+                        return;
+                    }
+
+                    const payload = { 
+                        event_name: eventName, 
+                        display_title: document.getElementById('tplDisplayTitle').value.trim(), 
+                        one_liner: document.getElementById('tplOneLiner').value.trim(), 
+                        description: document.getElementById('tplDescription').value.trim() 
+                    };
+
                     if (eventObj) {
                         const { error } = await supabase.from('events').update(payload).eq('id', eventObj.id);
                         if (error) throw error;
@@ -273,7 +317,7 @@ window.openMasterEventModal = async function(eventId = null) {
             closesModal: false,
             onClick: async () => {
                 const result = await Swal.fire({
-                    title: 'Are you sure?', text: `Do you really want to permanently delete this event?`, icon: 'warning', 
+                    title: 'Are you sure?', text: `Do you really want to permanently delete this event?`, icon: 'question', 
                     showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, delete!'
                 });
 
@@ -296,13 +340,22 @@ window.openMasterEventModal = async function(eventId = null) {
     const modal = openModal({ title: eventObj ? "Edit Event" : "Add New Event", content: formHTML, actions: actions });
 
     setTimeout(() => {
-        // Safely inject values after DOM creation to avoid special character crashes
         if (eventObj) {
             document.getElementById('tplEventName').value = eventObj.event_name || '';
             document.getElementById('tplDisplayTitle').value = eventObj.display_title || '';
             document.getElementById('tplOneLiner').value = eventObj.one_liner || '';
             document.getElementById('tplDescription').value = eventObj.description || '';
         }
+
+        ['tplEventName', 'tplDisplayTitle', 'tplOneLiner', 'tplDescription'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                el.addEventListener('input', () => {
+                    el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
+                });
+            }
+        });
 
         const btns = Array.from(document.querySelectorAll('button'));
         btns.forEach(btn => {

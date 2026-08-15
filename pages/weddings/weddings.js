@@ -560,7 +560,7 @@ export function openCreateWeddingModal() {
                     }
 
                     if (!isValid) {
-                        showAlert({ icon: 'warning', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
+                        showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
                         return;
                     }
 
@@ -792,7 +792,7 @@ window.openEditWeddingModal = function(wedding) {
             }
 
             if (!isValid) {
-                showAlert({ icon: 'warning', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
+                showAlert({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
                 return;
             }
 
