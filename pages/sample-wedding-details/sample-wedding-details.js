@@ -8,7 +8,6 @@ function generateSampleData(weddingId) {
     let events = [];
     let hosts = [];
 
-    // All samples configured with exactly 4 events at a single unified location/venue
     if (weddingId === 'sample-inprogress') {
         wedding = {
             id: 'sample-inprogress',
@@ -24,10 +23,10 @@ function generateSampleData(weddingId) {
             has_web_invite: true
         };
         events = [
-            { id: 'e1', title: 'Engagement Ring Ceremony', date: '2026-08-13', start_time: '2026-08-13T17:00:00', venue: 'Grand Resort Ballroom, Chennai' },
-            { id: 'e2', title: 'Haldi & Floral Bath', date: '2026-08-14', start_time: '2026-08-14T10:30:00', venue: 'Grand Resort Ballroom, Chennai' },
-            { id: 'e3', title: 'Sangeet & Cocktail Night', date: '2026-08-15', start_time: '2026-08-15T19:00:00', venue: 'Grand Resort Ballroom, Chennai' },
-            { id: 'e4', title: 'Wedding & Reception', date: '2026-08-16', start_time: '2026-08-16T18:00:00', venue: 'Grand Resort Ballroom, Chennai' }
+            { id: 'e1', title: 'Engagement Ring Ceremony', date: '2026-08-13', start_time: '2026-08-13T17:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
+            { id: 'e2', title: 'Haldi & Floral Bath', date: '2026-08-14', start_time: '2026-08-14T10:30:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
+            { id: 'e3', title: 'Sangeet & Cocktail Night', date: '2026-08-15', start_time: '2026-08-15T19:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
+            { id: 'e4', title: 'Wedding & Reception', date: '2026-08-16', start_time: '2026-08-16T18:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' }
         ];
         hosts = [
             { name: 'Amit Sharma', phone: '+919876543210' },
@@ -80,7 +79,6 @@ function generateSampleData(weddingId) {
             { name: 'Rajesh Gupta', phone: '+919876543233' }
         ];
     } else {
-        // Fallback default sample (Shruti & Rohan)
         const today = new Date();
         const day1 = new Date(today); day1.setDate(today.getDate() + 7);
         const day2 = new Date(day1); day2.setDate(day1.getDate() + 1);
@@ -101,10 +99,10 @@ function generateSampleData(weddingId) {
             has_web_invite: true
         };
         events = [
-            { id: 'e13', title: 'Paath Bithai', date: formatDateString(day1), start_time: `${formatDateString(day1)}T10:31:00`, venue: 'Terapanti Bhavan, Sowcarpet' },
-            { id: 'e14', title: 'Tamil Night', date: formatDateString(day1), start_time: `${formatDateString(day1)}T18:30:00`, venue: 'Terapanti Bhavan, Sowcarpet' },
-            { id: 'e15', title: 'Haldi & Carnival', date: formatDateString(day2), start_time: `${formatDateString(day2)}T11:00:00`, venue: 'Terapanti Bhavan, Sowcarpet' },
-            { id: 'e16', title: 'Reception', date: formatDateString(day3), start_time: `${formatDateString(day3)}T11:00:00`, venue: 'Terapanti Bhavan, Sowcarpet' }
+            { id: 'e13', title: 'Paath Bithai', date: formatDateString(day1), start_time: `${formatDateString(day1)}T10:31:00`, venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
+            { id: 'e14', title: 'Tamil Night', date: formatDateString(day1), start_time: `${formatDateString(day1)}T18:30:00`, venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
+            { id: 'e15', title: 'Haldi & Carnival', date: formatDateString(day2), start_time: `${formatDateString(day2)}T11:00:00`, venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
+            { id: 'e16', title: 'Reception', date: formatDateString(day3), start_time: `${formatDateString(day3)}T11:00:00`, venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' }
         ];
         hosts = [
             { name: 'Ramesh Jain', phone: '+919876500001' },
@@ -386,13 +384,17 @@ function buildMockEvents(events) {
         `;
         
         dayEvents.forEach(ev => {
+            const venueHTML = ev.venue_map_link 
+                ? `<a href="${ev.venue_map_link}" target="_blank" style="line-height: 1.4; color: inherit; text-decoration: underline; text-underline-offset: 2px; transition: color 0.2s;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='inherit'">${ev.venue}</a>`
+                : `<span style="line-height: 1.4;">${ev.venue}</span>`;
+
             htmlContent += `
                 <div class="timeline-event-card" style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
                     <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
                     <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.title}</h4>
                     <div style="display: flex; gap: 16px; color: var(--color-text-secondary); font-size: var(--font-size-sm); flex-wrap: wrap;">
                         <div style="display: flex; align-items: center; gap: 6px;"><i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.start_time)}</div>
-                        <div style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> <span style="line-height: 1.4;">${ev.venue}</span></div>
+                        <div style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> ${venueHTML}</div>
                     </div>
                 </div>
             `;

@@ -384,6 +384,10 @@ function buildEventItinerarySection(wedding, events, canConfig) {
             dayEvents.forEach(ev => {
                 const editIcon = canConfig ? `<button class="edit-event-btn" data-id="${ev.id}" style="background:none; border:none; padding:4px; cursor:pointer; margin-left:auto; color: var(--color-text-muted);" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'"><i data-lucide="edit-2" style="width: 14px; height: 14px; color: currentColor;"></i></button>` : '';
                 
+                const venueHTML = ev.venue_map_link 
+                    ? `<a href="${ev.venue_map_link}" target="_blank" style="line-height: 1.4; color: var(--color-primary); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; transition: color 0.2s;" onmouseover="this.style.color='var(--color-text-primary)'" onmouseout="this.style.color='var(--color-primary)'">${ev.venue}</a>`
+                    : `<span style="line-height: 1.4;">${ev.venue}</span>`;
+
                 htmlContent += `
                     <div class="timeline-event-card" style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
                         <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
@@ -398,7 +402,7 @@ function buildEventItinerarySection(wedding, events, canConfig) {
                                 <i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.start_time)}
                             </div>
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> <span style="line-height: 1.4;">${ev.venue}</span>
+                                <i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> ${venueHTML}
                             </div>
                         </div>
                     </div>
@@ -817,7 +821,7 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
                 let targetInputEl = selectEl;
                 if (selectEl.style.display === 'none') {
                     const wrapper = selectEl.previousElementSibling;
-                    if (wrapper) targetInputEl = wrapper.querySelector('input') || selectEl;
+                    if (wrapper) targetInputEl = wrapper.children[0] || selectEl;
                 }
 
                 const selectedUserId = selectEl.value;
@@ -892,16 +896,6 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
     setTimeout(() => {
         forceStyleModalButtons();
         convertToSearchableDropdown('sysUserId');
-        const selectEl = document.getElementById('sysUserId');
-        if (selectEl) {
-            selectEl.addEventListener('change', (e) => {
-                const wrapper = selectEl.previousElementSibling;
-                if (wrapper) {
-                    const input = wrapper.querySelector('input');
-                    if (input) input.style.borderColor = e.target.value ? '#16a34a' : '#dc2626';
-                }
-            });
-        }
     }, 50);
 };
 
@@ -1168,99 +1162,137 @@ function convertToSearchableDropdown(selectId) {
     select.style.display = 'none';
 
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position: relative; width: 100%; text-align: left;';
+    wrapper.style.cssText = 'position: relative; width: 100%; text-align: left; font-family: inherit;';
     select.parentNode.insertBefore(wrapper, select);
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Search...';
-    input.className = select.className; 
-    input.style.cssText = 'width: 100%; padding: var(--space-2); border: 1px solid #16a34a; border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;';
-    wrapper.appendChild(input);
+    const currentBorder = select.style.border || '1px solid var(--color-border)';
 
-    const list = document.createElement('div');
-    list.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); z-index: 9999; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-top: 4px;';
-    wrapper.appendChild(list);
+    const displayBox = document.createElement('div');
+    displayBox.className = select.className; 
+    displayBox.style.cssText = `width: 100%; padding: var(--space-2) 30px var(--space-2) var(--space-2); border: ${currentBorder}; border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); cursor: pointer; display: flex; align-items: center; min-height: 38px; transition: border-color 0.2s;`;
+    
+    const displayText = document.createElement('span');
+    displayText.style.cssText = 'overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex-grow: 1; font-size: 0.875rem;';
+    displayBox.appendChild(displayText);
+
+    const chevron = document.createElement('div');
+    chevron.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+    chevron.style.cssText = 'position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--color-text-secondary); display: flex; align-items: center;';
+    
+    wrapper.appendChild(displayBox);
+    wrapper.appendChild(chevron);
+
+    const dropdownMenu = document.createElement('div');
+    dropdownMenu.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 4px; padding: 8px; flex-direction: column; gap: 8px;';
+    
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search...';
+    searchInput.style.cssText = 'width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); outline: none; font-size: 0.875rem;';
+    
+    const optionsList = document.createElement('div');
+    optionsList.style.cssText = 'max-height: 150px; overflow-y: auto; display: flex; flex-direction: column;';
+
+    dropdownMenu.appendChild(searchInput);
+    dropdownMenu.appendChild(optionsList);
+    wrapper.appendChild(dropdownMenu);
 
     const options = Array.from(select.options);
     
+    function updateDisplay() {
+        const selectedOpt = options.find(o => o.value === select.value);
+        if (selectedOpt) {
+            displayText.textContent = selectedOpt.text;
+            if (select.value === "") {
+                displayText.style.color = 'var(--color-text-secondary)';
+                if (select.hasAttribute('required')) displayBox.style.borderColor = '#dc2626';
+                else displayBox.style.borderColor = 'var(--color-border)';
+            } else {
+                displayText.style.color = 'var(--color-text-primary)';
+                if (select.hasAttribute('required')) displayBox.style.borderColor = '#16a34a';
+                else displayBox.style.borderColor = '#16a34a'; 
+            }
+        }
+    }
+
     function renderList(filter = '') {
-        list.innerHTML = '';
-        const filtered = options.filter(opt => opt.text.toLowerCase().includes(filter.toLowerCase()) && opt.value !== "");
-        
+        optionsList.innerHTML = '';
+        const filtered = options.filter(opt => opt.text.toLowerCase().includes(filter.toLowerCase()));
+
         if (filtered.length === 0) {
             const noRes = document.createElement('div');
-            noRes.style.cssText = 'padding: 10px; color: var(--color-text-muted); font-size: 0.9rem; text-align: center;';
+            noRes.style.cssText = 'padding: 8px; color: var(--color-text-muted); font-size: 0.875rem; text-align: center;';
             noRes.textContent = 'No results found';
-            list.appendChild(noRes);
+            optionsList.appendChild(noRes);
             return;
         }
 
         filtered.forEach(opt => {
             const item = document.createElement('div');
-            item.style.cssText = 'padding: 10px; cursor: pointer; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; color: var(--color-text-primary); transition: background 0.2s;';
+            item.style.cssText = `padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.875rem; color: ${opt.value === "" ? 'var(--color-text-secondary)' : 'var(--color-text-primary)'}; transition: background 0.2s; margin-bottom: 2px;`;
             item.textContent = opt.text;
             
-            item.addEventListener('mouseover', () => item.style.background = 'var(--color-border)');
-            item.addEventListener('mouseout', () => item.style.background = 'transparent');
+            if (select.value === opt.value) {
+                item.style.background = 'var(--color-border)';
+                item.style.fontWeight = 'bold';
+            }
             
-            item.addEventListener('click', () => {
+            item.addEventListener('mouseover', () => { if(select.value !== opt.value) item.style.background = 'rgba(0,0,0,0.05)'; });
+            item.addEventListener('mouseout', () => { if(select.value !== opt.value) item.style.background = 'transparent'; });
+            
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
                 select.value = opt.value;
-                input.value = opt.text;
-                input.style.borderColor = '#16a34a';
-                list.style.display = 'none';
+                updateDisplay();
+                dropdownMenu.style.display = 'none';
                 
                 const form = select.closest('form');
                 if (form) form.style.paddingBottom = '0px';
 
                 select.dispatchEvent(new Event('change')); 
             });
-            list.appendChild(item);
+            optionsList.appendChild(item);
         });
     }
 
-    input.addEventListener('focus', () => {
-        input.value = ''; 
-        renderList('');
-        list.style.display = 'block';
+    displayBox.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isClosing = dropdownMenu.style.display === 'flex';
         
-        const form = select.closest('form');
-        if (form) form.style.paddingBottom = '200px';
+        document.querySelectorAll('.searchable-dropdown-menu').forEach(el => {
+            el.style.display = 'none';
+            const form = el.closest('form');
+            if (form) form.style.paddingBottom = '0px';
+        });
+
+        if (!isClosing) {
+            dropdownMenu.style.display = 'flex';
+            dropdownMenu.classList.add('searchable-dropdown-menu');
+            searchInput.value = '';
+            renderList('');
+            searchInput.focus();
+            
+            const form = select.closest('form');
+            if (form) form.style.paddingBottom = '220px';
+        } else {
+            const form = select.closest('form');
+            if (form) form.style.paddingBottom = '0px';
+        }
     });
 
-    input.addEventListener('input', (e) => {
+    searchInput.addEventListener('input', (e) => {
         renderList(e.target.value);
-        list.style.display = 'block';
-        
-        const form = select.closest('form');
-        if (form) form.style.paddingBottom = '200px';
     });
 
     document.addEventListener('click', (e) => {
         if (!wrapper.contains(e.target)) {
-            list.style.display = 'none';
-            
+            dropdownMenu.style.display = 'none';
             const form = select.closest('form');
             if (form) form.style.paddingBottom = '0px';
-
-            const selectedOpt = options.find(o => o.value === select.value);
-            if (selectedOpt && select.value !== "") {
-                input.value = selectedOpt.text;
-                input.style.borderColor = '#16a34a';
-            } else {
-                input.value = '';
-                input.style.borderColor = '#dc2626';
-            }
         }
     });
 
-    const initialOpt = options.find(o => o.value === select.value);
-    if (initialOpt && select.value !== "") {
-        input.value = initialOpt.text;
-        input.style.borderColor = '#16a34a';
-    } else {
-        input.style.borderColor = '#dc2626';
-    }
+    updateDisplay();
 }
 
 function forceStyleModalButtons() {
@@ -1351,6 +1383,11 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Venue *</label>
                 <input type="text" id="eventVenue" required placeholder="e.g., The Grand Hotel" style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
+
+            <div style="margin-top: 8px;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Venue Location (Maps Link) *</label>
+                <input type="url" id="eventVenueMapLink" required placeholder="e.g., https://maps.google.com/..." style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+            </div>
         </form>
     `;
 
@@ -1371,7 +1408,8 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                         { id: 'eventDescription', name: "Description" },
                         { id: 'eventDate', name: "Date" },
                         { id: 'eventTime', name: "Time" },
-                        { id: 'eventVenue', name: "Venue" }
+                        { id: 'eventVenue', name: "Venue" },
+                        { id: 'eventVenueMapLink', name: "Venue Location (Maps Link)" }
                     ];
 
                     let isValid = true;
@@ -1421,7 +1459,8 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                             description: document.getElementById('eventDescription').value.trim(),
                             date: selectedDate,
                             start_time: fullStartTimestamp,
-                            venue: document.getElementById('eventVenue').value.trim()
+                            venue: document.getElementById('eventVenue').value.trim(),
+                            venue_map_link: document.getElementById('eventVenueMapLink').value.trim()
                         }]);
                         if (error) throw error;
                         
@@ -1438,6 +1477,7 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
 
     setTimeout(() => {
         forceStyleModalButtons();
+        convertToSearchableDropdown('eventTemplateSelect');
         
         const templateSelect = document.getElementById('eventTemplateSelect');
         if (templateSelect) {
@@ -1460,7 +1500,7 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
             });
         }
 
-        ['eventName', 'eventDisplayTitle', 'eventOneLiner', 'eventDescription', 'eventDate', 'eventTime', 'eventVenue'].forEach(id => {
+        ['eventName', 'eventDisplayTitle', 'eventOneLiner', 'eventDescription', 'eventDate', 'eventTime', 'eventVenue', 'eventVenueMapLink'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
@@ -1560,6 +1600,11 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Venue *</label>
                 <input type="text" id="editEventVenue" value="${ev.venue || ''}" required placeholder="e.g., The Grand Hotel" style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
+
+            <div style="margin-top: 8px;">
+                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Venue Location (Maps Link) *</label>
+                <input type="url" id="editEventVenueMapLink" value="${ev.venue_map_link || ''}" required placeholder="e.g., https://maps.google.com/..." style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+            </div>
         </form>
     `;
 
@@ -1609,7 +1654,8 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                         { id: 'editEventDescription', name: "Description" },
                         { id: 'editEventDate', name: "Date" },
                         { id: 'editEventTime', name: "Time" },
-                        { id: 'editEventVenue', name: "Venue" }
+                        { id: 'editEventVenue', name: "Venue" },
+                        { id: 'editEventVenueMapLink', name: "Venue Location (Maps Link)" }
                     ];
 
                     let isValid = true;
@@ -1658,7 +1704,8 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                             description: document.getElementById('editEventDescription').value.trim(),
                             date: selectedDate,
                             start_time: fullStartTimestamp,
-                            venue: document.getElementById('editEventVenue').value.trim()
+                            venue: document.getElementById('editEventVenue').value.trim(),
+                            venue_map_link: document.getElementById('editEventVenueMapLink').value.trim()
                         }).eq('id', ev.id);
                         
                         if (error) throw error;
@@ -1676,6 +1723,7 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
 
     setTimeout(() => {
         forceStyleModalButtons();
+        convertToSearchableDropdown('editTemplateSelect');
 
         if (ev) {
             document.getElementById('editEventName').value = ev.title || '';
@@ -1683,6 +1731,7 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
             document.getElementById('editEventOneLiner').value = ev.one_liner || '';
             document.getElementById('editEventDescription').value = ev.description || '';
             document.getElementById('editEventVenue').value = ev.venue || '';
+            document.getElementById('editEventVenueMapLink').value = ev.venue_map_link || '';
         }
 
         const templateSelect = document.getElementById('editTemplateSelect');
@@ -1706,7 +1755,7 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
             });
         }
 
-        ['editEventName', 'editEventDisplayTitle', 'editEventOneLiner', 'editEventDescription', 'editEventDate', 'editEventTime', 'editEventVenue'].forEach(id => {
+        ['editEventName', 'editEventDisplayTitle', 'editEventOneLiner', 'editEventDescription', 'editEventDate', 'editEventTime', 'editEventVenue', 'editEventVenueMapLink'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';

@@ -3,10 +3,11 @@ import { supabase } from '../../database/js/api.js';
 let allEvents = [];
 let allWeddings = [];
 
-let currentView = 'week';
-let activeFilter = 'all-events';
-let currentDate = new Date();
-let selectedDate = null;
+// State variables for Calendar View
+let currentView = 'week'; // 'week' or 'month'
+let activeFilter = 'all-events'; // Set 'all-events' as the default filter
+let currentDate = new Date(); // Controls what month/week is visible in the grid
+let selectedDate = null; // Set to null by default so the filter takes precedence
 
 export function renderCalendar() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
@@ -118,6 +119,8 @@ window.setEventFilter = function(filter) {
         currentView = 'month'; 
         currentDate = new Date(now); 
         currentDate.setMonth(now.getMonth() + 1); 
+    } else if (filter === 'all-events') {
+        // Do nothing
     }
     updateCalendarUI();
 };
@@ -430,6 +433,11 @@ function renderFilteredEvents() {
                 const displayNames = wedding ? (wedding.primary_side === 'groom' ? `${wedding.groom_name} & ${wedding.bride_name}` : `${wedding.bride_name} & ${wedding.groom_name}`) : 'Wedding Event';
                 const familyName = wedding && wedding.family_name ? wedding.family_name : '';
                 
+                // MAP HYPERLINK INTEGRATION
+                const venueHTML = ev.venue_map_link 
+                    ? `<a href="${ev.venue_map_link}" target="_blank" style="line-height: 1.4; color: var(--color-primary); font-weight: 500; text-decoration: underline; text-underline-offset: 2px;">${ev.venue}</a>`
+                    : `<span style="line-height: 1.4;">${ev.venue}</span>`;
+
                 html += `
                     <div class="timeline-event-card" style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
                         <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
@@ -442,7 +450,7 @@ function renderFilteredEvents() {
                                         <i data-lucide="clock" style="width: 16px; height: 16px; color: var(--color-text-secondary);"></i> ${formatTime(ev.start_time)}
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
-                                        <i data-lucide="map-pin" style="width: 16px; height: 16px; color: var(--color-text-secondary);"></i> <span style="line-height: 1.4;">${ev.venue}</span>
+                                        <i data-lucide="map-pin" style="width: 16px; height: 16px; color: var(--color-text-secondary);"></i> ${venueHTML}
                                     </div>
                                 </div>
                             </div>
