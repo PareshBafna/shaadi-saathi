@@ -1,6 +1,6 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
-import { showAlert } from '../../global/js/alerts.js';
+import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 import { formatWeddingDateRange } from '../weddings/weddings.js';
 
 // ==========================================
@@ -39,23 +39,18 @@ async function loadWeddingData(container, weddingId) {
     try {
         const curUser = window.currentUser || { role: 'guest' };
 
-        // 1. Fetch Core Wedding Data
         const { data: wedding, error: weddingError } = await supabase.from('weddings').select('*').eq('id', weddingId).single();
         if (weddingError) throw weddingError;
 
-        // Fetch Web Invite to see if it exists
         const { data: webInvite, error: webInviteError } = await supabase.from('wedding_web_invite').select('id').eq('wedding_id', weddingId).maybeSingle();
         const hasWebInvite = !!webInvite;
 
-        // 2. Fetch All System Users for Dropdowns
         const { data: allSysUsers, error: sysUsersErr } = await supabase.from('users').select('id, name, phone, role');
         if (sysUsersErr) throw sysUsersErr;
 
-        // 3. Fetch Assigned Hosts & Wedding Users
         const { data: rawHosts } = await supabase.from('wedding_hosts').select('*').eq('wedding_id', weddingId);
         const { data: rawWUsers } = await supabase.from('wedding_users').select('*').eq('wedding_id', weddingId);
 
-        // Map user details into the hosts/wedding_users arrays
         const hosts = (rawHosts || []).map(h => {
             const u = allSysUsers.find(u => u.id === h.user_id) || {};
             return { ...h, name: u.name, phone: u.phone };
@@ -66,7 +61,6 @@ async function loadWeddingData(container, weddingId) {
             return { ...w, name: u.name, phone: u.phone };
         });
 
-        // 4. PERMISSION HIERARCHY CHECK
         const isCreator = curUser.role === 'creator';
         const isHost = hosts.some(h => h.user_id === curUser.id);
         const isWeddingUser = wUsers.some(w => w.user_id === curUser.id);
@@ -89,7 +83,6 @@ async function loadWeddingData(container, weddingId) {
             curUserId: curUser.id
         };
 
-        // 5. Fetch Events & Guests
         let eventsQuery = supabase.from('wedding_events').select('*').eq('wedding_id', weddingId);
         const { data: guests, error: guestsError } = await supabase.from('guests').select('*').eq('wedding_id', weddingId);
         if (guestsError) throw guestsError;
@@ -116,7 +109,6 @@ async function loadWeddingData(container, weddingId) {
 
         const displayEventCount = canViewAll ? (allEvents?.length || 0) : filteredEvents.length;
 
-        // 6. Render UI Components
         container.innerHTML = "";
         container.appendChild(buildSpecificHeader(wedding, hasWebInvite));
         
@@ -778,7 +770,7 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
             if (error) throw error;
             existingRecord = data;
         } catch (e) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load record details.' });
+            showSweetAlert('error', 'Error', 'Failed to load record details.');
             return;
         }
     }
@@ -832,7 +824,7 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
 
                 if (!selectedUserId) {
                     targetInputEl.style.borderColor = "#dc2626";
-                    Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${titleType}` });
+                    showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${titleType}`);
                     return;
                 } else {
                     targetInputEl.style.borderColor = "#16a34a";
@@ -851,9 +843,9 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
 
                     modal.close();
                     window.dispatchEvent(new Event('weddingDataUpdated')); 
-                    Swal.fire({ icon: 'success', title: existingRecord ? 'Updated!' : 'Added!', text: `${titleType} saved successfully.`, timer: 2000 });
+                    showSweetAlert('success', existingRecord ? 'Updated!' : 'Added!', `${titleType} saved successfully.`);
                 } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                    showSweetAlert('error', 'Database Error', error.message);
                 }
             }
         }
@@ -882,9 +874,9 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        Swal.fire({ icon: 'success', title: 'Removed!', text: `${titleType} has been removed.`, timer: 2000 });
+                        showSweetAlert('success', 'Removed!', `${titleType} has been removed.`);
                     } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                        showSweetAlert('error', 'Database Error', error.message);
                     }
                 }
             }
@@ -950,7 +942,7 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
         <div style="flex: 1 1 0; display: flex; justify-content: flex-end; min-width: 200px;">
             <div style="position: relative; display: flex; align-items: center; width: 100%; max-width: 300px;">
                 <i data-lucide="search" style="position: absolute; left: 10px; width: 16px; height: 16px; color: var(--color-text-muted);"></i>
-                <input type="text" id="guestSearchInput" placeholder="Search by name or phone..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
+                <input type="text" id="guestSearchInput" placeholder="Search guests by name or phone..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
             </div>
         </div>
     `;
@@ -962,9 +954,7 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
     function renderGuests() {
         const filteredGuests = (guests || []).filter(g => {
             const query = searchQuery.toLowerCase();
-            const nameMatch = (g.name || '').toLowerCase().includes(query);
-            const phoneMatch = (g.phone || '').toLowerCase().includes(query);
-            return nameMatch || phoneMatch;
+            return (g.name || '').toLowerCase().includes(query) || (g.phone || '').includes(query);
         });
 
         const sortedGuests = filteredGuests.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
@@ -1404,12 +1394,12 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                     if (selectedDate && (selectedDate < minDate || selectedDate > maxDate)) {
                         isValid = false;
                         document.getElementById('eventDate').style.borderColor = "#dc2626";
-                        Swal.fire({ icon: 'error', title: 'Invalid Date', text: `Event date must be between ${minDate} and ${maxDate}.` });
+                        showSweetAlert('error', 'Invalid Date', `Event date must be between ${minDate} and ${maxDate}.`);
                         return;
                     }
 
                     if (!isValid) {
-                        Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
+                        showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstEmpty}`);
                         return;
                     }
 
@@ -1437,9 +1427,9 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        Swal.fire({ icon: 'success', title: 'Added!', text: 'Event saved successfully.', timer: 2000 });
+                        showSweetAlert('success', 'Added!', 'Event saved successfully.');
                     } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                        showSweetAlert('error', 'Database Error', error.message);
                     }
                 }
             }
@@ -1498,7 +1488,7 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
         ev = evRes.data;
         templates = tplRes.data || [];
     } catch (e) {
-        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load event data.' });
+        showSweetAlert('error', 'Error', 'Failed to load event data.');
         return;
     }
 
@@ -1533,22 +1523,22 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
             <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Event Name *</label>
-                    <input type="text" id="editEventName" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <input type="text" id="editEventName" value="${ev.title || ''}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Display Title *</label>
-                    <input type="text" id="editEventDisplayTitle" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <input type="text" id="editEventDisplayTitle" value="${ev.display_title || ''}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">One Liner Quote *</label>
-                <input type="text" id="editEventOneLiner" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editEventOneLiner" value="${ev.one_liner || ''}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Description *</label>
-                <textarea id="editEventDescription" rows="3" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;"></textarea>
+                <textarea id="editEventDescription" rows="3" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;">${ev.description || ''}</textarea>
             </div>
             
             <div style="display: flex; gap: var(--space-3); margin-top: 8px;">
@@ -1568,7 +1558,7 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
 
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Venue *</label>
-                <input type="text" id="editEventVenue" required placeholder="e.g., The Grand Hotel" style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editEventVenue" value="${ev.venue || ''}" required placeholder="e.g., The Grand Hotel" style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
         </form>
     `;
@@ -1599,9 +1589,9 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                             
                             modal.close();
                             window.dispatchEvent(new Event('weddingDataUpdated')); 
-                            Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Event has been removed.', timer: 2000 });
+                            showSweetAlert('success', 'Deleted!', 'Event has been removed.');
                         } catch (error) {
-                            Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                            showSweetAlert('error', 'Database Error', error.message);
                         }
                     }
                 }
@@ -1642,12 +1632,12 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                     if (selectedDate && (selectedDate < minDate || selectedDate > maxDate)) {
                         isValid = false;
                         document.getElementById('editEventDate').style.borderColor = "#dc2626";
-                        Swal.fire({ icon: 'error', title: 'Invalid Date', text: `Event date must be between ${minDate} and ${maxDate}.` });
+                        showSweetAlert('error', 'Invalid Date', `Event date must be between ${minDate} and ${maxDate}.`);
                         return;
                     }
 
                     if (!isValid) {
-                        Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
+                        showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstEmpty}`);
                         return;
                     }
 
@@ -1675,9 +1665,9 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                         
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        Swal.fire({ icon: 'success', title: 'Updated!', text: 'Event details updated successfully.', timer: 2000 });
+                        showSweetAlert('success', 'Updated!', 'Event details updated successfully.');
                     } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                        showSweetAlert('error', 'Database Error', error.message);
                     }
                 }
             }
@@ -1793,7 +1783,7 @@ window.openGuestModal = function(weddingId, events = []) {
                     });
 
                     if (!isValid) {
-                        Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
+                        showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstEmpty}`);
                         return;
                     }
 
@@ -1806,7 +1796,7 @@ window.openGuestModal = function(weddingId, events = []) {
 
                         if (existingGuests.some(g => g.phone === cleanedPhone)) {
                             document.getElementById('guestPhone').style.borderColor = '#dc2626';
-                            Swal.fire({ icon: 'question', title: 'Duplicate Warning', text: 'Phone number is already in use.' });
+                            showSweetAlert('warning', 'Duplicate Warning', 'Phone number is already in use.');
                             return;
                         }
 
@@ -1831,9 +1821,9 @@ window.openGuestModal = function(weddingId, events = []) {
 
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        Swal.fire({ icon: 'success', title: 'Added!', text: 'Guest saved successfully.', timer: 2000 });
+                        showSweetAlert('success', 'Added!', 'Guest saved successfully.');
                     } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                        showSweetAlert('error', 'Database Error', error.message);
                     }
                 }
             }
@@ -1870,7 +1860,7 @@ window.openEditGuestModal = async function(weddingId, guestId) {
         const { data: eventGuests } = await supabase.from('event_guests').select('event_id').eq('guest_id', guestId);
         guest.invited_events = eventGuests ? eventGuests.map(eg => eg.event_id) : [];
     } catch (e) {
-        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load guest data.' });
+        showSweetAlert('error', 'Error', 'Failed to load guest data.');
         return;
     }
 
@@ -1888,11 +1878,11 @@ window.openEditGuestModal = async function(weddingId, guestId) {
         <form id="editGuestForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3);">
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Guest Name *</label>
-                <input type="text" id="editGuestName" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editGuestName" value="${guest.name || ''}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div>
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Phone Number *</label>
-                <input type="text" id="editGuestPhone" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <input type="text" id="editGuestPhone" value="${guest.phone || ''}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
             </div>
             <div style="margin-top: var(--space-2);">
                 <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:8px;">Invite to Events</label>
@@ -1929,9 +1919,9 @@ window.openEditGuestModal = async function(weddingId, guestId) {
                             
                             modal.close();
                             window.dispatchEvent(new Event('weddingDataUpdated')); 
-                            Swal.fire({ icon: 'success', title: 'Removed!', text: 'Guest has been removed.', timer: 2000 });
+                            showSweetAlert('success', 'Removed!', 'Guest has been removed.');
                         } catch (error) {
-                            Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                            showSweetAlert('error', 'Database Error', error.message);
                         }
                     }
                 }
@@ -1962,7 +1952,7 @@ window.openEditGuestModal = async function(weddingId, guestId) {
                     });
 
                     if (!isValid) {
-                        Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
+                        showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstEmpty}`);
                         return;
                     }
 
@@ -1975,7 +1965,7 @@ window.openEditGuestModal = async function(weddingId, guestId) {
 
                         if (existingGuests.some(g => g.phone === cleanedPhone && g.id !== guest.id)) {
                             document.getElementById('editGuestPhone').style.borderColor = '#dc2626';
-                            Swal.fire({ icon: 'question', title: 'Duplicate Warning', text: 'Phone number is already in use.' });
+                            showSweetAlert('warning', 'Duplicate Warning', 'Phone number is already in use.');
                             return;
                         }
 
@@ -2001,9 +1991,9 @@ window.openEditGuestModal = async function(weddingId, guestId) {
 
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        Swal.fire({ icon: 'success', title: 'Updated!', text: 'Guest details updated successfully.', timer: 2000 });
+                        showSweetAlert('success', 'Updated!', 'Guest details updated successfully.');
                     } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                        showSweetAlert('error', 'Database Error', error.message);
                     }
                 }
             }
@@ -2032,7 +2022,7 @@ window.openEditGuestModal = async function(weddingId, guestId) {
 
 window.downloadSampleExcel = function() {
     if (typeof XLSX === 'undefined') {
-        Swal.fire({ icon: 'error', title: 'Library Missing', text: 'Excel library failed to load. Please refresh the page.' });
+        showSweetAlert('error', 'Library Missing', 'Excel library failed to load. Please refresh the page.');
         return;
     }
 
@@ -2195,12 +2185,10 @@ window.triggerCSVImport = function(weddingId) {
                     }
                 }
 
-                Swal.fire({ icon: 'success', title: 'Import Complete!', text: 'Guests have been successfully updated and imported.' }).then(() => {
-                    window.dispatchEvent(new Event('weddingDataUpdated'));
-                });
+                showSweetAlert('success', 'Import Complete!', 'Guests have been successfully updated and imported.', null, 'OK', () => { window.dispatchEvent(new Event('weddingDataUpdated')); });
 
             } catch (err) {
-                Swal.fire({ icon: 'error', title: 'Import Failed', text: err.message });
+                showSweetAlert('error', 'Import Failed', err.message);
             }
         };
         reader.readAsArrayBuffer(file);

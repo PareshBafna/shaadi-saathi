@@ -3,11 +3,10 @@ import { supabase } from '../../database/js/api.js';
 let allEvents = [];
 let allWeddings = [];
 
-// State variables for Calendar View
-let currentView = 'week'; // 'week' or 'month'
-let activeFilter = 'all-events'; // Set 'all-events' as the default filter
-let currentDate = new Date(); // Controls what month/week is visible in the grid
-let selectedDate = null; // Set to null by default so the filter takes precedence
+let currentView = 'week';
+let activeFilter = 'all-events';
+let currentDate = new Date();
+let selectedDate = null;
 
 export function renderCalendar() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
@@ -50,7 +49,6 @@ async function loadUserEvents() {
         allWeddings = weddingsData || [];
 
         if (user.role === 'creator') {
-            // POINTING TO NEW TABLE
             const { data } = await supabase.from('wedding_events').select('*');
             allEvents = data || [];
             return;
@@ -69,7 +67,6 @@ async function loadUserEvents() {
         let finalEvents = [];
 
         if (fullAccessWeddingIds.length > 0) {
-            // POINTING TO NEW TABLE
             const { data: fullEvents } = await supabase.from('wedding_events').select('*').in('wedding_id', fullAccessWeddingIds);
             if (fullEvents) finalEvents.push(...fullEvents);
         }
@@ -80,7 +77,6 @@ async function loadUserEvents() {
                     const { data: egData } = await supabase.from('event_guests').select('event_id').eq('guest_id', g.id);
                     if (egData && egData.length > 0) {
                         const eventIds = egData.map(eg => eg.event_id);
-                        // POINTING TO NEW TABLE
                         const { data: specificEvents } = await supabase.from('wedding_events').select('*').in('id', eventIds);
                         if (specificEvents) finalEvents.push(...specificEvents);
                     }
@@ -103,7 +99,6 @@ async function loadUserEvents() {
     }
 }
 
-// Attach helpers to window for inline HTML onclick binding
 window.setEventFilter = function(filter) {
     activeFilter = filter;
     selectedDate = null; 
@@ -123,8 +118,6 @@ window.setEventFilter = function(filter) {
         currentView = 'month'; 
         currentDate = new Date(now); 
         currentDate.setMonth(now.getMonth() + 1); 
-    } else if (filter === 'all-events') {
-        // Do nothing to currentDate or currentView so the visual grid stays exactly as it is
     }
     updateCalendarUI();
 };
@@ -143,7 +136,6 @@ window.searchCalendarDate = function(dateStr) {
     selectedDate = new Date(parsedDate);
     activeFilter = null;
     
-    // Auto-switch to month view if searching so they can see the surrounding dates
     if (currentView === 'week') {
         currentView = 'month';
     }
@@ -180,7 +172,6 @@ function updateCalendarUI() {
         </div>
     `;
 
-    // FIX: Wrapped the date input so clicking anywhere inside triggers the calendar popup
     const dateSearchHTML = `
         <div style="display: flex; align-items: center; gap: 8px; background: var(--color-bg); padding: 2px 4px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); cursor: pointer;" onclick="try { this.querySelector('input[type=date]').showPicker(); } catch(e) {}">
             <i data-lucide="calendar-search" style="width: 16px; height: 16px; color: var(--color-text-secondary); margin-left: 6px;"></i>
@@ -248,7 +239,6 @@ function updateCalendarUI() {
             gridHTML += createCellHTML(checkDate);
         }
     } else { 
-        // Week View
         const startOfWeek = new Date(currentDate);
         startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
         
@@ -412,7 +402,6 @@ function renderFilteredEvents() {
     if (displayEvents.length === 0) {
         html += `<div style="text-align: center; padding: var(--space-6); background: var(--color-white); border: 1px dashed var(--color-border); border-radius: var(--radius-lg); color: var(--color-text-muted);">No events scheduled.</div>`;
     } else {
-        
         const groupedByDate = displayEvents.reduce((acc, ev) => {
             const dateObj = new Date(ev.date || ev.start_time);
             const dateStr = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });

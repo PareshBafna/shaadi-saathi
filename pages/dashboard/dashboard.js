@@ -1,9 +1,5 @@
 import { supabase } from '../../database/js/api.js';
-import { showAlert } from '../../global/js/alerts.js';
 
-// ==========================================
-// MAIN RENDER FUNCTION
-// ==========================================
 export function renderDashboard() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const wrapper = document.createElement('section');
@@ -28,9 +24,6 @@ export function renderDashboard() {
     return wrapper;
 }     
 
-// ==========================================
-// ASYNC DATA FETCHER
-// ==========================================
 async function loadGlobalDashboardData(section) {
     try {
         let weddings = [];
@@ -41,29 +34,24 @@ async function loadGlobalDashboardData(section) {
             throw error;
         }
 
-        // Fetch Users alongside Hosts
         const { data: allSysUsers, error: sysUsersErr } = await supabase.from('users').select('id, name, phone');
         if (sysUsersErr) throw sysUsersErr;
 
         const { data: hostsData, error: hostsError } = await supabase.from('wedding_hosts').select('*');
         if (hostsError && hostsError.code !== '42P01') throw hostsError;
         
-        // Fetch Web Invites to check existence
         const { data: webInvitesData, error: webInvitesErr } = await supabase.from('wedding_web_invite').select('wedding_id');
         if (webInvitesErr && webInvitesErr.code !== '42P01') throw webInvitesErr;
 
         for (let wedding of weddings) {
-            // Attach hosts AND map their names from allSysUsers
             const rawHosts = hostsData ? hostsData.filter(h => h.wedding_id === wedding.id) : [];
             wedding.hosts = rawHosts.map(h => {
                 const u = allSysUsers.find(u => u.id === h.user_id) || {};
                 return { ...h, name: u.name, phone: u.phone };
             });
 
-            // Check if Web Invite exists for this wedding
             wedding.has_web_invite = webInvitesData ? webInvitesData.some(w => w.wedding_id === wedding.id) : false;
 
-            // POINTING TO NEW TABLE
             const { count: eventsCount } = await supabase.from('wedding_events').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
             const { count: guestsCount } = await supabase.from('guests').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
 

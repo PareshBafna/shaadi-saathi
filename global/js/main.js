@@ -1,10 +1,11 @@
 // Step OUT of global/js and into database/js
 import { supabase } from '../../database/js/api.js';
 
-// Components are now directly inside global/js/
+// Components & Alerts
 import { validateSession, getWhatsAppVerificationLink, logoutUser } from './auth.js';
 import { createSidebar } from './sidebar.js';
 import { createHeader } from './header.js';
+import { showSweetAlert } from './sweet-alert-message.js';
 
 // ==========================================
 // REFACTORED PAGES (New Architecture)
@@ -30,18 +31,8 @@ import { renderSampleWebInvites } from '../../web-invites/js/sample-web-invites.
 export function checkSessionOrShowAlert() {
     const userId = localStorage.getItem('ss_user_id');
     if (!userId || !window.currentUser) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Session Expired',
-            text: 'Please log in to continue',
-            confirmButtonText: 'Login Page',
-            confirmButtonColor: 'var(--color-primary)',
-            allowOutsideClick: false,
-            allowEscapeKey: false
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.hash = '#login';
-            }
+        showSweetAlert('error', 'Session Expired', 'Please log in to continue', null, 'Go To Login Page', () => {
+            window.location.hash = '#login';
         });
         return false;
     }

@@ -1,6 +1,6 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
-import { showAlert } from '../../global/js/alerts.js';
+import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
 let currentPage = 1;
 const usersPerPage = 10;
@@ -300,7 +300,7 @@ function renderUsersList() {
                     if (error) throw error;
                     openUserModal(userData);
                 } catch (err) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Could not fetch user details.' });
+                    showSweetAlert('error', 'Error', 'Could not fetch user details.');
                 }
             });
         });
@@ -340,10 +340,10 @@ function renderUsersList() {
                 try {
                     const { error } = await supabase.from('users').update({ is_verified: true }).eq('id', userId);
                     if (error) throw error;
-                    Swal.fire({ icon: 'success', title: 'Verified!', text: 'User has been successfully verified.', timer: 2000 });
+                    showSweetAlert('success', 'Verified!', 'User has been successfully verified.');
                     loadUsersData();
                 } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Verification Failed', text: error.message });
+                    showSweetAlert('error', 'Verification Failed', error.message);
                 }
             });
         });
@@ -361,7 +361,7 @@ window.openUserModal = async function(userOrId = null) {
             if (error) throw error;
             user = data;
         } catch (error) {
-            Swal.fire({ icon: 'error', title: 'Data Error', text: 'Could not fetch user details.' });
+            showSweetAlert('error', 'Data Error', 'Could not fetch user details.');
             return;
         }
     } else if (typeof userOrId === 'object') {
@@ -413,14 +413,14 @@ window.openUserModal = async function(userOrId = null) {
                 });
 
                 if (!isValid) {
-                    Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
+                    showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstEmpty}`);
                     return;
                 }
 
                 const pinInput = document.getElementById('sysUserPin');
                 if (!/^\d{4}$/.test(pinInput.value.trim())) {
                     pinInput.style.borderColor = "#dc2626";
-                    Swal.fire({ icon: 'error', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
+                    showSweetAlert('error', 'Invalid PIN', 'PIN must be exactly 4 digits.');
                     return;
                 }
 
@@ -435,7 +435,7 @@ window.openUserModal = async function(userOrId = null) {
                         const duplicate = existing.find(e => !user || e.id !== user.id);
                         if (duplicate) {
                             document.getElementById('sysUserPhone').style.borderColor = '#dc2626';
-                            Swal.fire({ icon: 'question', title: 'Duplicate Warning', text: 'This phone number is already registered to another user.' });
+                            showSweetAlert('warning', 'Duplicate Warning', 'This phone number is already registered to another user.');
                             return;
                         }
                     }
@@ -455,9 +455,9 @@ window.openUserModal = async function(userOrId = null) {
 
                     modal.close();
                     window.dispatchEvent(new Event('systemUsersUpdated')); 
-                    Swal.fire({ icon: 'success', title: user ? 'Updated!' : 'Added!', text: `User saved successfully.`, timer: 2000 });
+                    showSweetAlert('success', user ? 'Updated!' : 'Added!', 'User saved successfully.');
                 } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                    showSweetAlert('error', 'Database Error', error.message);
                 }
             }
         }
@@ -481,9 +481,9 @@ window.openUserModal = async function(userOrId = null) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('systemUsersUpdated')); 
-                        Swal.fire({ icon: 'success', title: 'Deleted!', text: `User has been removed.`, timer: 2000 });
+                        showSweetAlert('success', 'Deleted!', 'User has been removed.');
                     } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                        showSweetAlert('error', 'Database Error', error.message);
                     }
                 }
             }

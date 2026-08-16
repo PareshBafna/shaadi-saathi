@@ -1,6 +1,6 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
-import { showAlert } from '../../global/js/alerts.js';
+import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
 const INVITE_BASE_URL = "/invite.html"; 
 
@@ -208,7 +208,7 @@ function buildGallerySection(title, invites, isArchived) {
                     <a href="${inviteUrl}" target="_blank" style="flex: 1; text-align: center; background: ${t.accent}; color: ${t.bgDark}; padding: 10px; border-radius: var(--radius-sm); text-decoration: none; font-size: 0.9rem; font-weight: var(--font-weight-semibold); transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
                         View Invite
                     </a>
-                    <button onclick="navigator.clipboard.writeText(window.location.origin + '${inviteUrl}'); alert('Link Copied!');" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" title="Copy Link">
+                    <button onclick="navigator.clipboard.writeText(window.location.origin + '${inviteUrl}'); showSweetAlert('success', 'Copied!', 'Link copied to clipboard');" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" title="Copy Link">
                         <i data-lucide="link" style="width: 18px; height: 18px;"></i>
                     </button>
                 </div>
@@ -368,11 +368,7 @@ async function openInviteModal(existingInvite = null) {
                 });
 
                 if (firstError) {
-                    Swal.fire({ 
-                        icon: 'error', 
-                        title: 'Missing Information', 
-                        text: `Please fill out all mandatory fields. Missing: ${firstError}` 
-                    });
+                    showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstError}`);
                     return;
                 }
 
@@ -407,7 +403,7 @@ async function openInviteModal(existingInvite = null) {
                     } else {
                         const { data: existingInv } = await supabase.from('wedding_web_invite').select('id').eq('wedding_id', selectEl.value);
                         if (existingInv && existingInv.length > 0) {
-                            Swal.fire({ icon: 'question', title: 'Duplicate Warning', text: 'A web invite for this wedding already exists.' });
+                            showSweetAlert('warning', 'Duplicate Warning', 'A web invite for this wedding already exists.');
                         }
 
                         const { error } = await supabase.from('wedding_web_invite').insert([payload]);
@@ -416,9 +412,9 @@ async function openInviteModal(existingInvite = null) {
 
                     modal.close();
                     window.dispatchEvent(new Event('invitesDataUpdated')); 
-                    Swal.fire({ icon: 'success', title: 'Success', text: `Web Invite ${existingInvite ? 'updated' : 'created'} successfully!`, timer: 2000 });
+                    showSweetAlert('success', 'Success', `Web Invite ${existingInvite ? 'updated' : 'created'} successfully!`);
                 } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                    showSweetAlert('error', 'Database Error', error.message);
                 }
             }
         }
@@ -442,9 +438,9 @@ async function openInviteModal(existingInvite = null) {
                         if (error) throw error;
                         modal.close();
                         window.dispatchEvent(new Event('invitesDataUpdated')); 
-                        Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Invite removed.', timer: 2000 });
+                        showSweetAlert('success', 'Deleted!', 'Invite removed.');
                     } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                        showSweetAlert('error', 'Database Error', error.message);
                     }
                 }
             }

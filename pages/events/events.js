@@ -1,6 +1,6 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
-import { showAlert } from '../../global/js/alerts.js';
+import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -216,7 +216,7 @@ window.openMasterEventModal = async function(eventId = null) {
             if (error) throw error;
             eventObj = data;
         } catch (error) {
-            Swal.fire({ icon: 'error', title: 'Data Error', text: 'Could not fetch event details.' });
+            showSweetAlert('error', 'Data Error', 'Could not fetch event details.');
             return;
         }
     }
@@ -271,7 +271,7 @@ window.openMasterEventModal = async function(eventId = null) {
                 });
 
                 if (!isValid) {
-                    Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmpty}` });
+                    showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstEmpty}`);
                     return;
                 }
 
@@ -288,7 +288,7 @@ window.openMasterEventModal = async function(eventId = null) {
                     const duplicate = existingEvents.find(e => !eventObj || e.id !== eventObj.id);
                     if (duplicate) {
                         document.getElementById('tplEventName').style.borderColor = '#dc2626';
-                        Swal.fire({ icon: 'question', title: 'Duplicate Warning', text: 'An event with this name already exists.' });
+                        showSweetAlert('warning', 'Duplicate Warning', 'An event with this name already exists.');
                         return;
                     }
 
@@ -309,9 +309,9 @@ window.openMasterEventModal = async function(eventId = null) {
 
                     modal.close();
                     window.dispatchEvent(new Event('masterEventsUpdated')); 
-                    Swal.fire({ icon: 'success', title: eventObj ? 'Updated!' : 'Added!', text: `Event saved successfully.`, timer: 2000 });
+                    showSweetAlert('success', eventObj ? 'Updated!' : 'Added!', 'Event saved successfully.');
                 } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                    showSweetAlert('error', 'Database Error', error.message);
                 }
             }
         }
@@ -335,9 +335,9 @@ window.openMasterEventModal = async function(eventId = null) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('masterEventsUpdated')); 
-                        Swal.fire({ icon: 'success', title: 'Deleted!', text: `Event has been removed.`, timer: 2000 });
+                        showSweetAlert('success', 'Deleted!', 'Event has been removed.');
                     } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                        showSweetAlert('error', 'Database Error', error.message);
                     }
                 }
             }

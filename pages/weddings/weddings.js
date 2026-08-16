@@ -1,6 +1,6 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
-import { showAlert } from '../../global/js/alerts.js';
+import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
 let allWeddings = [];
 
@@ -58,7 +58,7 @@ function canEditWedding(wedding) {
 
     const user = window.currentUser;
     if (!user) {
-        Swal.fire({ icon: 'error', title: 'Authentication Notice', text: 'Active session details (ss_user_id) are missing.' });
+        showSweetAlert('error', 'Authentication Notice', 'Active session details (ss_user_id) are missing.');
         return false;
     }
     if (user.role === 'creator') return true;
@@ -103,7 +103,7 @@ export function renderWeddings() {
         createBtn.id = "add-wedding-btn";
         createBtn.innerHTML = `<i data-lucide="plus" style="width:16px; height:16px; margin-right:4px; vertical-align:middle;"></i> Wedding`;
         createBtn.style.cssText = "background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;";
-        createBtn.addEventListener('click', () => window.openWeddingModal());
+        createBtn.addEventListener('click', () => window.openCreateWeddingModal());
         centerContainer.appendChild(createBtn);
     }
 
@@ -126,14 +126,14 @@ export function renderWeddings() {
     wrapper.appendChild(sectionsContainer);
 
     setTimeout(() => {
-        loadWeddingsData();
+        loadWeddingsData(sectionsContainer);
         document.getElementById('weddingSearchInput')?.addEventListener('input', filterAndRenderGalleries);
         document.getElementById('sortWeddings')?.addEventListener('change', filterAndRenderGalleries);
         if (window.lucide) window.lucide.createIcons();
     }, 50);
 
     const updateHandler = () => {
-        if (document.body.contains(wrapper)) loadWeddingsData();
+        if (document.body.contains(wrapper)) loadWeddingsData(sectionsContainer);
         else window.removeEventListener('weddingsDataUpdated', updateHandler);
     };
     window.addEventListener('weddingsDataUpdated', updateHandler);
@@ -280,7 +280,7 @@ function filterAndRenderGalleries() {
     const upcoming = filtered.filter(w => startOfDay(new Date(w.start_date)).getTime() > todayTime);
     const archived = filtered.filter(w => startOfDay(new Date(w.end_date)).getTime() < todayTime);
 
-    const container = document.getElementById('weddings-galleries');
+    const container = document.getElementById('weddings-galleries-container');
     if (!container) return;
 
     if (filtered.length === 0) {
@@ -315,7 +315,7 @@ function filterAndRenderGalleries() {
             if (window.openEditWeddingModal && wedding) {
                 window.openEditWeddingModal(wedding);
             } else {
-                showAlert({ icon: 'info', title: 'Edit Mode', text: 'Edit Wedding Modal coming soon!' });
+                showSweetAlert('info', 'Edit Mode', 'Edit Wedding Modal coming soon!');
             }
         });
     });
@@ -440,7 +440,7 @@ export function openCreateWeddingModal() {
     const userRole = window.currentUser?.role || 'guest';
     
     if (userRole !== 'creator') {
-        Swal.fire({ icon: 'error', title: 'Access Denied', text: 'Only creators have permission to add new weddings.' });
+        showSweetAlert('error', 'Access Denied', 'Only creators have permission to add new weddings.');
         return;
     }
 
@@ -546,7 +546,7 @@ export function openCreateWeddingModal() {
                         const todayOnlyDate = new Date(getLocalTodayString() + 'T00:00:00');
                         if (startOnlyDate < todayOnlyDate) {
                             document.getElementById('startDate').style.borderColor = "#dc2626";
-                            Swal.fire({ icon: 'error', title: 'Invalid Date', text: 'Start date cannot be in the past.' });
+                            showSweetAlert('error', 'Invalid Date', 'Start date cannot be in the past.');
                             return;
                         }
                     }
@@ -554,13 +554,13 @@ export function openCreateWeddingModal() {
                     if (startDate && endDate) {
                         if (new Date(endDate) < new Date(startDate)) {
                             document.getElementById('endDate').style.borderColor = "#dc2626";
-                            Swal.fire({ icon: 'error', title: 'Invalid Dates', text: 'End date cannot be earlier than the start date.' });
+                            showSweetAlert('error', 'Invalid Dates', 'End date cannot be earlier than the start date.');
                             return;
                         }
                     }
 
                     if (!isValid) {
-                        Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
+                        showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstEmptyField}`);
                         return;
                     }
 
@@ -591,9 +591,9 @@ export function openCreateWeddingModal() {
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated'));
 
-                        Swal.fire({ icon: 'success', title: 'Added!', text: 'The wedding has been successfully added.', timer: 2000 });
+                        showSweetAlert('success', 'Added!', 'The wedding has been successfully added.');
                     } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Database Error', text: 'Failed to add wedding: ' + error.message });
+                        showSweetAlert('error', 'Database Error', 'Failed to add wedding: ' + error.message);
                     }
                 }
             }
@@ -641,7 +641,7 @@ window.openEditWeddingModal = function(wedding) {
     const userRole = window.currentUser?.role || 'guest';
     
     if (!canEditWedding(wedding)) {
-        Swal.fire({ icon: 'error', title: 'Access Denied', text: 'You do not have permission to edit this wedding.' });
+        showSweetAlert('error', 'Access Denied', 'You do not have permission to edit this wedding.');
         return;
     }
 
@@ -731,9 +731,9 @@ window.openEditWeddingModal = function(wedding) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated')); 
-                        Swal.fire({ icon: 'success', title: 'Deleted!', text: 'The wedding has been removed.', timer: 2000 });
+                        showSweetAlert('success', 'Deleted!', 'The wedding has been removed.');
                     } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                        showSweetAlert('error', 'Database Error', error.message);
                     }
                 }
             }
@@ -778,7 +778,7 @@ window.openEditWeddingModal = function(wedding) {
                 const todayOnlyDate = new Date(getLocalTodayString() + 'T00:00:00');
                 if (startOnlyDate < todayOnlyDate && startDate !== wedding.start_date) {
                     document.getElementById('editStartDate').style.borderColor = "#dc2626";
-                    Swal.fire({ icon: 'error', title: 'Invalid Date', text: 'Start date cannot be changed to a past date.' });
+                    showSweetAlert('error', 'Invalid Date', 'Start date cannot be changed to a past date.');
                     return;
                 }
             }
@@ -786,13 +786,13 @@ window.openEditWeddingModal = function(wedding) {
             if (startDate && endDate) {
                 if (new Date(endDate) < new Date(startDate)) {
                     document.getElementById('editEndDate').style.borderColor = "#dc2626";
-                    Swal.fire({ icon: 'error', title: 'Invalid Dates', text: 'End date cannot be earlier than the start date.' });
+                    showSweetAlert('error', 'Invalid Dates', 'End date cannot be earlier than the start date.');
                     return;
                 }
             }
 
             if (!isValid) {
-                Swal.fire({ icon: 'error', title: 'Missing Information', text: `Please fill out all mandatory fields. Missing: ${firstEmptyField}` });
+                showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstEmptyField}`);
                 return;
             }
 
@@ -816,9 +816,9 @@ window.openEditWeddingModal = function(wedding) {
                 
                 modal.close();
                 window.dispatchEvent(new Event('weddingDataUpdated'));
-                Swal.fire({ icon: 'success', title: 'Updated!', text: 'Wedding details updated successfully.', timer: 2000 });
+                showSweetAlert('success', 'Updated!', 'Wedding details updated successfully.');
             } catch (error) {
-                Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                showSweetAlert('error', 'Database Error', error.message);
             }
         }
     });

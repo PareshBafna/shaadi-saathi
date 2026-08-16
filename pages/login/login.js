@@ -1,4 +1,5 @@
 import { registerUser, loginUser } from '../../global/js/auth.js';
+import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
 export function renderLogin() {
     const container = document.createElement('div');
@@ -71,7 +72,6 @@ export function renderLogin() {
         </div>
     `;
 
-    // Dynamic Red/Green Validation Borders
     setTimeout(() => {
         ['login-phone', 'login-pin', 'reg-name', 'reg-phone', 'reg-pin'].forEach(id => {
             const el = container.querySelector(`#${id}`);
@@ -85,7 +85,6 @@ export function renderLogin() {
         });
     }, 50);
 
-    // View Toggles
     const loginView = container.querySelector('#login-view');
     const registerView = container.querySelector('#register-view');
     const btnShowRegister = container.querySelector('#btn-show-register');
@@ -103,7 +102,6 @@ export function renderLogin() {
         container.querySelectorAll('input').forEach(el => el.style.borderColor = 'var(--color-border)');
     });
 
-    // Handle Login
     container.querySelector('#btn-login').addEventListener('click', async () => {
         const requiredFields = [
             { id: 'login-phone', name: "Phone Number" },
@@ -125,7 +123,7 @@ export function renderLogin() {
         });
 
         if (!isValid) {
-            return Swal.fire({ icon: 'error', title: 'Missing Info', text: `Please fill out: ${firstEmpty}` });
+            return showSweetAlert('error', 'Missing Info', `Please fill out: ${firstEmpty}`);
         }
         
         const phone = container.querySelector('#login-phone').value.trim();
@@ -133,7 +131,7 @@ export function renderLogin() {
 
         if (!/^\d{4}$/.test(pin)) {
             container.querySelector('#login-pin').style.borderColor = "red";
-            return Swal.fire({ icon: 'error', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
+            return showSweetAlert('error', 'Invalid PIN', 'PIN must be exactly 4 digits.');
         }
 
         try {
@@ -143,22 +141,13 @@ export function renderLogin() {
             window.location.reload();
         } catch (err) {
             if (err.message.includes("User not found")) {
-                Swal.fire({
-                    icon: 'error', 
-                    title: 'Not Registered', 
-                    text: 'User is not registered. Please register first.',
-                    confirmButtonText: 'Go to Register', 
-                    confirmButtonColor: '#0f172a'
-                }).then((res) => { 
-                    if (res.isConfirmed) btnShowRegister.click(); 
-                });
+                showSweetAlert('error', 'Not Registered', 'User is not registered. Please register first.', null, 'Go to Register', () => { btnShowRegister.click(); });
             } else {
-                Swal.fire({ icon: 'error', title: 'Login Failed', text: err.message });
+                showSweetAlert('error', 'Login Failed', err.message);
             }
         }
     });
 
-    // Handle Registration
     container.querySelector('#btn-register').addEventListener('click', async () => {
         const requiredFields = [
             { id: 'reg-name', name: "Full Name" },
@@ -181,7 +170,7 @@ export function renderLogin() {
         });
 
         if (!isValid) {
-            return Swal.fire({ icon: 'error', title: 'Missing Info', text: `Please fill out: ${firstEmpty}` });
+            return showSweetAlert('error', 'Missing Info', `Please fill out: ${firstEmpty}`);
         }
 
         const name = container.querySelector('#reg-name').value.trim();
@@ -190,7 +179,7 @@ export function renderLogin() {
 
         if (!/^\d{4}$/.test(pin)) {
             container.querySelector('#reg-pin').style.borderColor = "red";
-            return Swal.fire({ icon: 'error', title: 'Invalid PIN', text: 'PIN must be exactly 4 digits.' });
+            return showSweetAlert('error', 'Invalid PIN', 'PIN must be exactly 4 digits.');
         }
 
         try {
@@ -199,7 +188,7 @@ export function renderLogin() {
             window.location.hash = user.role === 'creator' ? '#dashboard' : '#weddings';
             window.location.reload();
         } catch (err) {
-            Swal.fire({ icon: 'error', title: 'Registration Failed', text: err.message });
+            showSweetAlert('error', 'Registration Failed', err.message);
         }
     });
 

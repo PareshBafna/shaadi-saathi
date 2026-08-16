@@ -1,6 +1,6 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
-import { showAlert } from '../../global/js/alerts.js';
+import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
 let allSystemUsers = [];
 let allWeddings = [];
@@ -265,7 +265,7 @@ function renderHostsList() {
                     openHostModal(hostData);
                 }
             } catch (err) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Could not fetch host details.' });
+                showSweetAlert('error', 'Error', 'Could not fetch host details.');
             }
         });
     });
@@ -397,7 +397,7 @@ function openHostModal(existingHost = null) {
 
                 if (!userId) {
                     targetInputEl.style.borderColor = '#dc2626';
-                    Swal.fire({ icon: 'error', title: 'Missing Information', text: 'Please fill out all mandatory fields. Missing: User Selection' });
+                    showSweetAlert('error', 'Missing Information', 'Please fill out all mandatory fields. Missing: User Selection');
                     return;
                 } else {
                     targetInputEl.style.borderColor = '#16a34a';
@@ -407,7 +407,7 @@ function openHostModal(existingHost = null) {
 
                 if (selectedWeddings.length === 0) {
                     if (containerEl) containerEl.style.borderColor = '#dc2626';
-                    Swal.fire({ icon: 'error', title: 'Missing Information', text: 'Please fill out all mandatory fields. Missing: Assigned Weddings' });
+                    showSweetAlert('error', 'Missing Information', 'Please fill out all mandatory fields. Missing: Assigned Weddings');
                     return;
                 } else {
                     if (containerEl) containerEl.style.borderColor = '#16a34a';
@@ -428,9 +428,9 @@ function openHostModal(existingHost = null) {
 
                     modal.close();
                     window.dispatchEvent(new Event('hostsDataUpdated')); 
-                    Swal.fire({ icon: 'success', title: existingHost ? 'Updated!' : 'Added!', text: 'Host assignments saved successfully.', timer: 2000 });
+                    showSweetAlert('success', existingHost ? 'Updated!' : 'Added!', 'Host assignments saved successfully.');
                 } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                    showSweetAlert('error', 'Database Error', error.message);
                 }
             }
         }
@@ -459,9 +459,9 @@ function openHostModal(existingHost = null) {
                         
                         modal.close();
                         window.dispatchEvent(new Event('hostsDataUpdated')); 
-                        Swal.fire({ icon: 'success', title: 'Removed!', text: 'Host has been removed from all weddings.', timer: 2000 });
+                        showSweetAlert('success', 'Removed!', 'Host has been removed from all weddings.');
                     } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Database Error', text: error.message });
+                        showSweetAlert('error', 'Database Error', error.message);
                     }
                 }
             }
