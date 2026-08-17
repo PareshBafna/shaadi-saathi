@@ -137,7 +137,7 @@ async function initDynamicInvite() {
         const isWeddingUser = (rawWUsers || []).some(w => w.user_id === curUser.id);
         const canViewAll = isCreator || isHost || isWeddingUser;
 
-        const { data: allEvents } = await supabase.from('wedding_events').select('*').eq('wedding_id', wedding.id).order('start_time', { ascending: true });
+        const { data: allEvents } = await supabase.from('wedding_events').select('*').eq('wedding_id', wedding.id).order('date', { ascending: true }).order('time', { ascending: true });
         
         let filteredEvents = [];
 
@@ -212,8 +212,7 @@ async function initDynamicInvite() {
             },
             hashtag: wedding.hashtag,
             mainDatePlace: `${new Date(wedding.start_date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
-            timerTarget: filteredEvents.length > 0 ? filteredEvents[0].start_time : `${wedding.start_date}T10:00:00+05:30`,
-            instagram: wedding.instagram || "",
+            timerTarget: filteredEvents.length > 0 ? `${filteredEvents[0].date}T${filteredEvents[0].time || '00:00:00'}` : `${wedding.start_date}T10:00:00`,            instagram: wedding.instagram || "",
             instaLink: wedding.instagram 
                 ? (wedding.instagram.includes('instagram.com') ? wedding.instagram : `https://instagram.com/${wedding.instagram.replace('@','')}`) 
                 : "#",
@@ -221,22 +220,27 @@ async function initDynamicInvite() {
         };
 
         weddingEventsData = filteredEvents.map((ev, index) => {
-            const evDate = new Date(ev.start_time || ev.date);
+            const timeStr = ev.time && ev.time.length === 5 ? ev.time + ':00' : (ev.time || '00:00:00');
+            const evDate = new Date(`${ev.date}T${timeStr}`);
+            
             return {
                 id: `event-${ev.id}`,
-                label: ev.title,
-                title: ev.display_title,
+                label: ev.event_name || 'Untitled Event',
+                title: ev.title || "",
                 subtitle: ev.subtitle || "", 
-                quote: ev.quote || "", 
+                quote: ev.one_liner || "", 
                 description: ev.description || "",
                 month: evDate.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
                 day: evDate.getDate().toString(),
                 dateText: evDate.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
                 time: evDate.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit' }) + " onwards",
                 location: ev.venue,
-                directions: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue)}`,
+                
+                // UPDATED: Uses venue_map_link if available, otherwise falls back to a Google Maps search
+                directions: ev.venue_map_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue)}`,
+                
                 nextTarget: index < filteredEvents.length - 1 ? `#event-${filteredEvents[index+1].id}` : "#about-us",
-                nextLabel: index < filteredEvents.length - 1 ? filteredEvents[index+1].title : "About Us"
+                nextLabel: index < filteredEvents.length - 1 ? (filteredEvents[index+1].event_name || 'Next Event') : "About Us"
             };
         });
 
@@ -378,16 +382,17 @@ const generateEventHTML = (event) => `
             
             <div class="card-inner">
                 <div class="hero">
-                    <h2 class="event-title" style="color: #ffffff !important; font-size: 2.2rem; letter-spacing: 0.15em; text-transform: uppercase; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${event.label}</h2>
+                    <h2 class="event-title" style="color: var(--color-secondary) !important; font-size: 2.2rem; letter-spacing: 0.28em; text-transform: uppercase; text-shadow: 0 0 12px rgba(var(--theme-accent-rgb), 0.4) !important;">${event.label}</h2>
                     
                     ${event.title ? `
                         <div class="hero-divider" style="margin: 15px auto;"></div>
-                        <div class="tagline" style="font-size: 1.1rem; font-family: 'Georgia', serif; font-weight: bold; color: #ffffff !important; text-transform: uppercase; text-shadow: none !important;">${event.title}</div>
+                        <div class="tagline" style="font-size: 1.4rem; font-family: 'Georgia', serif; font-weight: bold; color: #ffffff !important; text-transform: uppercase; text-shadow: none !important;">${event.title}</div>
                     ` : ''}
+
+                    <br/>
                     
                     ${event.quote ? `
-                        <div class="hero-divider" style="margin: 15px auto;"></div>
-                        <div class="event-subtitle" style="font-style: italic; color: #ffffff !important; font-size: 0.95rem; line-height: 1.5; padding: 0 10px; text-shadow: none !important;">"${event.quote}"</div>
+                        <div class="event-subtitle" style="font-style: italic; color: #ffffff !important; font-size: 1.1rem; line-height: 1.5; padding: 0 10px; margin-top: 10px; text-shadow: none !important;">"${event.quote}"</div>
                     ` : ''}
                     
                     <div class="hero-divider" style="margin: 20px auto;"></div>
@@ -395,15 +400,15 @@ const generateEventHTML = (event) => `
                     <div class="event-meta" style="margin-top: 15px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; gap: 15px;">
                         <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
                             <div class="calendar-icon" style="min-width: 44px;"><span class="cal-month">${event.month}</span><span class="cal-day">${event.day}</span></div>
-                            <span class="event-value" style="font-size: 1.1rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important;">${event.dateText}</span>
+                            <span class="event-value" style="font-size: 1.3rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important;">${event.dateText}</span>
                         </div>
                         <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-                            <span style="font-size: 1.8rem; min-width: 44px; text-align: center;">⏰</span>
-                            <span class="event-value" style="font-size: 1.1rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important;">${event.time}</span>
+                            <span style="font-size: 1.4rem; min-width: 44px; text-align: center;">⏰</span>
+                            <span class="event-value" style="font-size: 1.3rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important;">${event.time}</span>
                         </div>
                         <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-                            <span style="font-size: 1.8rem; min-width: 44px; text-align: center; color: var(--color-secondary);">📍</span>
-                            <span class="event-value" style="font-size: 1.1rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important; text-align: center;">${event.location}</span>
+                            <span style="font-size: 1.4rem; min-width: 44px; text-align: center; color: var(--color-secondary);">📍</span>
+                            <span class="event-value" style="font-size: 1.3rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important; text-align: center;">${event.location}</span>
                         </div>
                     </div>
                     
@@ -413,7 +418,7 @@ const generateEventHTML = (event) => `
                     
                     ${event.description ? `
                         <div class="hero-divider" style="margin: 25px auto;"></div>
-                        <p class="event-text" style="font-size: 0.95rem; color: #ffffff !important; padding: 0 15px; line-height: 1.6; text-shadow: none !important;">${event.description}</p>
+                        <p class="event-text" style="font-size: 1.05rem; color: #ffffff !important; padding: 0 15px; line-height: 1.6; text-shadow: none !important;">${event.description}</p>
                     ` : ''}
                 </div>
             </div>

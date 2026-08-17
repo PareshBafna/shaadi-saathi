@@ -23,10 +23,10 @@ function generateSampleData(weddingId) {
             has_web_invite: true
         };
         events = [
-            { id: 'e1', title: 'Engagement Ring Ceremony', date: '2026-08-13', start_time: '2026-08-13T17:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
-            { id: 'e2', title: 'Haldi & Floral Bath', date: '2026-08-14', start_time: '2026-08-14T10:30:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
-            { id: 'e3', title: 'Sangeet & Cocktail Night', date: '2026-08-15', start_time: '2026-08-15T19:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
-            { id: 'e4', title: 'Wedding & Reception', date: '2026-08-16', start_time: '2026-08-16T18:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' }
+            { id: 'e1', event_name: 'Engagement Ring Ceremony', title: 'Engagement Ring Ceremony', date: '2026-08-13', time: '17:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
+            { id: 'e2', event_name: 'Haldi & Floral Bath', title: 'Haldi & Floral Bath', date: '2026-08-14', time: '10:30:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
+            { id: 'e3', event_name: 'Sangeet & Cocktail Night', title: 'Sangeet & Cocktail Night', date: '2026-08-15', time: '19:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
+            { id: 'e4', event_name: 'Wedding & Reception', title: 'Wedding & Reception', date: '2026-08-16', time: '18:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' }
         ];
         hosts = [
             { name: 'Amit Sharma', phone: '+919876543210' },
@@ -47,10 +47,10 @@ function generateSampleData(weddingId) {
             has_web_invite: true
         };
         events = [
-            { id: 'e5', title: 'Welcome Hi-Tea', date: '2026-09-28', start_time: '2026-09-28T16:00:00', venue: 'Royal Palace Hall, Jaipur' },
-            { id: 'e6', title: 'Mehendi Celebration', date: '2026-09-28', start_time: '2026-09-28T19:00:00', venue: 'Royal Palace Hall, Jaipur' },
-            { id: 'e7', title: 'Sangeet Night', date: '2026-09-29', start_time: '2026-09-29T18:30:00', venue: 'Royal Palace Hall, Jaipur' },
-            { id: 'e8', title: 'Pheras & Wedding Lunch', date: '2026-09-30', start_time: '2026-09-30T11:00:00', venue: 'Royal Palace Hall, Jaipur' }
+            { id: 'e5', event_name: 'Welcome Hi-Tea', title: 'Welcome Hi-Tea', date: '2026-09-28', time: '16:00:00', venue: 'Royal Palace Hall, Jaipur' },
+            { id: 'e6', event_name: 'Mehendi Celebration', title: 'Mehendi Celebration', date: '2026-09-28', time: '19:00:00', venue: 'Royal Palace Hall, Jaipur' },
+            { id: 'e7', event_name: 'Sangeet Night', title: 'Sangeet Night', date: '2026-09-29', time: '18:30:00', venue: 'Royal Palace Hall, Jaipur' },
+            { id: 'e8', event_name: 'Pheras & Wedding Lunch', title: 'Pheras & Wedding Lunch', date: '2026-09-30', time: '11:00:00', venue: 'Royal Palace Hall, Jaipur' }
         ];
         hosts = [
             { name: 'Sanjay Patel', phone: '+919876543222' }
@@ -70,10 +70,10 @@ function generateSampleData(weddingId) {
             has_web_invite: false
         };
         events = [
-            { id: 'e9', title: 'Welcome Dinner', date: '2026-04-16', start_time: '2026-04-16T20:00:00', venue: 'City Club Main Banquet, Mumbai' },
-            { id: 'e10', title: 'Haldi & Puja', date: '2026-04-17', start_time: '2026-04-17T09:30:00', venue: 'City Club Main Banquet, Mumbai' },
-            { id: 'e11', title: 'Sangeet Evening', date: '2026-04-17', start_time: '2026-04-17T19:00:00', venue: 'City Club Main Banquet, Mumbai' },
-            { id: 'e12', title: 'Grand Reception', date: '2026-04-18', start_time: '2026-04-18T19:00:00', venue: 'City Club Main Banquet, Mumbai' }
+            { id: 'e9', event_name: 'Welcome Dinner', title: 'Welcome Dinner', date: '2026-04-16', time: '20:00:00', venue: 'City Club Main Banquet, Mumbai' },
+            { id: 'e10', event_name: 'Haldi & Puja', title: 'Haldi & Puja', date: '2026-04-17', time: '09:30:00', venue: 'City Club Main Banquet, Mumbai' },
+            { id: 'e11', event_name: 'Sangeet Evening', title: 'Sangeet Evening', date: '2026-04-17', time: '19:00:00', venue: 'City Club Main Banquet, Mumbai' },
+            { id: 'e12', event_name: 'Grand Reception', title: 'Grand Reception', date: '2026-04-18', time: '19:00:00', venue: 'City Club Main Banquet, Mumbai' }
         ];
         hosts = [
             { name: 'Rajesh Gupta', phone: '+919876543233' }
@@ -99,10 +99,10 @@ function generateSampleData(weddingId) {
             has_web_invite: true
         };
         events = [
-            { id: 'e13', title: 'Paath Bithai', date: formatDateString(day1), start_time: `${formatDateString(day1)}T10:31:00`, venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
-            { id: 'e14', title: 'Tamil Night', date: formatDateString(day1), start_time: `${formatDateString(day1)}T18:30:00`, venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
-            { id: 'e15', title: 'Haldi & Carnival', date: formatDateString(day2), start_time: `${formatDateString(day2)}T11:00:00`, venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
-            { id: 'e16', title: 'Reception', date: formatDateString(day3), start_time: `${formatDateString(day3)}T11:00:00`, venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' }
+            { id: 'e13', event_name: 'Paath Bithai', title: 'Paath Bithai', date: formatDateString(day1), time: '10:31:00', venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
+            { id: 'e14', event_name: 'Tamil Night', title: 'Tamil Night', date: formatDateString(day1), time: '18:30:00', venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
+            { id: 'e15', event_name: 'Haldi & Carnival', title: 'Haldi & Carnival', date: formatDateString(day2), time: '11:00:00', venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
+            { id: 'e16', event_name: 'Reception', title: 'Reception', date: formatDateString(day3), time: '11:00:00', venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' }
         ];
         hosts = [
             { name: 'Ramesh Jain', phone: '+919876500001' },
@@ -357,9 +357,11 @@ function buildMockEvents(events) {
     section.appendChild(content);
 
     const formatTime = (timeStr) => {
-        const d = new Date(timeStr);
-        let h = d.getHours();
-        const m = String(d.getMinutes()).padStart(2, '0');
+        if (!timeStr) return '';
+        const [hoursStr, minutesStr] = timeStr.split(':');
+        let h = parseInt(hoursStr, 10);
+        if (isNaN(h)) return timeStr;
+        const m = minutesStr || '00';
         const ampm = h >= 12 ? 'PM' : 'AM';
         h = h % 12 || 12;
         return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
@@ -391,9 +393,9 @@ function buildMockEvents(events) {
             htmlContent += `
                 <div class="timeline-event-card" style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
                     <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
-                    <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.title}</h4>
+                    <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.event_name || ev.title || 'Untitled Event'}</h4>
                     <div style="display: flex; gap: 16px; color: var(--color-text-secondary); font-size: var(--font-size-sm); flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 6px;"><i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.start_time)}</div>
+                        <div style="display: flex; align-items: center; gap: 6px;"><i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.time)}</div>
                         <div style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> ${venueHTML}</div>
                     </div>
                 </div>
@@ -477,9 +479,9 @@ function buildMockGuests(guests, events) {
         listHTML += paginatedGuests.map((guest, index) => {
             const globalIndex = startIndex + index + 1;
             const guestEvents = events.filter(e => guest.invited_events.includes(e.id));
-            guestEvents.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+            guestEvents.sort((a, b) => new Date(a.date + 'T' + (a.time || '00:00:00')).getTime() - new Date(b.date + 'T' + (b.time || '00:00:00')).getTime());
 
-            const eventsTags = guestEvents.map(e => `<span style="background: var(--color-border); padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="calendar" style="width:12px; height:12px;"></i> ${e.title}</span>`).join('');
+            const eventsTags = guestEvents.map(e => `<span style="background: var(--color-border); padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="calendar" style="width:12px; height:12px;"></i> ${e.event_name || e.title}</span>`).join('');
 
             return `
             <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">

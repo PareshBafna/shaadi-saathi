@@ -374,27 +374,7 @@ function renderFilteredEvents() {
         return;
     }
 
-    displayEvents.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-
-    const formatTime = (timeStr) => {
-        if (!timeStr) return '';
-        const d = new Date(timeStr);
-        if (!isNaN(d)) {
-            let h = d.getHours();
-            const m = String(d.getMinutes()).padStart(2, '0');
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12;
-            return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
-        } else {
-            const timePart = timeStr.includes('T') ? timeStr.split('T')[1] : timeStr;
-            const [hoursStr, minutesStr] = timePart.split(':');
-            let h = parseInt(hoursStr, 10);
-            const m = minutesStr || '00';
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12;
-            return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
-        }
-    };
+    displayEvents.sort((a, b) => new Date(`${a.date} ${a.time || '12:00 AM'}`).getTime() - new Date(`${b.date} ${b.time || '12:00 AM'}`).getTime());
 
     let html = `
         <h3 style="font-size: 1.1rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0 0 var(--space-4) 0; border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-3);">
@@ -444,10 +424,10 @@ function renderFilteredEvents() {
                         
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
                             <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <h4 style="margin: 0; font-size: 1.15rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.title}</h4>
+                                <h4 style="margin: 0; font-size: 1.15rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.event_name || ev.title}</h4>
                                 <div style="display: flex; gap: 16px; color: var(--color-text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium); flex-wrap: wrap; margin-top: 4px;">
                                     <div style="display: flex; align-items: center; gap: 6px;">
-                                        <i data-lucide="clock" style="width: 16px; height: 16px; color: var(--color-text-secondary);"></i> ${formatTime(ev.start_time)}
+                                        <i data-lucide="clock" style="width: 16px; height: 16px; color: var(--color-text-secondary);"></i> ${ev.time || '-'}
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <i data-lucide="map-pin" style="width: 16px; height: 16px; color: var(--color-text-secondary);"></i> ${venueHTML}

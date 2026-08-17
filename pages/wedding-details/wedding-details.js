@@ -335,22 +335,14 @@ function buildEventItinerarySection(wedding, events, canConfig) {
 
     const formatTime = (timeStr) => {
         if (!timeStr) return '';
-        const d = new Date(timeStr);
-        if (!isNaN(d)) {
-            let h = d.getHours();
-            const m = String(d.getMinutes()).padStart(2, '0');
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12;
-            return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
-        } else {
-            const timePart = timeStr.includes('T') ? timeStr.split('T')[1] : timeStr;
-            const [hoursStr, minutesStr] = timePart.split(':');
-            let h = parseInt(hoursStr, 10);
-            const m = minutesStr || '00';
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12;
-            return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
-        }
+        const timePart = timeStr.includes('T') ? timeStr.split('T')[1] : timeStr;
+        const [hoursStr, minutesStr] = timePart.split(':');
+        let h = parseInt(hoursStr, 10);
+        if (isNaN(h)) return timeStr;
+        const m = minutesStr || '00';
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
     };
 
     function renderEventsView() {
@@ -359,7 +351,13 @@ function buildEventItinerarySection(wedding, events, canConfig) {
             return;
         }
         
-        const sortedEvents = [...events].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
+        const sortedEvents = [...events].sort((a, b) => {
+            const timeA = a.time || '00:00:00';
+            const timeB = b.time || '00:00:00';
+            return new Date(`${a.date}T${timeA.length === 5 ? timeA + ':00' : timeA}`).getTime() - 
+                   new Date(`${b.date}T${timeB.length === 5 ? timeB + ':00' : timeB}`).getTime();
+        });
+
         const groupedEvents = sortedEvents.reduce((groups, ev) => {
             const dateObj = new Date(ev.date);
             const dateString = isNaN(dateObj) ? ev.date : dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -388,18 +386,23 @@ function buildEventItinerarySection(wedding, events, canConfig) {
                     ? `<a href="${ev.venue_map_link}" target="_blank" style="line-height: 1.4; color: var(--color-primary); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; transition: color 0.2s;" onmouseover="this.style.color='var(--color-text-primary)'" onmouseout="this.style.color='var(--color-primary)'">${ev.venue}</a>`
                     : `<span style="line-height: 1.4;">${ev.venue}</span>`;
 
+                // CHANGED: Use only event_name and removed the subTitleHTML logic completely
+                const eventHeading = ev.event_name || 'Untitled Event';
+
                 htmlContent += `
                     <div class="timeline-event-card" style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
                         <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
                         
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.title}</h4>
+                            <div style="display: flex; align-items: baseline; gap: 8px;">
+                                <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${eventHeading}</h4>
+                            </div>
                             ${editIcon}
                         </div>
                         
                         <div style="display: flex; gap: 16px; color: var(--color-text-secondary); font-size: var(--font-size-sm); flex-wrap: wrap;">
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.start_time)}
+                                <i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.time)}
                             </div>
                             <div style="display: flex; align-items: center; gap: 6px;">
                                 <i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> ${venueHTML}
@@ -989,7 +992,7 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
             const globalIndex = startIndex + index + 1;
             const guestEvents = events ? events.filter(e => guest.invited_events?.includes(e.id)) : [];
             const eventsTags = guestEvents.length > 0 
-                ? guestEvents.map(e => `<span style="background: var(--color-border); padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="calendar" style="width:12px; height:12px;"></i> ${e.title}</span>`).join('')
+                ? guestEvents.map(e => `<span style="background: var(--color-border); padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="calendar" style="width:12px; height:12px;"></i> ${e.event_name || e.title}</span>`).join('')
                 : `<span style="color: var(--color-text-muted); font-size: 0.8rem; font-style: italic;">No events assigned</span>`;
 
             const cleanPhone = guest.phone ? guest.phone.replace(/[^0-9+]/g, '') : '';
@@ -1000,10 +1003,16 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
             if (guest.phone && hasInvitedEvents) {
                 const displayNames = wedding.primary_side === 'groom' ? `${wedding.groom_name} & ${wedding.bride_name}` : `${wedding.bride_name} & ${wedding.groom_name}`;
                 const weddingUrl = `https://shaadi-saathi.pages.dev/#wedding-details?id=${wedding.id}`;
-                const sortedGuestEvents = [...guestEvents].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
+                const sortedGuestEvents = [...guestEvents].sort((a, b) => {
+                    const timeA = a.time || '00:00:00';
+                    const timeB = b.time || '00:00:00';
+                    return new Date(`${a.date}T${timeA.length === 5 ? timeA + ':00' : timeA}`).getTime() - 
+                           new Date(`${b.date}T${timeB.length === 5 ? timeB + ':00' : timeB}`).getTime();
+                });
+                
                 const eventsListText = sortedGuestEvents.map(ev => {
                     const evDate = new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    return `• ${ev.title} (${evDate})`;
+                    return `• ${ev.event_name || ev.title} (${evDate})`;
                 }).join('\n');
 
                 const waMessage = `Jai Jinendra,\n\n*${(guest.name || '').toUpperCase()}*,\n\n*${(wedding.family_name || '').toUpperCase()}* Family has sent you an invitation for the wedding of *${displayNames}* on *_Shaadi Saathi_*.\n\nYou are cordially invited to the following events:\n${eventsListText}\n\nClick the link below to view the complete invitation and event details:\n${weddingUrl}\n\nAwaiting your gracious presence.\n\nRegards,\n*${wedding.family_details || ''}*\n\n*_Shaadi Saathi_*`;
@@ -1441,24 +1450,15 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                         return;
                     }
 
-                    const timezoneOffset = new Date().getTimezoneOffset();
-                    const sign = timezoneOffset > 0 ? '-' : '+';
-                    const absOffset = Math.abs(timezoneOffset);
-                    const offsetHours = String(Math.floor(absOffset / 60)).padStart(2, '0');
-                    const offsetMinutes = String(absOffset % 60).padStart(2, '0');
-                    const formattedOffset = `${sign}${offsetHours}:${offsetMinutes}`;
-
-                    const fullStartTimestamp = `${selectedDate}T${selectedTime}:00${formattedOffset}`;
-
                     try {
                         const { error } = await supabase.from('wedding_events').insert([{ 
                             wedding_id: weddingId,
-                            title: document.getElementById('eventName').value.trim(),
-                            display_title: document.getElementById('eventDisplayTitle').value.trim(),
+                            event_name: document.getElementById('eventName').value.trim(),
+                            title: document.getElementById('eventDisplayTitle').value.trim(),
                             one_liner: document.getElementById('eventOneLiner').value.trim(),
                             description: document.getElementById('eventDescription').value.trim(),
                             date: selectedDate,
-                            start_time: fullStartTimestamp,
+                            time: selectedTime,
                             venue: document.getElementById('eventVenue').value.trim(),
                             venue_map_link: document.getElementById('eventVenueMapLink').value.trim()
                         }]);
@@ -1538,17 +1538,10 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
     });
 
     let timeValue = '';
-    if (ev.start_time) {
-        const d = new Date(ev.start_time);
-        if (!isNaN(d)) {
-            const hours = String(d.getHours()).padStart(2, '0');
-            const minutes = String(d.getMinutes()).padStart(2, '0');
-            timeValue = `${hours}:${minutes}`;
-        } else {
-            const timePart = ev.start_time.includes('T') ? ev.start_time.split('T')[1] : ev.start_time;
-            const [hours, minutes] = timePart.split(':');
-            timeValue = `${hours}:${minutes}`;
-        }
+    if (ev.time) {
+        const timePart = ev.time.includes('T') ? ev.time.split('T')[1] : ev.time;
+        const [hours, minutes] = timePart.split(':');
+        timeValue = `${hours}:${minutes}`;
     }
 
     const formHTML = `
@@ -1563,11 +1556,11 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
             <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Event Name *</label>
-                    <input type="text" id="editEventName" value="${ev.title || ''}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <input type="text" id="editEventName" value="${ev.event_name || ev.title || ''}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
                 <div style="flex: 1; min-width: 140px;">
                     <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Display Title *</label>
-                    <input type="text" id="editEventDisplayTitle" value="${ev.display_title || ''}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <input type="text" id="editEventDisplayTitle" value="${ev.title || ev.display_title || ''}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
                 </div>
             </div>
 
@@ -1687,23 +1680,14 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                         return;
                     }
 
-                    const timezoneOffset = new Date().getTimezoneOffset();
-                    const sign = timezoneOffset > 0 ? '-' : '+';
-                    const absOffset = Math.abs(timezoneOffset);
-                    const offsetHours = String(Math.floor(absOffset / 60)).padStart(2, '0');
-                    const offsetMinutes = String(absOffset % 60).padStart(2, '0');
-                    const formattedOffset = `${sign}${offsetHours}:${offsetMinutes}`;
-
-                    const fullStartTimestamp = `${selectedDate}T${selectedTime}:00${formattedOffset}`;
-
                     try {
                         const { error } = await supabase.from('wedding_events').update({ 
-                            title: document.getElementById('editEventName').value.trim(),
-                            display_title: document.getElementById('editEventDisplayTitle').value.trim(),
+                            event_name: document.getElementById('editEventName').value.trim(),
+                            title: document.getElementById('editEventDisplayTitle').value.trim(),
                             one_liner: document.getElementById('editEventOneLiner').value.trim(),
                             description: document.getElementById('editEventDescription').value.trim(),
                             date: selectedDate,
-                            start_time: fullStartTimestamp,
+                            time: selectedTime,
                             venue: document.getElementById('editEventVenue').value.trim(),
                             venue_map_link: document.getElementById('editEventVenueMapLink').value.trim()
                         }).eq('id', ev.id);
@@ -1726,8 +1710,8 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
         convertToSearchableDropdown('editTemplateSelect');
 
         if (ev) {
-            document.getElementById('editEventName').value = ev.title || '';
-            document.getElementById('editEventDisplayTitle').value = ev.display_title || '';
+            document.getElementById('editEventName').value = ev.event_name || ev.title || '';
+            document.getElementById('editEventDisplayTitle').value = ev.title || ev.display_title || '';
             document.getElementById('editEventOneLiner').value = ev.one_liner || '';
             document.getElementById('editEventDescription').value = ev.description || '';
             document.getElementById('editEventVenue').value = ev.venue || '';
@@ -1774,12 +1758,17 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
 // GUESTS MODALS
 // ==========================================
 window.openGuestModal = function(weddingId, events = []) {
-    const sortedModalEvents = [...events].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
+    const sortedModalEvents = [...events].sort((a, b) => {
+        const timeA = a.time || '00:00:00';
+        const timeB = b.time || '00:00:00';
+        return new Date(`${a.date}T${timeA.length === 5 ? timeA + ':00' : timeA}`).getTime() - 
+               new Date(`${b.date}T${timeB.length === 5 ? timeB + ':00' : timeB}`).getTime();
+    });
     
     const eventCheckboxes = sortedModalEvents.length > 0 ? sortedModalEvents.map(ev => `
         <label style="display: flex; align-items: center; gap: 8px; font-size: var(--font-size-sm); color: var(--color-text-primary); cursor: pointer;">
             <input type="checkbox" name="guest_events" value="${ev.id}" style="accent-color: var(--color-primary); cursor: pointer;">
-            ${ev.title} (${new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+            ${ev.event_name || ev.title} (${new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
         </label>
     `).join('') : `<div style="color: var(--color-text-muted); font-size: var(--font-size-xs);">No events available yet.</div>`;
 
@@ -1914,12 +1903,17 @@ window.openEditGuestModal = async function(weddingId, guestId) {
     }
 
     const invitedList = guest.invited_events || [];
-    const sortedModalEvents = [...events].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
+    const sortedModalEvents = [...events].sort((a, b) => {
+        const timeA = a.time || '00:00:00';
+        const timeB = b.time || '00:00:00';
+        return new Date(`${a.date}T${timeA.length === 5 ? timeA + ':00' : timeA}`).getTime() - 
+               new Date(`${b.date}T${timeB.length === 5 ? timeB + ':00' : timeB}`).getTime();
+    });
     
     const eventCheckboxes = sortedModalEvents.length > 0 ? sortedModalEvents.map(ev => `
         <label style="display: flex; align-items: center; gap: 8px; font-size: var(--font-size-sm); color: var(--color-text-primary); cursor: pointer;">
             <input type="checkbox" name="guest_events" value="${ev.id}" ${invitedList.includes(ev.id) ? 'checked' : ''} style="accent-color: var(--color-primary); cursor: pointer;">
-            ${ev.title} (${new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+            ${ev.event_name || ev.title} (${new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
         </label>
     `).join('') : `<div style="color: var(--color-text-muted); font-size: var(--font-size-xs);">No events available yet.</div>`;
 
@@ -2077,8 +2071,14 @@ window.downloadSampleExcel = function() {
 
     const events = window.__currentEvents || [];
     
-    const sortedEvents = [...events].sort((a, b) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
-    const eventTitles = sortedEvents.map(e => e.title);
+    const sortedEvents = [...events].sort((a, b) => {
+        const timeA = a.time || '00:00:00';
+        const timeB = b.time || '00:00:00';
+        return new Date(`${a.date}T${timeA.length === 5 ? timeA + ':00' : timeA}`).getTime() - 
+               new Date(`${b.date}T${timeB.length === 5 ? timeB + ':00' : timeB}`).getTime();
+    });
+    
+    const eventTitles = sortedEvents.map(e => e.event_name || e.title);
     
     const headers = ["Name", "Phone Number", ...eventTitles];
     
@@ -2222,7 +2222,8 @@ window.triggerCSVImport = function(weddingId) {
 
                     const eventMappings = [];
                     for (const ev of events) {
-                        const val = row[ev.title]?.toString().trim().toUpperCase();
+                        const colKey = ev.event_name || ev.title;
+                        const val = row[colKey]?.toString().trim().toUpperCase();
                         if (val === 'Y' || val === 'YES') {
                             eventMappings.push({ event_id: ev.id, guest_id: guestId });
                         }
