@@ -121,8 +121,8 @@ export async function renderSampleWebInvites() {
     };
 
     await Promise.all([
-        loadCSS('web-invite-splash-styles', '/web-invites/css/splash.css'),
-        loadCSS('web-invite-base-styles', '/web-invites/css/style.css')
+        loadCSS('web-invite-splash-styles', '/global/css/splash.css'),
+        loadCSS('web-invite-base-styles', '/global/css/invite.css')
     ]);
 
     const preloaderStyle = document.createElement('style');
@@ -136,7 +136,7 @@ export async function renderSampleWebInvites() {
     const dynamicStyle = document.createElement('style');
     dynamicStyle.innerHTML = `
         :root { --color-primary: ${colors.main} !important; --color-secondary: ${colors.accent} !important; --color-bg-dark: ${colors.bgDark} !important; --theme-accent-rgb: ${currentThemeRGB.accent} !important; --theme-bg-dark-rgb: ${currentThemeRGB.bgDark} !important; }
-        html, body { background-color: var(--color-bg-dark) !important; background-image: url('/web-invites/images/background/${selectedThemeName}-background.png') !important; background-size: cover !important; background-position: center !important; background-attachment: fixed !important; background-repeat: no-repeat !important; }
+        html, body { background-color: var(--color-bg-dark) !important; background-image: url('/global/images/background/${selectedThemeName}-background.png') !important; background-size: cover !important; background-position: center !important; background-attachment: fixed !important; background-repeat: no-repeat !important; }
         .video-overlay, .color-morph, #splash-screen { background: rgba(var(--theme-bg-dark-rgb), 0.75) !important; }
         .card { background: linear-gradient(145deg, rgba(var(--theme-bg-dark-rgb), 0.95), #000000) !important; border: 1px solid var(--color-secondary) !important; animation: card-pop 0.9s ease-out, themeGlowPulse 4s ease-in-out 0.8s infinite alternate !important; }
         .hero-divider, .event-divider, .garland-top { background: var(--color-secondary) !important; box-shadow: 0 0 10px var(--color-secondary) !important; border-top-color: var(--color-secondary) !important; }
@@ -193,7 +193,7 @@ export async function renderSampleWebInvites() {
         <main id="main-content-area"></main>
         
         <button class="back-to-top hidden" data-target="#welcome">↑</button>
-        <audio id="bgMusic" src="/web-invites/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
+        <audio id="bgMusic" src="/global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
     `;
     document.body.appendChild(wrapper);
 

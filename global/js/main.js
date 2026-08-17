@@ -25,7 +25,7 @@ import { renderWebInvites } from '../../pages/web-invites/web-invites.js';
 // ==========================================
 // PENDING REFACTOR (Old Architecture Paths)
 // ==========================================
-import { renderSampleWebInvites } from '../../web-invites/js/sample-web-invites.js';
+import { renderSampleWebInvites } from '../../pages/sample-web-invites-preview/sample-web-invites-preview.js';
 
 // --- CENTRALIZED SESSION VALIDATION HELPER ---
 export function checkSessionOrShowAlert() {

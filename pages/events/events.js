@@ -154,10 +154,10 @@ function renderEventsList() {
                 </div>
 
                 <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-style: italic; ${textClampStyle}">
-                    "${ev.one_liner || '-'}"
+                    ${ev.one_liner || '-'}
                 </div>
 
-                <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); ${textClampStyle}">
+                <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); line-height: 1.4; white-space: normal;">
                     ${ev.description || '-'}
                 </div>
             </div>
