@@ -61,7 +61,7 @@ function buildSidebarBrand(collapsed) {
 
   const logoImg = document.createElement("img");
   logoImg.classList.add("sidebar__brand-logo");
-  logoImg.src = "/assets/logos/logo.png";
+  logoImg.src = "/global/logos/logo.png";
   logoImg.alt = "Shaadi Saathi";
   brand.appendChild(logoImg);
 

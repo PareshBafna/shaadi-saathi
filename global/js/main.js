@@ -18,13 +18,9 @@ import { renderWeddingDetails } from '../../pages/wedding-details/wedding-detail
 import { renderEvents } from '../../pages/events/events.js'; 
 import { renderUsers } from '../../pages/users/users.js';
 import { renderHosts } from '../../pages/hosts/hosts.js';
+import { renderWebInvites } from '../../pages/web-invites/web-invites.js';
 import { renderSampleWeddings } from '../../pages/sample-weddings/sample-weddings.js';
 import { renderSampleWeddingDetails } from '../../pages/sample-wedding-details/sample-wedding-details.js';
-import { renderWebInvites } from '../../pages/web-invites/web-invites.js';
-
-// ==========================================
-// PENDING REFACTOR (Old Architecture Paths)
-// ==========================================
 import { renderSampleWebInvites } from '../../pages/sample-web-invites-preview/sample-web-invites-preview.js';
 
 // --- CENTRALIZED SESSION VALIDATION HELPER ---

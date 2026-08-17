@@ -82,7 +82,7 @@ async function initDynamicInvite() {
         const dynamicStyle = document.createElement('style');
         dynamicStyle.innerHTML = `
             :root { --color-primary: ${colors.main} !important; --color-secondary: ${colors.accent} !important; --color-bg-dark: ${colors.bgDark} !important; --theme-accent-rgb: ${currentThemeRGB.accent} !important; --theme-bg-dark-rgb: ${currentThemeRGB.bgDark} !important; }
-            html, body { background-color: var(--color-bg-dark) !important; background-image: url('web-invites/images/background/${selectedThemeName}-background.png') !important; background-size: cover !important; background-position: center !important; background-attachment: fixed !important; background-repeat: no-repeat !important; }
+            html, body { background-color: var(--color-bg-dark) !important; background-image: url('global/images/background/${selectedThemeName}-background.png') !important; background-size: cover !important; background-position: center !important; background-attachment: fixed !important; background-repeat: no-repeat !important; }
             .video-overlay, .color-morph, #splash-screen { background: rgba(var(--theme-bg-dark-rgb), 0.75) !important; }
             .card { background: linear-gradient(145deg, rgba(var(--theme-bg-dark-rgb), 0.95), #000000) !important; border: 1px solid var(--color-secondary) !important; animation: card-pop 0.9s ease-out, themeGlowPulse 4s ease-in-out 0.8s infinite alternate !important; }
             .hero-divider, .event-divider, .garland-top { background: var(--color-secondary) !important; box-shadow: 0 0 10px var(--color-secondary) !important; border-top-color: var(--color-secondary) !important; }
@@ -137,7 +137,7 @@ async function initDynamicInvite() {
         const isWeddingUser = (rawWUsers || []).some(w => w.user_id === curUser.id);
         const canViewAll = isCreator || isHost || isWeddingUser;
 
-        const { data: allEvents } = await supabase.from('events').select('*').eq('wedding_id', wedding.id).order('start_time', { ascending: true });
+        const { data: allEvents } = await supabase.from('wedding_events').select('*').eq('wedding_id', wedding.id).order('start_time', { ascending: true });
         
         let filteredEvents = [];
 
@@ -225,7 +225,7 @@ async function initDynamicInvite() {
             return {
                 id: `event-${ev.id}`,
                 label: ev.title,
-                title: ev.title,
+                title: ev.display_title,
                 subtitle: ev.subtitle || "", 
                 quote: ev.quote || "", 
                 description: ev.description || "",
@@ -373,51 +373,51 @@ const generateCoupleHTML = () => {
 const generateEventHTML = (event) => `
     <section class="full-page js-reveal" id="${event.id}">
         <div class="card">
-            <div class="flower-corner flower-top-left"></div><div class="flower-corner flower-bottom-right"></div>
+            <div class="flower-corner flower-top-left"></div><div class="flower-corner flower-top-right"></div><div class="flower-corner flower-bottom-left"></div><div class="flower-corner flower-bottom-right"></div>
             <div class="garland-top"></div>
             
             <div class="card-inner">
                 <div class="hero">
-                    <h2 class="event-title" style="color: #ffffff !important; font-size: 2.2rem; letter-spacing: 0.15em; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${event.title}</h2>
+                    <h2 class="event-title" style="color: #ffffff !important; font-size: 2.2rem; letter-spacing: 0.15em; text-transform: uppercase; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${event.label}</h2>
                     
-                    ${event.subtitle ? `
-                        <div class="hero-divider"></div>
-                        <div class="tagline" style="font-size: 1.1rem; font-family: 'Georgia', serif; font-weight: bold; color: #ffffff !important; text-transform: uppercase; text-shadow: none !important;">${event.subtitle}</div>
+                    ${event.title ? `
+                        <div class="hero-divider" style="margin: 15px auto;"></div>
+                        <div class="tagline" style="font-size: 1.1rem; font-family: 'Georgia', serif; font-weight: bold; color: #ffffff !important; text-transform: uppercase; text-shadow: none !important;">${event.title}</div>
                     ` : ''}
                     
                     ${event.quote ? `
-                        <div class="hero-divider"></div>
+                        <div class="hero-divider" style="margin: 15px auto;"></div>
                         <div class="event-subtitle" style="font-style: italic; color: #ffffff !important; font-size: 0.95rem; line-height: 1.5; padding: 0 10px; text-shadow: none !important;">"${event.quote}"</div>
                     ` : ''}
                     
-                    <div class="hero-divider"></div>
+                    <div class="hero-divider" style="margin: 20px auto;"></div>
                     
-                    <div class="event-meta" style="margin-top: 15px; margin-bottom: 15px;">
-                        <div class="event-row" style="justify-content: flex-start; margin-left: 10%;">
+                    <div class="event-meta" style="margin-top: 15px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                        <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
                             <div class="calendar-icon" style="min-width: 44px;"><span class="cal-month">${event.month}</span><span class="cal-day">${event.day}</span></div>
-                            <span class="event-value" style="padding-left: 12px; font-size: 1.1rem; text-align: left; align-self: center; color: #ffffff !important; text-shadow: none !important;">${event.dateText}</span>
+                            <span class="event-value" style="font-size: 1.1rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important;">${event.dateText}</span>
                         </div>
-                        <div class="event-row" style="justify-content: flex-start; margin-left: 10%; margin-top: 10px;">
+                        <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
                             <span style="font-size: 1.8rem; min-width: 44px; text-align: center;">⏰</span>
-                            <span class="event-value" style="padding-left: 12px; font-size: 1.1rem; text-align: left; align-self: center; color: #ffffff !important; text-shadow: none !important;">${event.time}</span>
+                            <span class="event-value" style="font-size: 1.1rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important;">${event.time}</span>
                         </div>
-                        <div class="event-row" style="justify-content: flex-start; margin-left: 10%; margin-top: 10px;">
-                            <span style="font-size: 1.8rem; min-width: 44px; text-align: center;">📍</span>
-                            <span class="event-value" style="padding-left: 12px; font-size: 1.1rem; text-align: left; align-self: center; color: #ffffff !important; text-shadow: none !important;">${event.location}</span>
+                        <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                            <span style="font-size: 1.8rem; min-width: 44px; text-align: center; color: var(--color-secondary);">📍</span>
+                            <span class="event-value" style="font-size: 1.1rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important; text-align: center;">${event.location}</span>
                         </div>
                     </div>
                     
                     <div class="cta" style="margin-top: 20px;">
-                        <a class="btn" href="${event.directions}" target="_blank" rel="noopener noreferrer" style="padding: 8px 24px; font-size: 0.9rem;">Get Directions</a>
+                        <a class="btn" href="${event.directions}" target="_blank" rel="noopener noreferrer" style="padding: 10px 28px; font-size: 0.95rem; border-radius: 999px;">Get Directions</a>
                     </div>
                     
                     ${event.description ? `
-                        <div class="hero-divider" style="margin-top: 20px;"></div>
-                        <p class="event-text" style="font-size: 0.95rem; color: #ffffff !important; padding: 0 10px; line-height: 1.6; text-shadow: none !important;">${event.description}</p>
+                        <div class="hero-divider" style="margin: 25px auto;"></div>
+                        <p class="event-text" style="font-size: 0.95rem; color: #ffffff !important; padding: 0 15px; line-height: 1.6; text-shadow: none !important;">${event.description}</p>
                     ` : ''}
                 </div>
             </div>
-            <div class="hero-divider"></div>
+            <div class="hero-divider" style="margin: 20px auto;"></div>
             <div class="card-footer" style="text-align: center;"><button class="btn btn-secondary" data-next="${event.nextTarget}">Next: ${event.nextLabel} ↓</button></div>
         </div>
     </section>`;
