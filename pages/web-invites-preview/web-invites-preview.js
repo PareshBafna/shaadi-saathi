@@ -36,24 +36,75 @@ function generateInitialsLogo(name1, name2, colors) {
 async function initDynamicInvite() {
     const urlParams = new URLSearchParams(window.location.search);
     const inviteId = urlParams.get('id');
+    
+    // Redirect paths
+    const loginRedirectUrl = `/#login`;
+    const dashboardWeddingsUrl = '/#weddings'; 
 
-    if (!inviteId) {
-        document.body.innerHTML = "<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000;'><div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center;'><h1 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>Invalid Link</h1><p style='color:#ccc; font-family:sans-serif; margin:0;'>No wedding ID was provided.</p></div></div>";
+    // Helper to render standard SWAL errors with specific redirect buttons
+    const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
+        // 1. Completely clear the page HTML to remove hearts, petals, envelope, etc.
+        document.body.innerHTML = '';
+        
+        // 2. Force the background to be solid dark, overriding the theme's background image
+        document.body.style.setProperty('background-image', 'none', 'important');
+        document.body.style.setProperty('background-color', '#0f172a', 'important');
+        
+        // 3. Prevent preloader CSS from keeping the page invisible
+        document.body.classList.add('theme-loaded'); 
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: title,
+                text: text,
+                confirmButtonText: confirmBtnText,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                confirmButtonColor: '#eab308' // Yellow button to match dashboard
+            }).then(() => {
+                window.location.href = redirectUrl;
+            });
+        } else {
+            alert(title + "\n\n" + text);
+            window.location.href = redirectUrl;
+        }
+    };
+
+    // 1. Check Auth (User ID missing)
+    const ssUserId = localStorage.getItem('ss_user_id');
+    if (!ssUserId) {
+        showSwalError("Authentication Required", "Please log in to view this invitation.", "Go Back To Login", loginRedirectUrl);
+        return;
+    }
+
+    // 2. Validate UUID format (Wedding ID invalid)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!inviteId || (!uuidRegex.test(inviteId) && inviteId !== '00000000-0000-0000-0000-000000000000')) {
+        showSwalError("Invalid Link", "The wedding link is broken or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
         return;
     }
 
     window.history.replaceState(null, '', `/invite.html?id=${inviteId}`);
 
     try {
-        const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', inviteId).single();
-        if (wErr || !wedding) {
-            document.body.innerHTML = "<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000;'><div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center;'><h1 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>No Web Invite Found</h1><p style='color:#ccc; font-family:sans-serif; margin:0;'>We couldn't find an invitation for this link.</p></div></div>";
+        // Fetch Current User Details (User ID incorrect/not in DB)
+        const { data: curUser, error: userErr } = await supabase.from('users').select('*').eq('id', ssUserId).maybeSingle();
+        if (userErr || !curUser) {
+            showSwalError("Authentication Required", "User session not found. Please log in again.", "Go Back To Login", loginRedirectUrl);
             return;
         }
 
-        const { data: inviteDetails, error: iErr } = await supabase.from('wedding_web_invite').select('*').eq('wedding_id', wedding.id).single();
+        // 3. Fetch Wedding & Trigger the Incorrect Details error if missing
+        const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', inviteId).maybeSingle();
+        if (wErr || !wedding) {
+            showSwalError("Error", "Incorrect wedding details. Please contact Admin.", "Go Back to Weddings", dashboardWeddingsUrl);
+            return;
+        }
+
+        const { data: inviteDetails, error: iErr } = await supabase.from('wedding_web_invite').select('*').eq('wedding_id', wedding.id).maybeSingle();
         if (iErr || !inviteDetails) {
-            document.body.innerHTML = "<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000;'><div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center;'><h1 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>No Web Invite Found</h1><p style='color:#ccc; font-family:sans-serif; margin:0;'>The web invitation details for this wedding have not been set up yet.</p></div></div>";
+            showSwalError("Error", "Incorrect wedding details. Please contact Admin.", "Go Back to Weddings", dashboardWeddingsUrl);
             return;
         }
 
@@ -116,19 +167,6 @@ async function initDynamicInvite() {
         document.body.classList.add('theme-loaded');
         isThemeReady = true;
 
-        const ssUserId = localStorage.getItem('ss_user_id');
-
-        if (!ssUserId) {
-            window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
-            return;
-        }
-
-        const { data: curUser, error: userErr } = await supabase.from('users').select('*').eq('id', ssUserId).single();
-        if (userErr || !curUser) {
-            window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
-            return;
-        }
-
         const { data: rawHosts } = await supabase.from('wedding_hosts').select('user_id').eq('wedding_id', wedding.id);
         const { data: rawWUsers } = await supabase.from('wedding_users').select('user_id').eq('wedding_id', wedding.id);
 
@@ -143,21 +181,20 @@ async function initDynamicInvite() {
 
         if (!canViewAll) {
             const { data: guests } = await supabase.from('guests').select('*').eq('wedding_id', wedding.id);
-            const currentGuest = (guests || []).find(g => g.phone === curUser.phone);
+            
+            // Safe phone matching logic
+            const cleanPhone = (p) => (p || '').replace(/[^0-9]/g, '').slice(-10);
+            const curUserClean = cleanPhone(curUser.phone);
+            
+            const currentGuest = (guests || []).find(g => cleanPhone(g.phone) === curUserClean);
 
             if (!currentGuest) {
-                document.body.innerHTML = `
-                    <div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000; padding: 20px;'>
-                        <div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center; max-width: 400px;'>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#fb7185" viewBox="0 0 16 16" style="margin-bottom: 16px;">
-                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                                <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
-                            </svg>
-                            <h2 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>Not Invited</h2>
-                            <p style='color:#ccc; font-family:sans-serif; margin:0; line-height: 1.5;'>Your account is not registered on the guest list for this wedding. Please contact the host if you believe this is a mistake.</p>
-                        </div>
-                    </div>
-                `;
+                showSwalError(
+                    "Not Invited", 
+                    "Your account is not registered on the guest list for this wedding. Please contact the host if you believe this is a mistake.",
+                    "Go Back to Weddings",
+                    "/#weddings"
+                );
                 return;
             }
 
@@ -212,7 +249,8 @@ async function initDynamicInvite() {
             },
             hashtag: wedding.hashtag,
             mainDatePlace: `${new Date(wedding.start_date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
-            timerTarget: filteredEvents.length > 0 ? `${filteredEvents[0].date}T${filteredEvents[0].time || '00:00:00'}` : `${wedding.start_date}T10:00:00`,            instagram: wedding.instagram || "",
+            timerTarget: filteredEvents.length > 0 ? `${filteredEvents[0].date}T${filteredEvents[0].time || '00:00:00'}` : `${wedding.start_date}T10:00:00`,
+            instagram: wedding.instagram || "",
             instaLink: wedding.instagram 
                 ? (wedding.instagram.includes('instagram.com') ? wedding.instagram : `https://instagram.com/${wedding.instagram.replace('@','')}`) 
                 : "#",
@@ -235,10 +273,7 @@ async function initDynamicInvite() {
                 dateText: evDate.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
                 time: evDate.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit' }) + " onwards",
                 location: ev.venue,
-                
-                // UPDATED: Uses venue_map_link if available, otherwise falls back to a Google Maps search
                 directions: ev.venue_map_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue)}`,
-                
                 nextTarget: index < filteredEvents.length - 1 ? `#event-${filteredEvents[index+1].id}` : "#about-us",
                 nextLabel: index < filteredEvents.length - 1 ? (filteredEvents[index+1].event_name || 'Next Event') : "About Us"
             };
@@ -249,8 +284,7 @@ async function initDynamicInvite() {
 
     } catch (err) {
         console.error("Error loading invite:", err);
-        document.body.innerHTML = `<div style='display:flex; justify-content:center; align-items:center; height:100vh; background:#000;'><div style='background:rgba(255,255,255,0.1); padding:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); text-align:center;'><h1 style='color:white; font-family:sans-serif; margin:0 0 10px 0;'>Error</h1><p style='color:#ccc; font-family:sans-serif; margin:0;'>${err.message}</p></div></div>`;
-    }
+        showSwalError("Error", err?.message || "An unexpected error occurred.", "Go Back to Weddings", "/#weddings");    }
 }
 
 const generateWelcomeHTML = () => {

@@ -55,10 +55,14 @@ async function loadUserEvents() {
             return;
         }
 
+        // 1. Normalize the logged-in user's phone to the final 10 digits
+        const cleanedUserPhone = user.phone ? user.phone.replace(/[^0-9]/g, '') : null;
+        const baseUserPhone = cleanedUserPhone ? cleanedUserPhone.slice(-10) : null;
+
         const [hostRes, wUserRes, guestRes] = await Promise.all([
             supabase.from('wedding_hosts').select('wedding_id').eq('user_id', user.id),
             supabase.from('wedding_users').select('wedding_id').eq('user_id', user.id),
-            supabase.from('guests').select('id, wedding_id').eq('phone', user.phone)
+            supabase.from('guests').select('id, wedding_id, phone') // Make sure to fetch phone here
         ]);
 
         const hostIds = (hostRes.data || []).map(h => h.wedding_id);
@@ -72,8 +76,14 @@ async function loadUserEvents() {
             if (fullEvents) finalEvents.push(...fullEvents);
         }
 
+        // 2. Filter the guests table in-memory using the robust 10-digit endsWith check
         if (guestRes.data && guestRes.data.length > 0) {
-            for (let g of guestRes.data) {
+            const matchedGuests = guestRes.data.filter(g => {
+                const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
+                return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
+            });
+
+            for (let g of matchedGuests) {
                 if (!fullAccessWeddingIds.includes(g.wedding_id)) {
                     const { data: egData } = await supabase.from('event_guests').select('event_id').eq('guest_id', g.id);
                     if (egData && egData.length > 0) {
@@ -320,6 +330,19 @@ function renderFilteredEvents() {
     const listContainer = document.getElementById("calendar-events-list");
     if (!listContainer) return;
 
+    // Helper function to format 24-hour time to 12-hour AM/PM
+    const formatTime = (timeStr) => {
+        if (!timeStr) return '';
+        const timePart = timeStr.includes('T') ? timeStr.split('T')[1] : timeStr;
+        const [hoursStr, minutesStr] = timePart.split(':');
+        let h = parseInt(hoursStr, 10);
+        if (isNaN(h)) return timeStr;
+        const m = minutesStr || '00';
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+    };
+
     let displayEvents = [];
     let titleHTML = '';
 
@@ -413,7 +436,6 @@ function renderFilteredEvents() {
                 const displayNames = wedding ? (wedding.primary_side === 'groom' ? `${wedding.groom_name} & ${wedding.bride_name}` : `${wedding.bride_name} & ${wedding.groom_name}`) : 'Wedding Event';
                 const familyName = wedding && wedding.family_name ? wedding.family_name : '';
                 
-                // MAP HYPERLINK INTEGRATION
                 const venueHTML = ev.venue_map_link 
                     ? `<a href="${ev.venue_map_link}" target="_blank" style="line-height: 1.4; color: var(--color-primary); font-weight: 500; text-decoration: underline; text-underline-offset: 2px;">${ev.venue}</a>`
                     : `<span style="line-height: 1.4;">${ev.venue}</span>`;
@@ -427,7 +449,7 @@ function renderFilteredEvents() {
                                 <h4 style="margin: 0; font-size: 1.15rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.event_name || ev.title}</h4>
                                 <div style="display: flex; gap: 16px; color: var(--color-text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium); flex-wrap: wrap; margin-top: 4px;">
                                     <div style="display: flex; align-items: center; gap: 6px;">
-                                        <i data-lucide="clock" style="width: 16px; height: 16px; color: var(--color-text-secondary);"></i> ${ev.time || '-'}
+                                        <i data-lucide="clock" style="width: 16px; height: 16px; color: var(--color-text-secondary);"></i> ${formatTime(ev.time) || '-'}
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <i data-lucide="map-pin" style="width: 16px; height: 16px; color: var(--color-text-secondary);"></i> ${venueHTML}

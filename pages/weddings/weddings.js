@@ -147,21 +147,34 @@ async function loadWeddingsData(container) {
     const userId = window.currentUser?.id || '';
     const isCreator = userRole === 'creator';
 
+    // 1. Normalize the logged-in user's phone to the final 10 digits
+    const cleanedUserPhone = userPhone ? userPhone.replace(/[^0-9]/g, '') : null;
+    const baseUserPhone = cleanedUserPhone ? cleanedUserPhone.slice(-10) : null;
+
     container.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading weddings...</div>`;
     
     try {
         let accessibleWeddingIds = [];
 
         if (!isCreator) {
-            const [hostRes, wUserRes, guestRes] = await Promise.all([
+            // Note: We cannot query .eq('phone', userPhone) directly in supabase anymore.
+            // We must fetch all guests, or structure the query differently. 
+            // For now, fetching guests and filtering in-memory is safer given formatting.
+            const [hostRes, wUserRes, allGuestsRes] = await Promise.all([
                 supabase.from('wedding_hosts').select('wedding_id').eq('user_id', userId),
                 supabase.from('wedding_users').select('wedding_id').eq('user_id', userId),
-                supabase.from('guests').select('wedding_id').eq('phone', userPhone)
+                supabase.from('guests').select('id, wedding_id, phone') 
             ]);
 
             const hostIds = hostRes.data ? hostRes.data.map(h => h.wedding_id) : [];
             const wUserIds = wUserRes.data ? wUserRes.data.map(u => u.wedding_id) : [];
-            const guestIds = guestRes.data ? guestRes.data.map(g => g.wedding_id) : [];
+            
+            // 2. Filter guests in memory
+            const matchedGuests = (allGuestsRes.data || []).filter(g => {
+                const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
+                return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
+            });
+            const guestIds = matchedGuests.map(g => g.wedding_id);
 
             accessibleWeddingIds = [...new Set([...hostIds, ...wUserIds, ...guestIds])];
 
@@ -222,7 +235,15 @@ async function loadWeddingsData(container) {
             const canViewAll = isCreator || isHost || isWUser;
 
             if (!canViewAll) {
-                const { data: guestData } = await supabase.from('guests').select('id').eq('wedding_id', wedding.id).eq('phone', userPhone).maybeSingle();
+                // Fetch all guests for this specific wedding
+                const { data: weddingGuests } = await supabase.from('guests').select('id, phone').eq('wedding_id', wedding.id);
+                
+                // 3. Find the specific guest record for this wedding using the phone logic
+                const guestData = (weddingGuests || []).find(g => {
+                     const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
+                     return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
+                });
+
                 if (guestData) {
                     const { data: eventGuests } = await supabase.from('event_guests').select('event_id').eq('guest_id', guestData.id);
                     const invitedEventIds = eventGuests ? eventGuests.map(eg => eg.event_id) : [];

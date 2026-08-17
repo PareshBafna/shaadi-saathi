@@ -36,11 +36,46 @@ export function renderWeddingDetails(weddingId) {
 // ASYNC DATA FETCHER & PERMISSION HIERARCHY
 // ==========================================
 async function loadWeddingData(container, weddingId) {
+    const dashboardWeddingsUrl = '#weddings';
+    
+    // Helper to render standard SWAL errors for the dashboard
+    const showSwalError = (title, text) => {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: title,
+                text: text,
+                confirmButtonText: "Go Back to Weddings",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                confirmButtonColor: 'var(--color-primary)'
+            }).then(() => {
+                window.location.hash = dashboardWeddingsUrl;
+            });
+        } else {
+            alert(title + "\n\n" + text);
+            window.location.hash = dashboardWeddingsUrl;
+        }
+    };
+
+    // Validate UUID format to prevent DB crashes on broken links
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!weddingId || (!uuidRegex.test(weddingId) && weddingId !== '00000000-0000-0000-0000-000000000000')) {
+        showSwalError("Invalid Link", "The wedding link is broken or invalid.");
+        return;
+    }
+
     try {
         const curUser = window.currentUser || { role: 'guest' };
 
-        const { data: wedding, error: weddingError } = await supabase.from('weddings').select('*').eq('id', weddingId).single();
-        if (weddingError) throw weddingError;
+        // Use .maybeSingle() to safely check if the wedding exists without a hard crash
+        const { data: wedding, error: weddingError } = await supabase.from('weddings').select('*').eq('id', weddingId).maybeSingle();
+        
+        // Trigger the SWAL popup if the wedding ID doesn't exist in the database
+        if (weddingError || !wedding) {
+            showSwalError("Error", "Incorrect wedding details. Please contact Admin.");
+            return;
+        }
 
         const { data: webInvite, error: webInviteError } = await supabase.from('wedding_web_invite').select('id').eq('wedding_id', weddingId).maybeSingle();
         const hasWebInvite = !!webInvite;
@@ -100,8 +135,15 @@ async function loadWeddingData(container, weddingId) {
         if (eventsError) throw eventsError;
 
         if (!canViewAll) { 
-            const currentGuest = guests?.find(g => g.phone === curUser.phone);
-            const invitedEventIds = currentGuest ? currentGuest.invited_events : [];
+            const cleanedUserPhone = curUser.phone ? curUser.phone.replace(/[^0-9]/g, '') : null;
+            const baseUserPhone = cleanedUserPhone ? cleanedUserPhone.slice(-10) : null;
+
+            const currentGuest = guests?.find(g => {
+                const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
+                return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
+            });
+
+            const invitedEventIds = currentGuest && currentGuest.invited_events ? currentGuest.invited_events : [];
             filteredEvents = allEvents ? allEvents.filter(e => invitedEventIds.includes(e.id)) : [];
         } else {
             filteredEvents = allEvents || []; 
@@ -128,7 +170,8 @@ async function loadWeddingData(container, weddingId) {
 
     } catch (error) {
         console.error("Error loading wedding details:", error);
-        container.innerHTML = `<div style="color: var(--color-danger); padding: var(--space-8); text-align: center;">Failed to load wedding details: ${error.message}</div>`;
+        // Fallback catch-all error handling using the styled card
+        renderError("Error", error?.message || "Failed to load wedding details.");
     }
 }
 

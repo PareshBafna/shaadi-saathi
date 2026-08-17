@@ -105,8 +105,8 @@ async function loadUsersData() {
             let guestWeddings = [];
 
             const cleanedUserPhone = u.phone ? u.phone.replace(/[^0-9]/g, '') : null;
-            const baseUserPhone = cleanedUserPhone ? cleanedUserPhone.slice(-8) : null;
-
+            const baseUserPhone = cleanedUserPhone ? cleanedUserPhone.slice(-10) : null;
+            
             (hosts || []).forEach(h => {
                 if (h.user_id === u.id) {
                     roles.add('Host');
