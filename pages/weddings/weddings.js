@@ -69,55 +69,40 @@ function canEditWedding(wedding) {
 export function renderWeddings() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const wrapper = document.createElement('section');
-        wrapper.className = "weddings-page-wrapper";
-        wrapper.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        wrapper.className = "weddings-page-wrapper weddings-page-wrapper--message";
         wrapper.textContent = "Please log in to view weddings.";
         return wrapper;
     }
 
     const wrapper = document.createElement('section');
     wrapper.className = "weddings-page-wrapper"; 
-    wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
 
     const controls = document.createElement('div');
     controls.className = "weddings-control-bar";
-    controls.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); background: var(--color-white); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border); flex-wrap: wrap; gap: 16px;";
 
-    const sortContainer = document.createElement('div');
-    sortContainer.style.cssText = "display: flex; align-items: center; gap: var(--space-2); min-width: 200px;";
-    sortContainer.innerHTML = `
-        <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Sort by:</span>
-        <select id="sortWeddings" style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); font-size: var(--font-size-sm); cursor: pointer; outline: none;">
-            <option value="date-asc">Date (Earliest first)</option>
-            <option value="date-desc">Date (Latest first)</option>
-            <option value="name-asc">Couple Names (A-Z)</option>
-        </select>
-    `;
-
-    const centerContainer = document.createElement('div');
-    centerContainer.style.cssText = "display: flex; justify-content: center; flex: 1; min-width: 150px;";
+    const leftContainer = document.createElement('div');
+    leftContainer.className = "weddings-left-action";
     const user = window.currentUser || {};
     
     if (user.role === 'creator') {
         const createBtn = document.createElement("button");
         createBtn.id = "add-wedding-btn";
-        createBtn.innerHTML = `<i data-lucide="plus" style="width:16px; height:16px; margin-right:4px; vertical-align:middle;"></i> Wedding`;
-        createBtn.style.cssText = "background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;";
+        createBtn.className = "weddings-add-btn";
+        createBtn.innerHTML = `<i data-lucide="plus"></i> Wedding`;
         createBtn.addEventListener('click', () => window.openCreateWeddingModal());
-        centerContainer.appendChild(createBtn);
+        leftContainer.appendChild(createBtn);
     }
 
     const searchContainer = document.createElement('div');
-    searchContainer.style.cssText = "width: 250px; display: flex; justify-content: flex-end;";
+    searchContainer.className = "weddings-search-container";
     searchContainer.innerHTML = `
-        <div style="position: relative; width: 100%;">
-            <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--color-text-secondary);"></i>
-            <input type="text" id="weddingSearchInput" placeholder="Search weddings..." style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3) var(--space-2) 32px; border-radius: var(--radius-sm); font-size: var(--font-size-sm); width: 100%; outline: none;">
+        <div class="weddings-search-input-wrapper">
+            <i data-lucide="search" class="weddings-search-icon"></i>
+            <input type="text" id="weddingSearchInput" placeholder="Search weddings..." class="weddings-search-input">
         </div>
     `;
 
-    controls.appendChild(sortContainer);
-    controls.appendChild(centerContainer);
+    controls.appendChild(leftContainer);
     controls.appendChild(searchContainer);
     wrapper.appendChild(controls);
 
@@ -128,14 +113,18 @@ export function renderWeddings() {
     setTimeout(() => {
         loadWeddingsData(sectionsContainer);
         document.getElementById('weddingSearchInput')?.addEventListener('input', filterAndRenderGalleries);
-        document.getElementById('sortWeddings')?.addEventListener('change', filterAndRenderGalleries);
         if (window.lucide) window.lucide.createIcons();
     }, 50);
 
     const updateHandler = () => {
-        if (document.body.contains(wrapper)) loadWeddingsData(sectionsContainer);
-        else window.removeEventListener('weddingsDataUpdated', updateHandler);
+        if (document.body.contains(wrapper)) {
+            loadWeddingsData(sectionsContainer);
+        } else {
+            window.removeEventListener('weddingDataUpdated', updateHandler);
+            window.removeEventListener('weddingsDataUpdated', updateHandler);
+        }
     };
+    window.addEventListener('weddingDataUpdated', updateHandler);
     window.addEventListener('weddingsDataUpdated', updateHandler);
 
     return wrapper;
@@ -147,19 +136,15 @@ async function loadWeddingsData(container) {
     const userId = window.currentUser?.id || '';
     const isCreator = userRole === 'creator';
 
-    // 1. Normalize the logged-in user's phone to the final 10 digits
     const cleanedUserPhone = userPhone ? userPhone.replace(/[^0-9]/g, '') : null;
     const baseUserPhone = cleanedUserPhone ? cleanedUserPhone.slice(-10) : null;
 
-    container.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading weddings...</div>`;
+    container.innerHTML = `<div class="weddings-loading-state">Loading weddings...</div>`;
     
     try {
         let accessibleWeddingIds = [];
 
         if (!isCreator) {
-            // Note: We cannot query .eq('phone', userPhone) directly in supabase anymore.
-            // We must fetch all guests, or structure the query differently. 
-            // For now, fetching guests and filtering in-memory is safer given formatting.
             const [hostRes, wUserRes, allGuestsRes] = await Promise.all([
                 supabase.from('wedding_hosts').select('wedding_id').eq('user_id', userId),
                 supabase.from('wedding_users').select('wedding_id').eq('user_id', userId),
@@ -169,7 +154,6 @@ async function loadWeddingsData(container) {
             const hostIds = hostRes.data ? hostRes.data.map(h => h.wedding_id) : [];
             const wUserIds = wUserRes.data ? wUserRes.data.map(u => u.wedding_id) : [];
             
-            // 2. Filter guests in memory
             const matchedGuests = (allGuestsRes.data || []).filter(g => {
                 const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
                 return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
@@ -235,10 +219,8 @@ async function loadWeddingsData(container) {
             const canViewAll = isCreator || isHost || isWUser;
 
             if (!canViewAll) {
-                // Fetch all guests for this specific wedding
                 const { data: weddingGuests } = await supabase.from('guests').select('id, phone').eq('wedding_id', wedding.id);
                 
-                // 3. Find the specific guest record for this wedding using the phone logic
                 const guestData = (weddingGuests || []).find(g => {
                      const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
                      return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
@@ -266,13 +248,12 @@ async function loadWeddingsData(container) {
         filterAndRenderGalleries();
     } catch (error) {
         console.error('[DEBUG ERROR] Failed to load weddings directory:', error);
-        container.innerHTML = `<div style="color: var(--color-danger); text-align: center; padding: var(--space-8);">Failed to load data: ${error.message}</div>`;
+        container.innerHTML = `<div class="weddings-error-state">Failed to load data: ${error.message}</div>`;
     }
 }
 
 function filterAndRenderGalleries() {
-    const searchTerm = document.getElementById('searchWeddings')?.value.toLowerCase() || '';
-    const sortValue = document.getElementById('sortWeddings')?.value || 'date-asc';
+    const searchTerm = document.getElementById('weddingSearchInput')?.value.toLowerCase() || '';
     
     let filtered = allWeddings.filter(w => {
         const side = w.primary_side || 'bride';
@@ -280,16 +261,7 @@ function filterAndRenderGalleries() {
         return full.includes(searchTerm.replace(/\s+/g, '')) || w.bride_name.toLowerCase().includes(searchTerm) || w.groom_name.toLowerCase().includes(searchTerm);
     });
 
-    filtered.sort((a, b) => {
-        if (sortValue === 'date-asc') return new Date(a.start_date) - new Date(b.start_date);
-        if (sortValue === 'date-desc') return new Date(b.start_date) - new Date(a.start_date);
-        if (sortValue === 'name-asc') {
-            const nameA = a.primary_side === 'groom' ? `${a.groom_name} & ${a.bride_name}` : `${a.bride_name} & ${a.groom_name}`;
-            const nameB = b.primary_side === 'groom' ? `${b.groom_name} & ${b.bride_name}` : `${b.bride_name} & ${b.groom_name}`;
-            return nameA.localeCompare(nameB);
-        }
-        return 0;
-    });
+    filtered.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 
     const todayTime = startOfDay(new Date()).getTime();
 
@@ -305,31 +277,31 @@ function filterAndRenderGalleries() {
     if (!container) return;
 
     if (filtered.length === 0) {
-        container.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-muted); background: var(--color-white); border-radius: var(--radius-lg); border: 1px solid var(--color-border);">No weddings match your search.</div>`;
+        container.innerHTML = `<div class="weddings-empty-state">No weddings match your search.</div>`;
         return;
     }
 
     container.innerHTML = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: var(--space-6); width: 100%; align-items: start;">
+        <div class="weddings-galleries-grid">
             ${buildGallerySection("In Progress", inProgress)}
             ${buildGallerySection("Upcoming", upcoming)}
             ${buildGallerySection("Archived", archived)}
         </div>
     `;
 
-    container.querySelectorAll('.gallery-card').forEach(card => {
+    container.querySelectorAll('.dashboard-wedding-card').forEach(card => {
         card.addEventListener('click', (e) => {
-            if(!e.target.closest('.edit-wedding-btn') && !e.target.closest('a')) {
+            if(!e.target.closest('.dashboard-wedding-card__edit-btn') && !e.target.closest('a')) {
                 const id = card.getAttribute('data-wedding-id');
                 window.location.hash = `#wedding-details?id=${id}`;
             }
         });
     });
 
-    container.querySelectorAll('.edit-wedding-btn').forEach(btn => {
+    container.querySelectorAll('.dashboard-wedding-card__edit-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const card = e.target.closest('.gallery-card');
+            const card = e.target.closest('.dashboard-wedding-card');
             const weddingId = card.getAttribute('data-wedding-id');
             const wedding = allWeddings.find(w => w.id === weddingId);
             
@@ -352,8 +324,8 @@ function buildGallerySection(title, weddings) {
 
         if (canEditWedding(wedding)) {
             editBtnHTML = `
-                <button class="edit-wedding-btn" style="position: absolute; right: var(--space-3); top: 1.25rem; background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'">
-                    <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
+                <button class="dashboard-wedding-card__edit-btn" title="Edit Wedding">
+                    <i data-lucide="edit-2"></i>
                 </button>
             `;
         }
@@ -368,13 +340,13 @@ function buildGallerySection(title, weddings) {
             const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
             
             hostsHTML = `
-            <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; flex-wrap: wrap;">
-                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span>${inlineHosts}</span>
+            <div class="dashboard-wedding-card__row">
+                <i data-lucide="phone"></i> <span>${inlineHosts}</span>
             </div>`;
         } else {
             hostsHTML = `
-            <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; flex-wrap: wrap;">
-                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span style="font-style: italic;">No hosts added</span>
+            <div class="dashboard-wedding-card__row dashboard-wedding-card__row--empty">
+                <i data-lucide="phone"></i> <span>No wedding hosts added</span>
             </div>`;
         }
 
@@ -386,37 +358,32 @@ function buildGallerySection(title, weddings) {
             }
 
             webInviteHTML = `
-            <div style="margin-top: 12px; display: flex; justify-content: center; width: 100%;">
-                <a href="${inviteUrl}" target="_blank" onclick="event.stopPropagation();" style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 8px 16px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation
+            <div class="dashboard-wedding-card__invite-wrap">
+                <a href="${inviteUrl}" target="_blank" onclick="event.stopPropagation();" class="dashboard-wedding-card__invite-btn">
+                    <i data-lucide="external-link"></i> Wedding Invitation
                 </a>
             </div>`;
         }
 
         return `
-        <div class="stat-card gallery-card" data-wedding-id="${wedding.id}" style="position: relative; cursor: pointer; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s ease;">
-            
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div style="background: var(--color-border); color: var(--color-primary); width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i data-lucide="heart" style="width: 16px; height: 16px;"></i>
+        <div class="dashboard-wedding-card" data-wedding-id="${wedding.id}">
+            <div class="dashboard-wedding-card__header">
+                <div class="dashboard-wedding-card__title-group">
+                    <div class="dashboard-wedding-card__icon-badge">
+                        <i data-lucide="heart"></i>
                     </div>
                     <div>
-                        <h3 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${displayNames}</h3>
-                        <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--color-text-secondary);"><i data-lucide="calendar" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
+                        <h3 class="dashboard-wedding-card__names">${displayNames}</h3>
+                        <p class="dashboard-wedding-card__dates"><i data-lucide="calendar"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
                     </div>
                 </div>
             </div>
 
-            <div style="border-top: 1px solid var(--color-border); margin-top: 4px; padding-top: 8px;">
-                ${wedding.family_name ? `<div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="home" style="width:14px; height:14px;"></i> ${wedding.family_name}</div>` : ''}
-
-                ${wedding.family_details ? `<div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.family_details}</div>` : ''}
-                
+            <div class="dashboard-wedding-card__details">
+                ${wedding.family_name ? `<div class="dashboard-wedding-card__row"><i data-lucide="home"></i> <span>${wedding.family_name}</span></div>` : ''}
+                ${wedding.family_details ? `<div class="dashboard-wedding-card__row"><i data-lucide="users"></i> <span>${wedding.family_details}</span></div>` : ''}
                 ${hostsHTML}
-
-                <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary);"><i data-lucide="calendar-days" style="width:14px; height:14px;"></i> ${wedding.events_count || 0} Events</div>
-                
+                <div class="dashboard-wedding-card__row"><i data-lucide="calendar-days"></i> <span>${wedding.events_count || 0} Events</span></div>
                 ${webInviteHTML}
             </div>
 
@@ -426,9 +393,9 @@ function buildGallerySection(title, weddings) {
     }).join('');
 
     return `
-        <div style="background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
-            <h2 style="font-size: 1.25rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;">${title}</h2>
-            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+        <div class="dashboard-section">
+            <h2 class="dashboard-section__heading">${title}</h2>
+            <div class="dashboard-section__list">
                 ${listItems}
             </div>
         </div>
@@ -440,18 +407,14 @@ function forceStyleModalButtons() {
     btns.forEach(btn => {
         const txt = btn.textContent.trim();
         if (txt === 'Cancel' && !btn.hasAttribute('data-styled')) {
-            btn.style.cssText = 'background: #6b7280; color: #ffffff; border: 1px solid #6b7280; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-medium); cursor: pointer; transition: opacity 0.2s;';
-            btn.onmouseover = () => btn.style.opacity = '0.85';
-            btn.onmouseout = () => btn.style.opacity = '1';
+            btn.className += ' modal-btn-cancel';
             btn.setAttribute('data-styled', 'true');
         } else if (txt === 'Delete' && !btn.hasAttribute('data-styled')) {
-            btn.style.cssText = 'background: #dc2626; color: #ffffff; border: 1px solid #dc2626; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; transition: opacity 0.2s; margin-right: auto;';
+            btn.className += ' modal-btn-delete';
             if (btn.parentElement) {
                 btn.parentElement.style.display = 'flex';
                 btn.parentElement.style.width = '100%';
             }
-            btn.onmouseover = () => btn.style.opacity = '0.85';
-            btn.onmouseout = () => btn.style.opacity = '1';
             btn.setAttribute('data-styled', 'true');
         }
     });
@@ -468,60 +431,60 @@ export function openCreateWeddingModal() {
     const todayStr = getLocalTodayString();
 
     const formHTML = `
-        <form id="createWeddingForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3); overflow-y: auto; max-height: 60vh; padding-right: 5px;">
+        <form id="createWeddingForm" novalidate class="wedding-modal-form">
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:8px;">Primary Side</label>
-                <div style="display: flex; gap: var(--space-4); align-items: center;">
-                    <label style="display: flex; align-items: center; gap: 4px; color: var(--color-text-primary); font-size: var(--font-size-sm); cursor: pointer;">
-                        <input type="radio" name="primarySide" value="bride" checked style="accent-color: var(--color-primary); cursor: pointer;"> Bride's Side
+                <label class="wedding-modal-label">Primary Side</label>
+                <div class="wedding-modal-radios">
+                    <label class="wedding-modal-radio-label">
+                        <input type="radio" name="primarySide" value="bride" checked> Bride's Side
                     </label>
-                    <label style="display: flex; align-items: center; gap: 4px; color: var(--color-text-primary); font-size: var(--font-size-sm); cursor: pointer;">
-                        <input type="radio" name="primarySide" value="groom" style="accent-color: var(--color-primary); cursor: pointer;"> Groom's Side
+                    <label class="wedding-modal-radio-label">
+                        <input type="radio" name="primarySide" value="groom"> Groom's Side
                     </label>
                 </div>
             </div>
 
-            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Bride's Name *</label>
-                    <input type="text" id="brideName" required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+            <div class="wedding-modal-row">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Bride's Name *</label>
+                    <input type="text" id="brideName" required class="wedding-modal-input wedding-modal-input--invalid">
                 </div>
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Groom's Name *</label>
-                    <input type="text" id="groomName" required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
-            </div>
-
-            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Hashtag (Optional)</label>
-                    <input type="text" id="weddingHashtag" placeholder="e.g., #SonalWedsKhuswanth" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Instagram (Optional)</label>
-                    <input type="text" id="weddingInstagram" placeholder="Handle or URL" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Groom's Name *</label>
+                    <input type="text" id="groomName" required class="wedding-modal-input wedding-modal-input--invalid">
                 </div>
             </div>
 
-            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Start Date *</label>
-                    <input type="date" id="startDate" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
+            <div class="wedding-modal-row">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Hashtag (Optional)</label>
+                    <input type="text" id="weddingHashtag" placeholder="e.g., #SonalWedsKhuswanth" class="wedding-modal-input">
                 </div>
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">End Date *</label>
-                    <input type="date" id="endDate" disabled required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Instagram (Optional)</label>
+                    <input type="text" id="weddingInstagram" placeholder="Handle or URL" class="wedding-modal-input">
                 </div>
             </div>
 
-            <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Name *</label>
-                <input type="text" id="familyName" required placeholder="e.g., Bafna Family" style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+            <div class="wedding-modal-row">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Start Date *</label>
+                    <input type="date" id="startDate" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--invalid" style="cursor: pointer;">
+                </div>
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">End Date *</label>
+                    <input type="date" id="endDate" disabled required class="wedding-modal-input wedding-modal-input--invalid" style="cursor: pointer;">
+                </div>
             </div>
 
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Details *</label>
-                <input type="text" id="familyDetails" required placeholder="e.g., The Bafna & Sharma Families" style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                <label class="wedding-modal-label">Family Name *</label>
+                <input type="text" id="familyName" required placeholder="e.g., Bafna Family" class="wedding-modal-input wedding-modal-input--invalid">
+            </div>
+
+            <div>
+                <label class="wedding-modal-label">Family Details *</label>
+                <input type="text" id="familyDetails" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--invalid">
             </div>
         </form>
     `;
@@ -551,11 +514,13 @@ export function openCreateWeddingModal() {
                     fields.forEach(field => {
                         const el = document.getElementById(field.id);
                         if (!el.value.trim()) {
-                            el.style.borderColor = "#dc2626";
+                            el.classList.add('wedding-modal-input--invalid');
+                            el.classList.remove('wedding-modal-input--valid');
                             isValid = false;
                             if (!firstEmptyField) firstEmptyField = field.name;
                         } else {
-                            el.style.borderColor = "#16a34a";
+                            el.classList.remove('wedding-modal-input--invalid');
+                            el.classList.add('wedding-modal-input--valid');
                         }
                     });
 
@@ -566,7 +531,7 @@ export function openCreateWeddingModal() {
                         const startOnlyDate = new Date(startDate + 'T00:00:00');
                         const todayOnlyDate = new Date(getLocalTodayString() + 'T00:00:00');
                         if (startOnlyDate < todayOnlyDate) {
-                            document.getElementById('startDate').style.borderColor = "#dc2626";
+                            document.getElementById('startDate').classList.add('wedding-modal-input--invalid');
                             showSweetAlert('error', 'Invalid Date', 'Start date cannot be in the past.');
                             return;
                         }
@@ -574,7 +539,7 @@ export function openCreateWeddingModal() {
 
                     if (startDate && endDate) {
                         if (new Date(endDate) < new Date(startDate)) {
-                            document.getElementById('endDate').style.borderColor = "#dc2626";
+                            document.getElementById('endDate').classList.add('wedding-modal-input--invalid');
                             showSweetAlert('error', 'Invalid Dates', 'End date cannot be earlier than the start date.');
                             return;
                         }
@@ -627,8 +592,17 @@ export function openCreateWeddingModal() {
         requiredIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
-                el.addEventListener('input', () => { el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a'; });
+                const updateValidity = () => {
+                    if (el.value.trim() === '') {
+                        el.classList.add('wedding-modal-input--invalid');
+                        el.classList.remove('wedding-modal-input--valid');
+                    } else {
+                        el.classList.remove('wedding-modal-input--invalid');
+                        el.classList.add('wedding-modal-input--valid');
+                    }
+                };
+                updateValidity();
+                el.addEventListener('input', updateValidity);
             }
         });
 
@@ -640,15 +614,17 @@ export function openCreateWeddingModal() {
                     endEl.disabled = false;
                     endEl.min = startEl.value;
                     endEl.value = ''; 
-                    endEl.style.borderColor = '#dc2626';
+                    endEl.classList.add('wedding-modal-input--invalid');
+                    endEl.classList.remove('wedding-modal-input--valid');
                 } else {
                     endEl.disabled = true;
                     endEl.value = '';
-                    endEl.style.borderColor = '#dc2626';
+                    endEl.classList.add('wedding-modal-input--invalid');
+                    endEl.classList.remove('wedding-modal-input--valid');
                 }
             });
             
-            endEl.addEventListener('click', (e) => {
+            endEl.addEventListener('click', () => {
                 if (!endEl.disabled) {
                     try{ endEl.showPicker(); } catch(err){}
                 }
@@ -657,8 +633,9 @@ export function openCreateWeddingModal() {
 
     }, 50);
 }
+window.openCreateWeddingModal = openCreateWeddingModal;
 
-window.openEditWeddingModal = function(wedding) {
+export function openEditWeddingModal(wedding) {
     const userRole = window.currentUser?.role || 'guest';
     
     if (!canEditWedding(wedding)) {
@@ -669,60 +646,60 @@ window.openEditWeddingModal = function(wedding) {
     const todayStr = getLocalTodayString();
 
     const formHTML = `
-        <form id="editWeddingForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-3); overflow-y: auto; max-height: 60vh; padding-right: 5px;">
+        <form id="editWeddingForm" novalidate class="wedding-modal-form">
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:8px;">Primary Side</label>
-                <div style="display: flex; gap: var(--space-4); align-items: center;">
-                    <label style="display: flex; align-items: center; gap: 4px; color: var(--color-text-primary); font-size: var(--font-size-sm); cursor: pointer;">
-                        <input type="radio" name="editPrimarySide" value="bride" ${wedding.primary_side !== 'groom' ? 'checked' : ''} style="accent-color: var(--color-primary); cursor: pointer;"> Bride's Side
+                <label class="wedding-modal-label">Primary Side</label>
+                <div class="wedding-modal-radios">
+                    <label class="wedding-modal-radio-label">
+                        <input type="radio" name="editPrimarySide" value="bride" ${wedding.primary_side !== 'groom' ? 'checked' : ''}> Bride's Side
                     </label>
-                    <label style="display: flex; align-items: center; gap: 4px; color: var(--color-text-primary); font-size: var(--font-size-sm); cursor: pointer;">
-                        <input type="radio" name="editPrimarySide" value="groom" ${wedding.primary_side === 'groom' ? 'checked' : ''} style="accent-color: var(--color-primary); cursor: pointer;"> Groom's Side
+                    <label class="wedding-modal-radio-label">
+                        <input type="radio" name="editPrimarySide" value="groom" ${wedding.primary_side === 'groom' ? 'checked' : ''}> Groom's Side
                     </label>
                 </div>
             </div>
 
-            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Bride's Name *</label>
-                    <input type="text" id="editBrideName" value="${(wedding.bride_name || '').replace(/"/g, '&quot;')}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+            <div class="wedding-modal-row">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Bride's Name *</label>
+                    <input type="text" id="editBrideName" value="${(wedding.bride_name || '').replace(/"/g, '&quot;')}" required class="wedding-modal-input wedding-modal-input--valid">
                 </div>
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Groom's Name *</label>
-                    <input type="text" id="editGroomName" value="${(wedding.groom_name || '').replace(/"/g, '&quot;')}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
-            </div>
-
-            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Hashtag (Optional)</label>
-                    <input type="text" id="editWeddingHashtag" value="${(wedding.hashtag || '').replace(/"/g, '&quot;')}" placeholder="e.g., #SonalWedsKhuswanth" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
-                </div>
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Instagram (Optional)</label>
-                    <input type="text" id="editWeddingInstagram" value="${(wedding.instagram || '').replace(/"/g, '&quot;')}" placeholder="Handle or URL" style="width:100%; background:var(--color-bg); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Groom's Name *</label>
+                    <input type="text" id="editGroomName" value="${(wedding.groom_name || '').replace(/"/g, '&quot;')}" required class="wedding-modal-input wedding-modal-input--valid">
                 </div>
             </div>
 
-            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Start Date *</label>
-                    <input type="date" id="editStartDate" value="${wedding.start_date}" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
+            <div class="wedding-modal-row">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Hashtag (Optional)</label>
+                    <input type="text" id="editWeddingHashtag" value="${(wedding.hashtag || '').replace(/"/g, '&quot;')}" placeholder="e.g., #SonalWedsKhuswanth" class="wedding-modal-input">
                 </div>
-                <div style="flex: 1; min-width: 140px;">
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">End Date *</label>
-                    <input type="date" id="editEndDate" value="${wedding.end_date}" min="${wedding.start_date || todayStr}" onclick="try{this.showPicker()}catch(e){}" required style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; cursor:pointer; outline:none; transition: border-color 0.2s;">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Instagram (Optional)</label>
+                    <input type="text" id="editWeddingInstagram" value="${(wedding.instagram || '').replace(/"/g, '&quot;')}" placeholder="Handle or URL" class="wedding-modal-input">
                 </div>
             </div>
 
-            <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Name *</label>
-                <input type="text" id="editFamilyName" value="${(wedding.family_name || '').replace(/"/g, '&quot;')}" required placeholder="e.g., Bafna Family" style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+            <div class="wedding-modal-row">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Start Date *</label>
+                    <input type="date" id="editStartDate" value="${wedding.start_date}" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--valid" style="cursor: pointer;">
+                </div>
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">End Date *</label>
+                    <input type="date" id="editEndDate" value="${wedding.end_date}" min="${wedding.start_date || todayStr}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--valid" style="cursor: pointer;">
+                </div>
             </div>
 
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Family Details *</label>
-                <input type="text" id="editFamilyDetails" value="${(wedding.family_details || '').replace(/"/g, '&quot;')}" required placeholder="e.g., The Bafna & Sharma Families" style="width:100%; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); box-sizing:border-box; outline:none; transition: border-color 0.2s;">
+                <label class="wedding-modal-label">Family Name *</label>
+                <input type="text" id="editFamilyName" value="${(wedding.family_name || '').replace(/"/g, '&quot;')}" required placeholder="e.g., Bafna Family" class="wedding-modal-input wedding-modal-input--valid">
+            </div>
+
+            <div>
+                <label class="wedding-modal-label">Family Details *</label>
+                <input type="text" id="editFamilyDetails" value="${(wedding.family_details || '').replace(/"/g, '&quot;')}" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--valid">
             </div>
         </form>
     `;
@@ -783,11 +760,13 @@ window.openEditWeddingModal = function(wedding) {
             fields.forEach(field => {
                 const el = document.getElementById(field.id);
                 if (!el.value.trim()) {
-                    el.style.borderColor = "#dc2626";
+                    el.classList.add('wedding-modal-input--invalid');
+                    el.classList.remove('wedding-modal-input--valid');
                     isValid = false;
                     if (!firstEmptyField) firstEmptyField = field.name;
                 } else {
-                    el.style.borderColor = "#16a34a";
+                    el.classList.remove('wedding-modal-input--invalid');
+                    el.classList.add('wedding-modal-input--valid');
                 }
             });
 
@@ -798,7 +777,7 @@ window.openEditWeddingModal = function(wedding) {
                 const startOnlyDate = new Date(startDate + 'T00:00:00');
                 const todayOnlyDate = new Date(getLocalTodayString() + 'T00:00:00');
                 if (startOnlyDate < todayOnlyDate && startDate !== wedding.start_date) {
-                    document.getElementById('editStartDate').style.borderColor = "#dc2626";
+                    document.getElementById('editStartDate').classList.add('wedding-modal-input--invalid');
                     showSweetAlert('error', 'Invalid Date', 'Start date cannot be changed to a past date.');
                     return;
                 }
@@ -806,7 +785,7 @@ window.openEditWeddingModal = function(wedding) {
 
             if (startDate && endDate) {
                 if (new Date(endDate) < new Date(startDate)) {
-                    document.getElementById('editEndDate').style.borderColor = "#dc2626";
+                    document.getElementById('editEndDate').classList.add('wedding-modal-input--invalid');
                     showSweetAlert('error', 'Invalid Dates', 'End date cannot be earlier than the start date.');
                     return;
                 }
@@ -856,8 +835,17 @@ window.openEditWeddingModal = function(wedding) {
         requiredIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
-                el.addEventListener('input', () => { el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a'; });
+                const updateValidity = () => {
+                    if (el.value.trim() === '') {
+                        el.classList.add('wedding-modal-input--invalid');
+                        el.classList.remove('wedding-modal-input--valid');
+                    } else {
+                        el.classList.remove('wedding-modal-input--invalid');
+                        el.classList.add('wedding-modal-input--valid');
+                    }
+                };
+                updateValidity();
+                el.addEventListener('input', updateValidity);
             }
         });
 
@@ -869,14 +857,17 @@ window.openEditWeddingModal = function(wedding) {
                     editEndEl.disabled = false;
                     editEndEl.min = editStartEl.value;
                     editEndEl.value = ''; 
-                    editEndEl.style.borderColor = '#dc2626';
+                    editEndEl.classList.add('wedding-modal-input--invalid');
+                    editEndEl.classList.remove('wedding-modal-input--valid');
                 } else {
                     editEndEl.disabled = true;
                     editEndEl.value = '';
-                    editEndEl.style.borderColor = '#dc2626';
+                    editEndEl.classList.add('wedding-modal-input--invalid');
+                    editEndEl.classList.remove('wedding-modal-input--valid');
                 }
             });
         }
 
     }, 50);
 }
+window.openEditWeddingModal = openEditWeddingModal;
