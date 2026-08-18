@@ -408,6 +408,7 @@ const generateCoupleHTML = () => {
     </section>`;
 };
 
+// FIX: Changed from <h2 class="event-title"> to <div class="tagline"> to inherit the exact sans-serif font
 const generateEventHTML = (event) => `
     <section class="full-page js-reveal" id="${event.id}">
         <div class="card">
@@ -416,7 +417,7 @@ const generateEventHTML = (event) => `
             
             <div class="card-inner">
                 <div class="hero">
-                    <h2 class="event-title" style="color: var(--color-secondary) !important; font-size: 2.2rem; letter-spacing: 0.28em; text-transform: uppercase; text-shadow: 0 0 12px rgba(var(--theme-accent-rgb), 0.4) !important;">${event.label}</h2>
+                    <div class="tagline" style="font-size: 2.4rem; font-weight: bold; text-transform: uppercase; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">${event.label}</div>
                     
                     ${event.title ? `
                         <div class="hero-divider" style="margin: 15px auto;"></div>
@@ -426,7 +427,7 @@ const generateEventHTML = (event) => `
                     <br/>
                     
                     ${event.quote ? `
-                        <div class="event-subtitle" style="font-style: italic; color: #ffffff !important; font-size: 1.1rem; line-height: 1.5; padding: 0 10px; margin-top: 10px; text-shadow: none !important;">"${event.quote}"</div>
+                        <div class="event-subtitle" style="font-style: italic; color: #ffffff !important; font-size: 1.1rem; line-height: 1.5; padding: 0 10px; margin-top: 10px; text-shadow: none !important;">${event.quote}</div>
                     ` : ''}
                     
                     <div class="hero-divider" style="margin: 20px auto;"></div>
@@ -457,7 +458,7 @@ const generateEventHTML = (event) => `
                 </div>
             </div>
             <div class="hero-divider" style="margin: 20px auto;"></div>
-            <div class="card-footer" style="text-align: center;"><button class="btn btn-secondary" data-next="${event.nextTarget}">Next: ${event.nextLabel} ↓</button></div>
+            <div class="card-footer" style="text-align: center; margin-top: 20px;"><button class="btn btn-secondary" data-next="${event.nextTarget}">Next: ${event.nextLabel} ↓</button></div>
         </div>
     </section>`;
 
@@ -635,14 +636,10 @@ window.addEventListener("scroll", () => {
     if (btt) btt.classList.toggle("hidden", window.scrollY <= 400);
 });
 
-// ==========================================
-// RESTORED INTERACTIVE PARTICLES ENGINE 
-// ==========================================
 function initParticles() {
     const canvas = document.getElementById("particles");
     if (!canvas) return;
     
-    // Ensure canvas stays on top of the DOM
     canvas.style.position = 'fixed';
     canvas.style.top = '0';
     canvas.style.left = '0';
@@ -667,7 +664,6 @@ function initParticles() {
         });
     };
     
-    // Bind to window so click event can trigger it safely globally
     window.triggerBurst = (x, y, count = 60) => {
         if (!isThemeReady) return; 
         for (let i = 0; i < count; i++) {
@@ -707,5 +703,4 @@ function initParticles() {
     animate();
 }
 
-// Call initParticles securely to launch the engine after everything loads
 window.addEventListener('load', () => setTimeout(initParticles, 100));
