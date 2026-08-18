@@ -1,9 +1,16 @@
+/* ============================================================
+   PAGE CONTAINER
+   ============================================================ */
 .calendar-page-container {
   width: 100%;
   margin: 0 auto;
   padding-bottom: var(--space-8);
+  box-sizing: border-box;
 }
 
+/* ============================================================
+   CALENDAR CARD & CONTROLS
+   ============================================================ */
 .calendar-card {
   background: var(--color-white);
   border: 1px solid var(--color-border);
@@ -11,6 +18,22 @@
   padding: var(--space-5);
   margin-bottom: var(--space-6);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.calendar-loading-state {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.calendar-empty-state {
+  text-align: center;
+  padding: var(--space-6);
+  background: var(--color-white);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
 }
 
 .calendar-controls {
@@ -21,6 +44,7 @@
   gap: 12px;
 }
 
+/* Segmented Toggle & Filter Groups */
 .segmented-group {
   display: flex;
   background: var(--color-bg);
@@ -44,12 +68,19 @@
   transition: all var(--transition-fast);
 }
 
+.segmented-btn i,
+.segmented-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 .segmented-btn--active {
   background: var(--color-primary);
   color: var(--color-text-on-accent);
   font-weight: 700;
 }
 
+/* Header & Navigation */
 .calendar-header {
   display: flex;
   justify-content: space-between;
@@ -87,6 +118,15 @@
   background: var(--color-bg);
 }
 
+.calendar-header__nav-btn i,
+.calendar-header__nav-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ============================================================
+   CALENDAR GRID & CELLS
+   ============================================================ */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -162,7 +202,29 @@
   background: var(--color-text-on-accent);
 }
 
-/* Timeline View */
+.calendar-day-cell__more-dots {
+  font-size: 9px;
+  line-height: 6px;
+  font-weight: bold;
+  color: var(--color-primary);
+}
+
+.calendar-day-cell--selected .calendar-day-cell__more-dots {
+  color: var(--color-text-on-accent);
+}
+
+/* ============================================================
+   TIMELINE & EVENTS VIEW
+   ============================================================ */
+.timeline-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-3);
+}
+
 .timeline-container {
   display: flex;
   flex-direction: column;
@@ -256,13 +318,13 @@
   color: var(--color-text-primary);
 }
 
-.event-card-meta-row {
+.event-card-meta-list {
   display: flex;
-  gap: 14px;
+  flex-direction: column;
+  gap: 4px;
   color: var(--color-text-primary);
   font-size: 0.9rem;
   font-weight: 500;
-  flex-wrap: wrap;
 }
 
 .event-card-meta-item {
@@ -271,10 +333,17 @@
   gap: 6px;
 }
 
-.event-card-meta-item i, .event-card-meta-item svg {
+.event-card-meta-item i,
+.event-card-meta-item svg {
   width: 15px;
   height: 15px;
   color: var(--color-text-secondary);
+}
+
+.event-card-link {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .event-card-side {
@@ -282,18 +351,20 @@
   flex-direction: column;
   align-items: flex-end;
   text-align: right;
+  gap: 4px;
 }
 
 .event-card-names {
   font-size: 0.95rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.event-card-names i, .event-card-names svg {
+.event-card-names i,
+.event-card-names svg {
   width: 15px;
   height: 15px;
   color: var(--color-primary);
@@ -301,9 +372,22 @@
 }
 
 .event-card-family {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
-  font-weight: 500;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.event-card-family i,
+.event-card-family svg {
+  width: 15px;
+  height: 15px;
+  color: var(--color-primary);
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
@@ -316,7 +400,8 @@
   .event-card-side {
     align-items: flex-start;
     text-align: left;
-    padding-top: 4px;
+    padding-top: 6px;
     border-top: 1px dashed var(--color-border);
+    gap: 4px;
   }
 }

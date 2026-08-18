@@ -12,7 +12,11 @@ export function renderCalendar() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const errSec = document.createElement("div");
         errSec.className = "calendar-page-container";
-        errSec.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to view your calendar.</div>`;
+        errSec.innerHTML = `
+            <div class="calendar-card">
+                <div class="calendar-loading-state">Please log in to view your calendar.</div>
+            </div>
+        `;
         return errSec;
     }
 
@@ -29,7 +33,7 @@ export function renderCalendar() {
     section.appendChild(calendarCard);
     section.appendChild(eventsContainer);
 
-    calendarCard.innerHTML = `<div style="padding: var(--space-6); text-align: center; color: var(--color-text-secondary);">Loading your calendar...</div>`;
+    calendarCard.innerHTML = `<div class="calendar-loading-state">Loading your calendar...</div>`;
 
     setTimeout(() => {
         loadUserEvents().then(() => {
@@ -146,10 +150,10 @@ function updateCalendarUI() {
     const viewToggleHTML = `
         <div class="segmented-group">
             <button class="segmented-btn ${currentView === 'week' ? 'segmented-btn--active' : ''}" onclick="setCalendarView('week')" title="Week View">
-                <i data-lucide="calendar-range" style="width: 16px; height: 16px;"></i>
+                <i data-lucide="calendar-range"></i>
             </button>
             <button class="segmented-btn ${currentView === 'month' ? 'segmented-btn--active' : ''}" onclick="setCalendarView('month')" title="Month View">
-                <i data-lucide="calendar-days" style="width: 16px; height: 16px;"></i>
+                <i data-lucide="calendar-days"></i>
             </button>
         </div>
     `;
@@ -174,7 +178,7 @@ function updateCalendarUI() {
                 dotsHTML += `<div class="calendar-day-cell__dot"></div>`;
             }
             if (dayEvents.length > 4) {
-                dotsHTML += `<span style="font-size: 9px; line-height: 6px; font-weight: bold; color: inherit;">+</span>`;
+                dotsHTML += `<span class="calendar-day-cell__more-dots">+</span>`;
             }
             dotsHTML += `</div>`;
         }
@@ -225,9 +229,9 @@ function updateCalendarUI() {
             <div>${filterHTML}</div>
         </div>
         <div class="calendar-header">
-            <button id="cal-prev-btn" class="calendar-header__nav-btn"><i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i></button>
+            <button id="cal-prev-btn" class="calendar-header__nav-btn"><i data-lucide="chevron-left"></i></button>
             <h2 id="cal-title-header" class="calendar-header__title" title="Go to Today">${titleText}</h2>
-            <button id="cal-next-btn" class="calendar-header__nav-btn"><i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i></button>
+            <button id="cal-next-btn" class="calendar-header__nav-btn"><i data-lucide="chevron-right"></i></button>
         </div>
         <div class="calendar-grid">
             ${gridHTML}
@@ -339,13 +343,13 @@ function renderFilteredEvents() {
     displayEvents.sort((a, b) => new Date(`${a.date} ${a.time || '12:00 AM'}`).getTime() - new Date(`${b.date} ${b.time || '12:00 AM'}`).getTime());
 
     let html = `
-        <h3 style="font-size: 1.1rem; font-weight: bold; color: var(--color-text-primary); margin: 0 0 var(--space-4) 0; border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-3);">
+        <h3 class="timeline-title">
             ${titleHTML}
         </h3>
     `;
 
     if (displayEvents.length === 0) {
-        html += `<div style="text-align: center; padding: var(--space-6); background: var(--color-white); border: 1px dashed var(--color-border); border-radius: var(--radius-lg); color: var(--color-text-muted);">No events scheduled.</div>`;
+        html += `<div class="calendar-empty-state">No events scheduled.</div>`;
     } else {
         const groupedByDate = displayEvents.reduce((acc, ev) => {
             const dateObj = new Date(ev.date || ev.start_time);
@@ -374,7 +378,7 @@ function renderFilteredEvents() {
                 const familyName = wedding && wedding.family_name ? wedding.family_name : '';
                 
                 const venueHTML = ev.venue_map_link 
-                    ? `<a href="${ev.venue_map_link}" target="_blank" style="color: var(--color-primary); text-decoration: underline;">${ev.venue}</a>`
+                    ? `<a href="${ev.venue_map_link}" target="_blank" class="event-card-link">${ev.venue}</a>`
                     : `<span>${ev.venue}</span>`;
 
                 html += `
@@ -383,7 +387,7 @@ function renderFilteredEvents() {
                         <div class="event-card-inner">
                             <div class="event-card-main">
                                 <h4 class="event-card-title">${ev.event_name || ev.title}</h4>
-                                <div class="event-card-meta-row">
+                                <div class="event-card-meta-list">
                                     <div class="event-card-meta-item">
                                         <i data-lucide="clock"></i> ${formatTime(ev.time) || '-'}
                                     </div>
@@ -397,7 +401,11 @@ function renderFilteredEvents() {
                                 <span class="event-card-names">
                                     <i data-lucide="heart"></i>${displayNames}
                                 </span>
-                                ${familyName ? `<span class="event-card-family">${familyName}</span>` : ''}
+                                ${familyName ? `
+                                    <span class="event-card-family">
+                                        <i data-lucide="users"></i>${familyName}
+                                    </span>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
