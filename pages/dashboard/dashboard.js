@@ -4,25 +4,31 @@ export function renderDashboard() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const wrapper = document.createElement('section');
         wrapper.className = "dashboard";
-        wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
-        wrapper.innerHTML = `<div class="dashboard-section__empty" style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Please log in to view dashboard contents.</div>`;
+        wrapper.innerHTML = `
+            <div class="dashboard-section">
+                <div class="dashboard-loading-state">Please log in to view dashboard contents.</div>
+            </div>
+        `;
         return wrapper;
     }
 
     const curUser = window.currentUser || { role: 'guest' };
     const wrapper = document.createElement('section');
     wrapper.className = "dashboard";
-    wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
 
     if (curUser.role !== 'creator') {
         return wrapper; 
     }
 
-    wrapper.innerHTML = `<div class="dashboard-section__empty" style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading dashboard...</div>`;
+    wrapper.innerHTML = `
+        <div class="dashboard-section">
+            <div class="dashboard-loading-state">Loading dashboard...</div>
+        </div>
+    `;
 
     loadGlobalDashboardData(wrapper);
     return wrapper;
-}     
+}    
 
 async function loadGlobalDashboardData(section) {
     try {
@@ -89,20 +95,11 @@ async function loadGlobalDashboardData(section) {
         section.appendChild(buildStatsGrid(globalStats));
         
         const listsWrapper = document.createElement("div");
-        // FIX: Applied min(100%, 320px) to prevent mobile overflow
-        listsWrapper.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: var(--space-6); width: 100%; margin-top: var(--space-6); margin-bottom: var(--space-6);";
+        listsWrapper.className = "dashboard__lists-grid";
 
-        const inProgressSection = buildWeddingListSection("In Progress", inProgressWeddings);
-        const upcomingSection = buildWeddingListSection("Upcoming", upcomingWeddings);
-        const archivedSection = buildWeddingListSection("Archived", archivedWeddings);
-        
-        inProgressSection.style.marginBottom = "0";
-        upcomingSection.style.marginBottom = "0";
-        archivedSection.style.marginBottom = "0";
-
-        listsWrapper.appendChild(inProgressSection);
-        listsWrapper.appendChild(upcomingSection);
-        listsWrapper.appendChild(archivedSection);
+        listsWrapper.appendChild(buildWeddingListSection("In Progress", inProgressWeddings));
+        listsWrapper.appendChild(buildWeddingListSection("Upcoming", upcomingWeddings));
+        listsWrapper.appendChild(buildWeddingListSection("Archived", archivedWeddings));
 
         section.appendChild(listsWrapper);
         section.appendChild(buildRecentActivitySection());
@@ -113,29 +110,21 @@ async function loadGlobalDashboardData(section) {
 
     } catch (error) {
         console.error('[DEBUG ERROR] Failed to load dashboard data:', error);
-        section.innerHTML = `<div class="dashboard-section" style="border-color: var(--color-danger); padding: var(--space-5);"><span style="color: var(--color-danger);">Failed to load data: ${error.message}</span></div>`;
+        section.innerHTML = `<div class="dashboard-section dashboard-section--error"><span style="color: var(--color-danger);">Failed to load data: ${error.message}</span></div>`;
     }
 }
 
 function buildStatsGrid(stats) {
     const grid = document.createElement("div");
     grid.className = "dashboard__stats";
-    // FIX: Applied min(100%, 240px) to prevent mobile overflow on stat cards
-    grid.style.cssText = `
-        display: grid; 
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); 
-        gap: var(--space-6); 
-        margin-bottom: var(--space-8);
-        width: 100%;
-    `;
     grid.innerHTML = stats.map(s => `
-        <div class="stat-card" style="background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; align-items: center; justify-content: space-between;">
-            <div class="dashboard__stat-card">
-                <p class="card__subtitle" style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0; font-weight: var(--font-weight-medium);">${s.label}</p>
-                <p class="card__title" style="color: var(--color-text-primary); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); margin: 4px 0 0 0;">${s.value}</p>
+        <div class="dashboard-stat-card">
+            <div class="dashboard-stat-card__content">
+                <p class="dashboard-stat-card__subtitle">${s.label}</p>
+                <p class="dashboard-stat-card__title">${s.value}</p>
             </div>
-            <div style="background: var(--color-border); color: var(--color-primary); width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <i data-lucide="${s.icon}" style="width: 20px; height: 20px;"></i>
+            <div class="dashboard-stat-card__icon-badge">
+                <i data-lucide="${s.icon}"></i>
             </div>
         </div>
     `).join('');
@@ -151,10 +140,9 @@ function startOfDay(date) {
 function buildRecentActivitySection() {
     const section = document.createElement("div");
     section.className = "dashboard-section";
-    section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);";
     section.innerHTML = `
-        <h2 style="font-size: 1.25rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0 0 var(--space-4) 0;">Recent Activity</h2>
-        <div class="dashboard-section__empty" style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">
+        <h2 class="dashboard-section__heading">Recent Activity</h2>
+        <div class="dashboard-section__empty">
             No recent activity logs recorded.
         </div>
     `;
@@ -164,24 +152,22 @@ function buildRecentActivitySection() {
 function buildWeddingListSection(title, weddingsList) {
     const container = document.createElement("div");
     container.className = "dashboard-section";
-    container.style.cssText = "width: 100%; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);"; 
 
     const heading = document.createElement("h2");
+    heading.className = "dashboard-section__heading";
     heading.textContent = title;
-    heading.style.cssText = "font-size: 1.25rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;";
     container.appendChild(heading);
 
     if (!weddingsList || weddingsList.length === 0) {
         const emptyDiv = document.createElement("div");
         emptyDiv.className = "dashboard-section__empty";
-        emptyDiv.style.cssText = "text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);";
         emptyDiv.textContent = `No ${title.toLowerCase()} weddings found.`;
         container.appendChild(emptyDiv);
         return container;
     }
 
     const listContainer = document.createElement("div");
-    listContainer.style.cssText = "display: flex; flex-direction: column; gap: var(--space-3);";
+    listContainer.className = "dashboard-section__list";
 
     weddingsList.sort((a, b) => new Date(a.start_date) - new Date(b.start_date)).forEach(wedding => {        
         const displayNames = wedding.primary_side === 'groom' 
@@ -194,13 +180,13 @@ function buildWeddingListSection(title, weddingsList) {
             const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
             
             hostsHTML = `
-            <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span>${inlineHosts}</span>
+            <div class="dashboard-wedding-card__row">
+                <i data-lucide="phone"></i> <span>${inlineHosts}</span>
             </div>`;
         } else {
             hostsHTML = `
-            <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                <i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span style="font-style: italic;">No wedding hosts added</span>
+            <div class="dashboard-wedding-card__row dashboard-wedding-card__row--empty">
+                <i data-lucide="phone"></i> <span>No wedding hosts added</span>
             </div>`;
         }
 
@@ -208,44 +194,40 @@ function buildWeddingListSection(title, weddingsList) {
         if (wedding.has_web_invite) {
             const inviteUrl = `${window.location.origin}/invite.html?id=${wedding.id}`;
             webInviteHTML = `
-            <div style="margin-top: 12px; display: flex; justify-content: center;">
-                <a href="${inviteUrl}" target="_blank" onclick="event.stopPropagation();" style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 8px 16px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation
+            <div class="dashboard-wedding-card__invite-wrap">
+                <a href="${inviteUrl}" target="_blank" class="dashboard-wedding-card__invite-btn" onclick="event.stopPropagation();">
+                    <i data-lucide="external-link"></i> Wedding Invitation
                 </a>
             </div>`;
         }
 
         const cardEl = document.createElement("div");
-        cardEl.className = "stat-card";
+        cardEl.className = "dashboard-wedding-card";
         cardEl.setAttribute('data-wedding-id', wedding.id);
         
-        cardEl.style.cssText = "cursor: pointer; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 8px; position: relative; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.1s ease; background: var(--color-bg);";
-        cardEl.onmouseover = () => cardEl.style.transform = 'translateY(-2px)';
-        cardEl.onmouseout = () => cardEl.style.transform = 'translateY(0)';
-        
         let cardHTML = `
-            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div style="background: var(--color-border); color: var(--color-primary); width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i data-lucide="heart" style="width: 16px; height: 16px;"></i>
+            <div class="dashboard-wedding-card__header">
+                <div class="dashboard-wedding-card__title-group">
+                    <div class="dashboard-wedding-card__icon-badge">
+                        <i data-lucide="heart"></i>
                     </div>
                     <div>
-                        <h3 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${displayNames}</h3>
-                        <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--color-text-secondary);"><i data-lucide="calendar" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
+                        <h3 class="dashboard-wedding-card__names">${displayNames}</h3>
+                        <p class="dashboard-wedding-card__dates"><i data-lucide="calendar"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
                     </div>
                 </div>
             </div>
             
-            <div style="border-top: 1px solid var(--color-border); margin-top: 4px; padding-top: 8px;">
-                ${wedding.family_name ? `<div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="home" style="width:14px; height:14px;"></i> ${wedding.family_name}</div>` : ''}
+            <div class="dashboard-wedding-card__details">
+                ${wedding.family_name ? `<div class="dashboard-wedding-card__row"><i data-lucide="home"></i> <span>${wedding.family_name}</span></div>` : ''}
 
-                ${wedding.family_details ? `<div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.family_details}</div>` : ''}
+                ${wedding.family_details ? `<div class="dashboard-wedding-card__row"><i data-lucide="users"></i> <span>${wedding.family_details}</span></div>` : ''}
                 
                 ${hostsHTML}
 
-                <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.guests_count || 0} Guests</div>
+                <div class="dashboard-wedding-card__row"><i data-lucide="users"></i> <span>${wedding.guests_count || 0} Guests</span></div>
 
-                <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary);"><i data-lucide="calendar-days" style="width:14px; height:14px;"></i> ${wedding.events_count || 0} Events</div>
+                <div class="dashboard-wedding-card__row"><i data-lucide="calendar-days"></i> <span>${wedding.events_count || 0} Events</span></div>
                 
                 ${webInviteHTML}
             </div>
@@ -253,7 +235,7 @@ function buildWeddingListSection(title, weddingsList) {
 
         cardEl.innerHTML = cardHTML;
 
-        cardEl.addEventListener('click', (e) => {
+        cardEl.addEventListener('click', () => {
             const weddingId = cardEl.getAttribute('data-wedding-id');
             window.location.hash = `#wedding-details?id=${weddingId}`;
         });

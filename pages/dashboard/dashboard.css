@@ -1,13 +1,21 @@
 /* ============================================================
-   PAGE CONTAINER
+   DASHBOARD PAGE CONTAINER
    ============================================================ */
 .dashboard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5); /* Reduced from space-8 to kill the huge empty gap */
-  padding: var(--space-4) var(--space-8) var(--space-8); /* Tighter top padding */
-  max-width: var(--container-max-width);
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-8) var(--space-8);
+  max-width: var(--container-max-width, 1400px);
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding: var(--space-3) var(--space-4) var(--space-6);
+  }
 }
 
 /* ============================================================
@@ -33,92 +41,252 @@
 }
 
 /* ============================================================
-   STATS GRID
+   STATS GRID & CARDS
    ============================================================ */
 .dashboard__stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-6); /* This single property dictates exact, even spacing */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
   width: 100%;
 }
 
-@media (max-width: 1024px) {
-  .dashboard__stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.dashboard-stat-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-@media (max-width: 768px) {
-  .dashboard__stats {
-    grid-template-columns: 1fr;
-  }
+.dashboard-stat-card__content {
+  display: flex;
+  flex-direction: column;
 }
 
-@media (max-width: 560px) {
-  .dashboard__stats {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ============================================================
-   STAT CARD
-   ============================================================ */
-.dashboard__stat-card .card__title {
-  font-size: var(--font-size-2xl);
-  font-family: var(--font-family-display);
-}
-
-.dashboard__stat-card .card__subtitle {
-  font-size: var(--font-size-sm);
+.dashboard-stat-card__subtitle {
   color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.dashboard-stat-card__title {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin: 4px 0 0 0;
+}
+
+.dashboard-stat-card__icon-badge {
+  background: var(--color-border);
+  color: var(--color-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dashboard-stat-card__icon-badge i,
+.dashboard-stat-card__icon-badge svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* ============================================================
-   GENERIC DASHBOARD SECTION
+   WEDDING LISTS WRAPPER & SECTIONS
    ============================================================ */
+.dashboard__lists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: var(--space-6);
+  width: 100%;
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
 .dashboard-section {
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   background-color: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  box-sizing: border-box;
 }
 
-.dashboard-section h2 {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+.dashboard-section--error {
+  border-color: var(--color-danger);
+}
+
+.dashboard-section__heading {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
+  margin: 0;
 }
 
 .dashboard-section__empty {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-6);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
-.dashboard-section .button {
-  align-self: flex-start;
+.dashboard-section__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-/* Modal specific styles */
-.modal-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
-    background-color: var(--color-overlay);
-    display: flex; align-items: center; justify-content: center;
-    z-index: var(--z-modal-backdrop);
-    padding: var(--space-4);
+/* ============================================================
+   WEDDING CARDS
+   ============================================================ */
+.dashboard-wedding-card {
+  cursor: pointer;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: transform var(--transition-fast, 0.15s ease), border-color var(--transition-fast, 0.15s ease);
+  background: var(--color-bg);
 }
 
-.modal-content {
-    background: var(--color-bg-muted);
-    border: 1px solid var(--color-border-strong);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-xl);
-    max-width: 400px;
-    width: 100%;
-    padding: var(--space-6);
-    color: var(--color-text-primary);
+.dashboard-wedding-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-strong, rgba(255, 255, 255, 0.2));
+}
+
+.dashboard-wedding-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.dashboard-wedding-card__title-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dashboard-wedding-card__icon-badge {
+  background: var(--color-border);
+  color: var(--color-primary);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dashboard-wedding-card__icon-badge i,
+.dashboard-wedding-card__icon-badge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dashboard-wedding-card__names {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.dashboard-wedding-card__dates {
+  margin: 4px 0 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dashboard-wedding-card__dates i,
+.dashboard-wedding-card__dates svg {
+  width: 12px;
+  height: 12px;
+}
+
+.dashboard-wedding-card__details {
+  border-top: 1px solid var(--color-border);
+  margin-top: 4px;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashboard-wedding-card__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-wedding-card__row i,
+.dashboard-wedding-card__row svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.dashboard-wedding-card__row--empty {
+  font-style: italic;
+}
+
+.dashboard-wedding-card__invite-wrap {
+  margin-top: 6px;
+  display: flex;
+  justify-content: center;
+}
+
+.dashboard-wedding-card__invite-btn {
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity var(--transition-fast, 0.15s ease);
+}
+
+.dashboard-wedding-card__invite-btn:hover {
+  opacity: 0.85;
+}
+
+.dashboard-wedding-card__invite-btn i,
+.dashboard-wedding-card__invite-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.dashboard-loading-state {
+  padding: var(--space-6, 24px);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base, 1rem);
 }
