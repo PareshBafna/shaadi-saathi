@@ -98,7 +98,10 @@ export function renderSampleWeddings() {
 }
 
 function loadSampleWeddingsData() {
-    // Synced with exact event counts (4 events each) to match sample-wedding-details.js[cite: 1]
+    const today = new Date();
+    const addD = (days) => { const d = new Date(today); d.setDate(d.getDate() + days); return d; };
+    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     allSampleWeddings = [
         {
             id: 'sample-inprogress',
@@ -106,8 +109,8 @@ function loadSampleWeddingsData() {
             primary_side: 'bride',
             bride_name: 'Ananya',
             groom_name: 'Vikram',
-            start_date: '2026-08-13',
-            end_date: '2026-08-16',
+            start_date: fmt(addD(-1)),
+            end_date: fmt(addD(2)),
             family_name: 'The Sharma Family',
             family_details: 'Sharma & Verma Families',
             events_count: 4, 
@@ -123,8 +126,8 @@ function loadSampleWeddingsData() {
             primary_side: 'groom',
             bride_name: 'Neha',
             groom_name: 'Rahul',
-            start_date: '2026-09-28',
-            end_date: '2026-09-30',
+            start_date: fmt(addD(30)),
+            end_date: fmt(addD(32)),
             family_name: 'The Patel Family',
             family_details: 'Patel & Shah Families',
             events_count: 4, 
@@ -139,8 +142,8 @@ function loadSampleWeddingsData() {
             primary_side: 'bride',
             bride_name: 'Isha',
             groom_name: 'Karan',
-            start_date: '2026-04-16',
-            end_date: '2026-04-18',
+            start_date: fmt(addD(-45)),
+            end_date: fmt(addD(-43)),
             family_name: 'The Gupta Family',
             family_details: 'Gupta & Malhotra Families',
             events_count: 4, 

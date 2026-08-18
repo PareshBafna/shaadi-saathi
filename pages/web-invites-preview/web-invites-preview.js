@@ -248,8 +248,10 @@ async function initDynamicInvite() {
                 mother: inviteDetails.groom_mother || ""
             },
             hashtag: wedding.hashtag,
-            mainDatePlace: `${new Date(wedding.start_date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
-            timerTarget: filteredEvents.length > 0 ? `${filteredEvents[0].date}T${filteredEvents[0].time || '00:00:00'}` : `${wedding.start_date}T10:00:00`,
+            // Display only the end date (or start date if end isn't available)
+            mainDatePlace: new Date(wedding.end_date || wedding.start_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase(),
+            // Sync countdown to the final event time
+            timerTarget: filteredEvents.length > 0 ? `${filteredEvents[filteredEvents.length - 1].date}T${filteredEvents[filteredEvents.length - 1].time || '23:59:59'}` : `${wedding.end_date || wedding.start_date}T23:59:59`,
             instagram: wedding.instagram || "",
             instaLink: wedding.instagram 
                 ? (wedding.instagram.includes('instagram.com') ? wedding.instagram : `https://instagram.com/${wedding.instagram.replace('@','')}`) 
@@ -332,7 +334,7 @@ const generateWelcomeHTML = () => {
                     ${weddingConfig.hashtag ? `<div class="hashtag-line-last" style="color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">${weddingConfig.hashtag}</div>` : ''}
                     
                     <div class="hero-divider"></div>
-                    <div class="hero-date-place" style="color: #ffffff !important; text-shadow: 0 2px 5px rgba(0,0,0,0.8) !important;">${weddingConfig.mainDatePlace}</div>
+                    <div class="hero-date-place" style="color: #ffffff !important; text-shadow: 0 2px 5px rgba(0,0,0,0.8) !important; letter-spacing: 0.15em; font-size: 1.05rem;">${weddingConfig.mainDatePlace}</div>
                     <div class="countdown" id="countdown">
                         <div class="time-box"><div class="time-value" id="days">0</div><div class="time-label" style="color: var(--color-secondary);">Days</div></div>
                         <div class="time-box"><div class="time-value" id="hours">00</div><div class="time-label" style="color: var(--color-secondary);">Hours</div></div>

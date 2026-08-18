@@ -4,130 +4,65 @@ import { formatWeddingDateRange } from '../sample-weddings/sample-weddings.js';
 // SAMPLE WEDDING MOCK DATA GENERATOR
 // ==========================================
 function generateSampleData(weddingId) {
+    const today = new Date();
+    const addD = (days) => { const d = new Date(today); d.setDate(d.getDate() + days); return d; };
+    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     let wedding;
     let events = [];
     let hosts = [];
 
     if (weddingId === 'sample-inprogress') {
         wedding = {
-            id: 'sample-inprogress',
-            bride_name: 'Ananya',
-            groom_name: 'Vikram',
-            primary_side: 'bride',
-            family_name: 'The Sharma Family',
-            family_details: 'Sharma & Verma Families',
-            hashtag: '#AnanyaWedsVikram',
-            instagram: 'ananyasharma',
-            start_date: '2026-08-13',
-            end_date: '2026-08-16',
-            has_web_invite: true
+            id: 'sample-inprogress', bride_name: 'Ananya', groom_name: 'Vikram', primary_side: 'bride',
+            family_name: 'The Sharma Family', family_details: 'Sharma & Verma Families', hashtag: '#AnanyaWedsVikram',
+            instagram: 'ananyasharma', start_date: fmt(addD(-1)), end_date: fmt(addD(2)), has_web_invite: true
         };
         events = [
-            { id: 'e1', event_name: 'Engagement Ring Ceremony', title: 'Engagement Ring Ceremony', date: '2026-08-13', time: '17:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
-            { id: 'e2', event_name: 'Haldi & Floral Bath', title: 'Haldi & Floral Bath', date: '2026-08-14', time: '10:30:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
-            { id: 'e3', event_name: 'Sangeet & Cocktail Night', title: 'Sangeet & Cocktail Night', date: '2026-08-15', time: '19:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
-            { id: 'e4', event_name: 'Wedding & Reception', title: 'Wedding & Reception', date: '2026-08-16', time: '18:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' }
+            { id: 'e1', event_name: 'Engagement Ring Ceremony', title: 'Engagement Ring Ceremony', date: fmt(addD(-1)), time: '17:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
+            { id: 'e2', event_name: 'Haldi & Floral Bath', title: 'Haldi & Floral Bath', date: fmt(addD(0)), time: '10:30:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
+            { id: 'e3', event_name: 'Sangeet & Cocktail Night', title: 'Sangeet & Cocktail Night', date: fmt(addD(1)), time: '19:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' },
+            { id: 'e4', event_name: 'Wedding & Reception', title: 'Wedding & Reception', date: fmt(addD(2)), time: '18:00:00', venue: 'Grand Resort Ballroom, Chennai', venue_map_link: 'https://maps.app.goo.gl/example' }
         ];
-        hosts = [
-            { name: 'Amit Sharma', phone: '+919876543210' },
-            { name: 'Priya Sharma', phone: '+919876543211' }
-        ];
+        hosts = [ { name: 'Amit Sharma', phone: '+919876543210' }, { name: 'Priya Sharma', phone: '+919876543211' } ];
     } else if (weddingId === 'sample-upcoming') {
         wedding = {
-            id: 'sample-upcoming',
-            bride_name: 'Neha',
-            groom_name: 'Rahul',
-            primary_side: 'groom',
-            family_name: 'The Patel Family',
-            family_details: 'Patel & Shah Families',
-            hashtag: '#RahulKiNeha',
-            instagram: 'rahulpatel',
-            start_date: '2026-09-28',
-            end_date: '2026-09-30',
-            has_web_invite: true
+            id: 'sample-upcoming', bride_name: 'Neha', groom_name: 'Rahul', primary_side: 'groom',
+            family_name: 'The Patel Family', family_details: 'Patel & Shah Families', hashtag: '#RahulKiNeha',
+            instagram: 'rahulpatel', start_date: fmt(addD(30)), end_date: fmt(addD(32)), has_web_invite: true
         };
         events = [
-            { id: 'e5', event_name: 'Welcome Hi-Tea', title: 'Welcome Hi-Tea', date: '2026-09-28', time: '16:00:00', venue: 'Royal Palace Hall, Jaipur' },
-            { id: 'e6', event_name: 'Mehendi Celebration', title: 'Mehendi Celebration', date: '2026-09-28', time: '19:00:00', venue: 'Royal Palace Hall, Jaipur' },
-            { id: 'e7', event_name: 'Sangeet Night', title: 'Sangeet Night', date: '2026-09-29', time: '18:30:00', venue: 'Royal Palace Hall, Jaipur' },
-            { id: 'e8', event_name: 'Pheras & Wedding Lunch', title: 'Pheras & Wedding Lunch', date: '2026-09-30', time: '11:00:00', venue: 'Royal Palace Hall, Jaipur' }
+            { id: 'e5', event_name: 'Welcome Hi-Tea', title: 'Welcome Hi-Tea', date: fmt(addD(30)), time: '16:00:00', venue: 'Royal Palace Hall, Jaipur' },
+            { id: 'e6', event_name: 'Mehendi Celebration', title: 'Mehendi Celebration', date: fmt(addD(30)), time: '19:00:00', venue: 'Royal Palace Hall, Jaipur' },
+            { id: 'e7', event_name: 'Sangeet Night', title: 'Sangeet Night', date: fmt(addD(31)), time: '18:30:00', venue: 'Royal Palace Hall, Jaipur' },
+            { id: 'e8', event_name: 'Pheras & Wedding Lunch', title: 'Pheras & Wedding Lunch', date: fmt(addD(32)), time: '11:00:00', venue: 'Royal Palace Hall, Jaipur' }
         ];
-        hosts = [
-            { name: 'Sanjay Patel', phone: '+919876543222' }
-        ];
-    } else if (weddingId === 'sample-archived') {
-        wedding = {
-            id: 'sample-archived',
-            bride_name: 'Isha',
-            groom_name: 'Karan',
-            primary_side: 'bride',
-            family_name: 'The Gupta Family',
-            family_details: 'Gupta & Malhotra Families',
-            hashtag: '#IshaWedsKaran',
-            instagram: 'ishagupta',
-            start_date: '2026-04-16',
-            end_date: '2026-04-18',
-            has_web_invite: false
-        };
-        events = [
-            { id: 'e9', event_name: 'Welcome Dinner', title: 'Welcome Dinner', date: '2026-04-16', time: '20:00:00', venue: 'City Club Main Banquet, Mumbai' },
-            { id: 'e10', event_name: 'Haldi & Puja', title: 'Haldi & Puja', date: '2026-04-17', time: '09:30:00', venue: 'City Club Main Banquet, Mumbai' },
-            { id: 'e11', event_name: 'Sangeet Evening', title: 'Sangeet Evening', date: '2026-04-17', time: '19:00:00', venue: 'City Club Main Banquet, Mumbai' },
-            { id: 'e12', event_name: 'Grand Reception', title: 'Grand Reception', date: '2026-04-18', time: '19:00:00', venue: 'City Club Main Banquet, Mumbai' }
-        ];
-        hosts = [
-            { name: 'Rajesh Gupta', phone: '+919876543233' }
-        ];
+        hosts = [ { name: 'Sanjay Patel', phone: '+919876543222' } ];
     } else {
-        const today = new Date();
-        const day1 = new Date(today); day1.setDate(today.getDate() + 7);
-        const day2 = new Date(day1); day2.setDate(day1.getDate() + 1);
-        const day3 = new Date(day1); day3.setDate(day1.getDate() + 2);
-        const formatDateString = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        
         wedding = {
-            id: 'sample-wedding-123',
-            bride_name: 'Shruti',
-            groom_name: 'Rohan',
-            primary_side: 'groom',
-            family_name: 'Jain',
-            family_details: 'Sha Rameshji Sureshji Jain',
-            hashtag: '#RohanKiShruti',
-            instagram: 'rohankishruti',
-            start_date: formatDateString(day1),
-            end_date: formatDateString(day3),
-            has_web_invite: true
+            id: 'sample-archived', bride_name: 'Isha', groom_name: 'Karan', primary_side: 'bride',
+            family_name: 'The Gupta Family', family_details: 'Gupta & Malhotra Families', hashtag: '#IshaWedsKaran',
+            instagram: 'ishagupta', start_date: fmt(addD(-45)), end_date: fmt(addD(-43)), has_web_invite: false
         };
         events = [
-            { id: 'e13', event_name: 'Paath Bithai', title: 'Paath Bithai', date: formatDateString(day1), time: '10:31:00', venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
-            { id: 'e14', event_name: 'Tamil Night', title: 'Tamil Night', date: formatDateString(day1), time: '18:30:00', venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
-            { id: 'e15', event_name: 'Haldi & Carnival', title: 'Haldi & Carnival', date: formatDateString(day2), time: '11:00:00', venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' },
-            { id: 'e16', event_name: 'Reception', title: 'Reception', date: formatDateString(day3), time: '11:00:00', venue: 'Terapanti Bhavan, Sowcarpet', venue_map_link: 'https://maps.google.com/?q=Terapanti+Bhavan+Sowcarpet' }
+            { id: 'e9', event_name: 'Welcome Dinner', title: 'Welcome Dinner', date: fmt(addD(-45)), time: '20:00:00', venue: 'City Club Main Banquet, Mumbai' },
+            { id: 'e10', event_name: 'Haldi & Puja', title: 'Haldi & Puja', date: fmt(addD(-44)), time: '09:30:00', venue: 'City Club Main Banquet, Mumbai' },
+            { id: 'e11', event_name: 'Sangeet Evening', title: 'Sangeet Evening', date: fmt(addD(-44)), time: '19:00:00', venue: 'City Club Main Banquet, Mumbai' },
+            { id: 'e12', event_name: 'Grand Reception', title: 'Grand Reception', date: fmt(addD(-43)), time: '19:00:00', venue: 'City Club Main Banquet, Mumbai' }
         ];
-        hosts = [
-            { name: 'Ramesh Jain', phone: '+919876500001' },
-            { name: 'Suresh Jain', phone: '+919876500002' }
-        ];
+        hosts = [ { name: 'Rajesh Gupta', phone: '+919876543233' } ];
     }
 
-    const users = [
-        { id: 'u1', name: 'Rahul Jain', phone: '+919876500003' },
-        { id: 'u2', name: 'Neha Jain', phone: '+919876500004' }
-    ];
-
+    const users = [ { id: 'u1', name: 'Rahul Jain', phone: '+919876500003' }, { id: 'u2', name: 'Neha Jain', phone: '+919876500004' } ];
     const guests = [];
-    const firstNames = ["Amit", "Priya", "Rahul", "Anjali", "Karan", "Neha", "Vikram", "Sneha", "Rohit", "Pooja", "Suresh", "Geeta"];
+    const firstNames = ["Amit", "Priya", "Rahul", "Anjali", "Karan", "Neha", "Vikram", "Sneha"];
     const lastNames = ["Jain", "Shah", "Mehta", "Patel", "Desai", "Gupta", "Sharma", "Singh"];
     
     const allEventIds = events.map(e => e.id);
-
     for (let i = 1; i <= 50; i++) {
-        const fn = firstNames[Math.floor(Math.random() * firstNames.length)];
-        const ln = lastNames[Math.floor(Math.random() * lastNames.length)];
-        
         guests.push({
             id: `g${i}`,
-            name: `${fn} ${ln}`,
+            name: `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
             phone: `+919${Math.floor(100000000 + Math.random() * 900000000)}`,
             invited_events: allEventIds
         });
@@ -242,7 +177,7 @@ function buildMockHeader(wedding) {
     rightSide.style.cssText = "display: flex; flex-direction: column; align-items: flex-end; gap: 10px;";
 
     const inviteUrl = `#sample-web-invites-preview?id=${wedding.id}`;
-    
+
     const webInviteHTML = wedding.has_web_invite ? `
         <a href="${inviteUrl}" target="_blank" style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 0 16px; height: 36px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s; box-sizing: border-box;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
             <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation

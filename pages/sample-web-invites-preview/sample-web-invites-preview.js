@@ -1,27 +1,15 @@
 let isThemeReady = false; 
 const currentThemeRGB = { main: '29, 78, 216', accent: '96, 165, 250', bgDark: '15, 23, 42' };
+let currentThemeColors = { main: '#1d4ed8', bgDark: '#0f172a', bgLight: '#eff6ff', accent: '#60a5fa' };
+
 let sampleWeddingConfig = {};
 let sampleEventsData = [];
 
 // ==========================================
-// DYNAMIC DATE & MOCK DATA GENERATION
+// DYNAMIC MOCK DATA GENERATOR
 // ==========================================
-const today = new Date();
-const day1 = new Date(today); day1.setDate(today.getDate() + 7);
-const day2 = new Date(day1); day2.setDate(day1.getDate() + 1);
-const day3 = new Date(day1); day3.setDate(day1.getDate() + 2);
 
-const formatDateString = (dateObj) => {
-    const yyyy = dateObj.getFullYear();
-    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const dd = String(dateObj.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-};
-
-const d1Str = formatDateString(day1);
-const d2Str = formatDateString(day2);
-const d3Str = formatDateString(day3);
-
+// Helper function to format date ranges
 function formatWeddingDateRange(startIso, endIso) {
     if (!startIso || !endIso) return "Dates TBD";
     const start = new Date(startIso);
@@ -41,42 +29,86 @@ function formatWeddingDateRange(startIso, endIso) {
     return `${sDay}${getSuffix(sDay)} ${sMonth} - ${eDay}${getSuffix(eDay)} ${eMonth}, ${year}`;
 }
 
-function setupMockData() {
-    sampleWeddingConfig = {
-        familyLastName: "JAIN'S",
-        primarySide: "groom",
-        bride: { firstName: "Shruti", letters: "Shruti".split(''), grandfather: "Late Shri. Babulalji", grandmother: "Smt. Sarojdevi", father: "Mr. Mukeshji", mother: "Mrs. Lalita" },
-        groom: { firstName: "Rohan", letters: "Rohan".split(''), grandfather: "Late Shri. Rameshji", grandmother: "Smt. Kanta", father: "Mr. Sureshji", mother: "Mrs. Seema" },
-        hashtag: "#RohanKiShruti",
-        mainDatePlace: day3.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
-        timerTarget: `${d1Str}T10:31:00+05:30`,
-        instagram: "@rohankishruti",
-        instaLink: "https://instagram.com/rohankishruti",
-        story: "Two souls, one beautiful journey. Join us as we celebrate our love and begin our forever together.",
-        familyDetails: "Sha Rameshji Sureshji Jain"
-    };
+function setupMockData(inviteId) {
+    const today = new Date();
+    const addD = (days) => { const d = new Date(today); d.setDate(d.getDate() + days); return d; };
+    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-    const rawEvents = [
-        { id: 'e1', title: 'Paath Bithai', subtitle: 'Auspicious Beginnings', quote: 'Starting our journey with blessings.', description: 'Please join us for the sacred Paath Bithai ceremony.', date: d1Str, start_time: `${d1Str}T10:31:00`, venue: 'Terapanti Bhavan, Sowcarpet' },
-        { id: 'e2', title: 'Tamil Night', subtitle: 'Culture & Celebration', quote: 'Celebrating our roots.', description: 'Join us for a vibrant evening of traditional music and dance.', date: d1Str, start_time: `${d1Str}T18:30:00`, venue: 'Terapanti Bhavan, Sowcarpet' },
-        { id: 'e3', title: 'Haldi & Carnival', subtitle: 'Colors of Joy', quote: 'A splash of yellow, a whole lot of fun.', description: 'Get ready for a colorful and joyous Haldi carnival.', date: d2Str, start_time: `${d2Str}T11:00:00`, venue: 'Pearl Banquet, Pursaiwalkam' },
-        { id: 'e4', title: 'Sangeet', subtitle: 'Dance the Night Away', quote: 'Let the music play and hearts sway.', description: 'Join us for a spectacular night of performances and dancing.', date: d2Str, start_time: `${d2Str}T18:00:00`, venue: 'Pearl Banquet, Pursaiwalkam' },
-        { id: 'e5', title: 'Baraat', subtitle: 'The Grand Procession', quote: 'Dancing our way to the wedding.', description: 'Join the Baraat as we proceed to the wedding venue.', date: d3Str, start_time: `${d3Str}T09:30:00`, venue: 'MRC' },
-        { id: 'e6', title: 'Varmala', subtitle: 'The Sacred Union', quote: 'Two souls, one heart.', description: 'Join us for the Varmala ceremony.', date: d3Str, start_time: `${d3Str}T10:30:00`, venue: 'MRC' },
-        { id: 'e7', title: 'Reception', subtitle: 'Dinner & Celebration', quote: 'A sweet ending to a beautiful beginning.', description: 'Join us for an evening of fine dining and celebration.', date: d3Str, start_time: `${d3Str}T11:00:00`, venue: 'MRC' },
-        { id: 'e8', title: 'Phera & Vidaai', subtitle: 'The Eternal Vows', quote: 'Bound together for eternity.', description: 'Witness the sacred pheras followed by the Vidaai.', date: d3Str, start_time: `${d3Str}T14:30:00`, venue: 'MRC' }
-    ];
+    let rawEvents = [];
+
+    if (inviteId === 'sample-upcoming') {
+        const start = fmt(addD(30)); const mid = fmt(addD(31)); const end = fmt(addD(32));
+        const endDateStr = new Date(end).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+        
+        sampleWeddingConfig = {
+            familyLastName: "THE PATEL FAMILY", primarySide: "groom",
+            bride: { firstName: "Neha", letters: "Neha".split(''), grandfather: "Late Shri. Babulal Shah", grandmother: "Smt. Sarojdevi Shah", father: "Mr. Amit Shah", mother: "Mrs. Priya Shah" },
+            groom: { firstName: "Rahul", letters: "Rahul".split(''), grandfather: "Late Shri. Ramesh Patel", grandmother: "Smt. Kanta Patel", father: "Mr. Sanjay Patel", mother: "Mrs. Seema Patel" },
+            hashtag: "#RahulKiNeha", mainDatePlace: endDateStr, timerTarget: `${end}T11:00:00`,
+            instagram: "@rahulpatel", instaLink: "https://instagram.com/rahulpatel",
+            story: "Two souls, one beautiful journey. Join us as we celebrate our love and begin our forever together.", familyDetails: "Patel & Shah Families"
+        };
+        rawEvents = [
+            { id: 'e1', name: 'Welcome Hi-Tea', title: 'FAMILIES UNITED', quote: '"Two families, one celebration, and countless bonds being made."', description: 'A warm and joyful tradition where both families come together, exchange greetings, and celebrate the union of two hearts.', start_time: `${start}T16:00:00`, venue: 'Royal Palace Hall, Jaipur' },
+            { id: 'e2', name: 'Mehendi Celebration', title: 'DRAWN WITH LOVE', quote: '"Intricate patterns, endless laughter, and love etched on our hands."', description: 'A beautiful afternoon of mehendi, music, laughter, and togetherness as we celebrate the bride-to-be and the journey ahead.', start_time: `${start}T19:00:00`, venue: 'Royal Palace Hall, Jaipur' },
+            { id: 'e3', name: 'Sangeet Night', title: 'RHYTHMS OF LOVE', quote: '"Where families unite on the dance floor and stars light up the stage."', description: 'An evening of music, dance, performances, and celebration as our families come together to make memories.', start_time: `${mid}T18:30:00`, venue: 'Royal Palace Hall, Jaipur' },
+            { id: 'e4', name: 'Pheras & Wedding Lunch', title: 'PROMISES FOR A LIFETIME', quote: '"Seven steps, seven promises, and a bond for seven lifetimes."', description: 'The heart of the wedding ceremony where the couple circles the holy fire, sealing their eternal commitment and love for one another.', start_time: `${end}T11:00:00`, venue: 'Royal Palace Hall, Jaipur' }
+        ];
+    } else if (inviteId === 'sample-archived') {
+        const start = fmt(addD(-45)); const mid = fmt(addD(-44)); const end = fmt(addD(-43));
+        const endDateStr = new Date(end).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+        
+        sampleWeddingConfig = {
+            familyLastName: "THE GUPTA FAMILY", primarySide: "bride",
+            bride: { firstName: "Isha", letters: "Isha".split(''), grandfather: "Late Shri. Babulal Gupta", grandmother: "Smt. Sarojdevi Gupta", father: "Mr. Rajesh Gupta", mother: "Mrs. Priya Gupta" },
+            groom: { firstName: "Karan", letters: "Karan".split(''), grandfather: "Late Shri. Ramesh Malhotra", grandmother: "Smt. Kanta Malhotra", father: "Mr. Suresh Malhotra", mother: "Mrs. Seema Malhotra" },
+            hashtag: "#IshaWedsKaran", mainDatePlace: endDateStr, timerTarget: `${end}T19:00:00`,
+            instagram: "@ishagupta", instaLink: "https://instagram.com/ishagupta",
+            story: "Two souls, one beautiful journey. Join us as we celebrate our love and begin our forever together.", familyDetails: "Gupta & Malhotra Families"
+        };
+        rawEvents = [
+            { id: 'e1', name: 'Welcome Dinner', title: 'FAMILIES UNITED', quote: '"Two families, one celebration, and countless bonds being made."', description: 'A warm and joyful tradition where both families come together, exchange greetings, and celebrate the union of two hearts.', start_time: `${start}T20:00:00`, venue: 'City Club Main Banquet, Mumbai' },
+            { id: 'e2', name: 'Haldi & Puja', title: 'THE GOLDEN GLOW', quote: '"Sun-kissed hues, playful splashes, and a radiant bridal glow."', description: 'A vibrant celebration filled with turmeric, laughter, love and blessing them with joy, protection, and a radiant glow.', start_time: `${mid}T09:30:00`, venue: 'City Club Main Banquet, Mumbai' },
+            { id: 'e3', name: 'Sangeet Evening', title: 'RHYTHMS OF LOVE', quote: '"Where families unite on the dance floor and stars light up the stage."', description: 'An evening of music, dance, performances, and celebration as our families come together to make memories.', start_time: `${mid}T19:00:00`, venue: 'City Club Main Banquet, Mumbai' },
+            { id: 'e4', name: 'Grand Reception', title: 'A GRAND CELEBRATION', quote: '"Raising a toast to love, laughter, and our happily ever after."', description: 'A glamorous evening to celebrate the newlywed couple with family, friends, great food, and unforgettable memories.', start_time: `${end}T19:00:00`, venue: 'City Club Main Banquet, Mumbai' }
+        ];
+    } else {
+        const start = fmt(addD(-1)); const mid1 = fmt(addD(0)); const mid2 = fmt(addD(1)); const end = fmt(addD(2));
+        const endDateStr = new Date(end).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+        
+        sampleWeddingConfig = {
+            familyLastName: "THE SHARMA FAMILY", primarySide: "bride",
+            bride: { firstName: "Ananya", letters: "Ananya".split(''), grandfather: "Late Shri. Babulal Sharma", grandmother: "Smt. Sarojdevi Sharma", father: "Mr. Amit Sharma", mother: "Mrs. Priya Sharma" },
+            groom: { firstName: "Vikram", letters: "Vikram".split(''), grandfather: "Late Shri. Ramesh Verma", grandmother: "Smt. Kanta Verma", father: "Mr. Suresh Verma", mother: "Mrs. Seema Verma" },
+            hashtag: "#AnanyaWedsVikram", mainDatePlace: endDateStr, timerTarget: `${end}T18:00:00`,
+            instagram: "@ananyasharma", instaLink: "https://instagram.com/ananyasharma",
+            story: "Two souls, one beautiful journey. Join us as we celebrate our love and begin our forever together.", familyDetails: "Sharma & Verma Families"
+        };
+        rawEvents = [
+            { id: 'e1', name: 'Engagement Ring Ceremony', title: 'THE PROMISE RING', quote: '"One ring, two hearts, and a lifetime waiting to unfold."', description: 'A beautiful celebration of love and commitment as two hearts make a promise to walk through life together.', start_time: `${start}T17:00:00`, venue: 'Grand Resort Ballroom, Chennai' },
+            { id: 'e2', name: 'Haldi & Floral Bath', title: 'THE GOLDEN GLOW', quote: '"Sun-kissed hues, playful splashes, and a radiant bridal glow."', description: 'A vibrant celebration filled with turmeric, laughter, love and blessing them with joy, protection, and a radiant glow.', start_time: `${mid1}T10:30:00`, venue: 'Grand Resort Ballroom, Chennai' },
+            { id: 'e3', name: 'Sangeet & Cocktail Night', title: 'RHYTHMS OF LOVE', quote: '"Where families unite on the dance floor and stars light up the stage."', description: 'An evening of music, dance, performances, and celebration as our families come together to make memories.', start_time: `${mid2}T19:00:00`, venue: 'Grand Resort Ballroom, Chennai' },
+            { id: 'e4', name: 'Wedding & Reception', title: 'A GRAND CELEBRATION', quote: '"Raising a toast to love, laughter, and our happily ever after."', description: 'A glamorous evening to celebrate the newlywed couple with family, friends, great food, and unforgettable memories.', start_time: `${end}T18:00:00`, venue: 'Grand Resort Ballroom, Chennai' }
+        ];
+    }
 
     sampleEventsData = rawEvents.map((ev, index) => {
         const evDate = new Date(ev.start_time);
         return {
-            id: `event-${ev.id}`, label: ev.title, title: ev.title, subtitle: ev.subtitle, quote: ev.quote, description: ev.description,
-            month: evDate.toLocaleString('en-US', { month: 'short' }).toUpperCase(), day: evDate.getDate().toString(),
+            id: `event-${ev.id}`, 
+            label: ev.name, 
+            title: ev.title, 
+            subtitle: "", 
+            quote: ev.quote, 
+            description: ev.description,
+            month: evDate.toLocaleString('en-US', { month: 'short' }).toUpperCase(), 
+            day: evDate.getDate().toString(),
             dateText: evDate.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-            time: evDate.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit' }) + " onwards",
-            location: ev.venue, directions: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue)}`,
+            time: evDate.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit' }),
+            location: ev.venue, 
+            directions: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue)}`,
             nextTarget: index < rawEvents.length - 1 ? `#event-${rawEvents[index+1].id}` : "#about-us",
-            nextLabel: index < rawEvents.length - 1 ? rawEvents[index+1].title : "About Us"
+            nextLabel: index < rawEvents.length - 1 ? rawEvents[index+1].name : "About Us"
         };
     });
 }
@@ -97,7 +129,14 @@ function generateDynamicLogo(name1, name2, colors) {
 }
 
 export async function renderSampleWebInvites() {
-    setupMockData();
+    let hashSplit = window.location.hash.split('?');
+    let inviteId = 'sample-inprogress';
+    if(hashSplit.length > 1) {
+        const urlParams = new URLSearchParams(hashSplit[1]);
+        if(urlParams.get('id')) inviteId = urlParams.get('id');
+    }
+
+    setupMockData(inviteId);
 
     document.body.style.backgroundColor = '#000000';
     document.body.style.margin = '0';
@@ -129,13 +168,24 @@ export async function renderSampleWebInvites() {
     preloaderStyle.innerHTML = `body:not(.theme-loaded) .bg-image, body:not(.theme-loaded) .color-morph, body:not(.theme-loaded) .video-overlay, body:not(.theme-loaded) #particles, body:not(.theme-loaded) .card { opacity: 0 !important; visibility: hidden !important; } html, body { background-color: #000000 !important; margin: 0; padding: 0; overflow-x: hidden; }`;
     document.head.appendChild(preloaderStyle);
 
-    const selectedThemeName = 'pink';
-    const colors = { main: '#be185d', bgDark: '#500724', bgLight: '#fdf2f8', accent: '#f472b6' };
-    currentThemeRGB.main = hexToRgb(colors.main); currentThemeRGB.accent = hexToRgb(colors.accent); currentThemeRGB.bgDark = hexToRgb(colors.bgDark);
+    let selectedThemeName = 'blue';
+    if(inviteId === 'sample-upcoming') selectedThemeName = 'gold';
+    if(inviteId === 'sample-archived') selectedThemeName = 'pink';
+
+    const themePalettes = {
+        blue:   { main: '#1d4ed8', bgDark: '#0f172a', bgLight: '#eff6ff', accent: '#60a5fa' },
+        gold:   { main: '#b45309', bgDark: '#451a03', bgLight: '#fffbeb', accent: '#fbbf24' },
+        pink:   { main: '#be185d', bgDark: '#500724', bgLight: '#fdf2f8', accent: '#f472b6' }
+    };
+    
+    currentThemeColors = themePalettes[selectedThemeName] || themePalettes.blue;
+    currentThemeRGB.main = hexToRgb(currentThemeColors.main); 
+    currentThemeRGB.accent = hexToRgb(currentThemeColors.accent); 
+    currentThemeRGB.bgDark = hexToRgb(currentThemeColors.bgDark);
 
     const dynamicStyle = document.createElement('style');
     dynamicStyle.innerHTML = `
-        :root { --color-primary: ${colors.main} !important; --color-secondary: ${colors.accent} !important; --color-bg-dark: ${colors.bgDark} !important; --theme-accent-rgb: ${currentThemeRGB.accent} !important; --theme-bg-dark-rgb: ${currentThemeRGB.bgDark} !important; }
+        :root { --color-primary: ${currentThemeColors.main} !important; --color-secondary: ${currentThemeColors.accent} !important; --color-bg-dark: ${currentThemeColors.bgDark} !important; --theme-accent-rgb: ${currentThemeRGB.accent} !important; --theme-bg-dark-rgb: ${currentThemeRGB.bgDark} !important; }
         html, body { background-color: var(--color-bg-dark) !important; background-image: url('/global/images/background/${selectedThemeName}-background.png') !important; background-size: cover !important; background-position: center !important; background-attachment: fixed !important; background-repeat: no-repeat !important; }
         .video-overlay, .color-morph, #splash-screen { background: rgba(var(--theme-bg-dark-rgb), 0.75) !important; }
         .card { background: linear-gradient(145deg, rgba(var(--theme-bg-dark-rgb), 0.95), #000000) !important; border: 1px solid var(--color-secondary) !important; animation: card-pop 0.9s ease-out, themeGlowPulse 4s ease-in-out 0.8s infinite alternate !important; }
@@ -143,7 +193,6 @@ export async function renderSampleWebInvites() {
         .time-box, .couple-card { border: 1px solid var(--color-secondary) !important; background: rgba(var(--theme-bg-dark-rgb), 0.6) !important; box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.25) !important; }
         .calendar-icon { background: var(--color-secondary) !important; box-shadow: 0 0 10px rgba(var(--theme-accent-rgb), 0.6) !important; } .calendar-icon .cal-month, .calendar-icon .cal-day { color: var(--color-bg-dark) !important; }
         
-        /* Fixed Flower Corner Positioning - Negatives to push outwards */
         .flower-corner { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), rgba(var(--theme-accent-rgb), 0.2) 50%, rgba(var(--theme-bg-dark-rgb), 0.8) 90%) !important; box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.3), 0 0 20px rgba(var(--theme-accent-rgb), 0.5) !important; }
         .flower-top-left { top: -40px !important; left: -30px !important; }
         .flower-top-right { top: -40px !important; right: -30px !important; }
@@ -156,7 +205,6 @@ export async function renderSampleWebInvites() {
         .wax-seal { background: var(--color-primary) !important; border-color: var(--color-secondary) !important; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(var(--theme-accent-rgb), 0.8) !important; }
         .nav-dots { background: rgba(var(--theme-bg-dark-rgb), 0.35) !important; border-color: rgba(var(--theme-accent-rgb), 0.2) !important; } .nav-dot { border-color: var(--color-secondary) !important; background: rgba(var(--theme-bg-dark-rgb), 0.4) !important; } .nav-dot.active { background: var(--color-secondary) !important; box-shadow: 0 0 10px var(--color-secondary) !important; border-color: #ffffff !important; }
 
-        /* Slim Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2) !important; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: var(--color-secondary) !important; border-radius: 10px; }
@@ -164,8 +212,12 @@ export async function renderSampleWebInvites() {
     `;
     document.head.appendChild(dynamicStyle);
     
-    document.title = `Invitation - ${sampleWeddingConfig.groom.firstName} & ${sampleWeddingConfig.bride.firstName}`;
-    const linkIcon = document.createElement('link'); linkIcon.rel = 'icon'; linkIcon.href = generateInitialsLogo(sampleWeddingConfig.groom.firstName, sampleWeddingConfig.bride.firstName, colors);
+    const isBridePrimary = sampleWeddingConfig.primarySide === 'bride';
+    const primaryFirstName = isBridePrimary ? sampleWeddingConfig.bride.firstName : sampleWeddingConfig.groom.firstName;
+    const secondaryFirstName = isBridePrimary ? sampleWeddingConfig.groom.firstName : sampleWeddingConfig.bride.firstName;
+
+    document.title = `Invitation - ${primaryFirstName} & ${secondaryFirstName}`;
+    const linkIcon = document.createElement('link'); linkIcon.rel = 'icon'; linkIcon.href = generateInitialsLogo(primaryFirstName, secondaryFirstName, currentThemeColors);
     document.head.appendChild(linkIcon);
 
     document.body.setAttribute('data-theme', selectedThemeName);
@@ -183,7 +235,7 @@ export async function renderSampleWebInvites() {
                 <div class="envelope-flap" id="env-flap"></div>
                 <div id="seal-container" style="cursor:pointer;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                     <div class="wax-seal">
-                        <img id="seal-logo-img" src="${generateDynamicLogo(sampleWeddingConfig.groom.firstName, sampleWeddingConfig.bride.firstName, colors)}" alt="Seal Logo" height="150" width="130" style="opacity: 1; object-fit: contain;">
+                        <img id="seal-logo-img" src="${generateDynamicLogo(primaryFirstName, secondaryFirstName, currentThemeColors)}" alt="Seal Logo" height="150" width="130" style="opacity: 1; object-fit: contain;">
                     </div>
                     <p class="seal-label" style="color: #ffffff; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; margin-top: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Tap to Open</p>
                 </div>
@@ -229,16 +281,86 @@ export async function renderSampleWebInvites() {
 }
 
 const generateWelcomeHTML = () => {
-    const p1 = sampleWeddingConfig.groom.letters.map(l => `<span class="letter">${l}</span>`).join('');
-    const p2 = sampleWeddingConfig.bride.letters.map(l => `<span class="letter">${l}</span>`).join('');
-    const initialsLogoUri = generateInitialsLogo(sampleWeddingConfig.groom.firstName, sampleWeddingConfig.bride.firstName, { accent: '#f472b6' });
+    const isBridePrimary = sampleWeddingConfig.primarySide === 'bride';
+    const primaryLettersArray = isBridePrimary ? sampleWeddingConfig.bride.letters : sampleWeddingConfig.groom.letters;
+    const secondaryLettersArray = isBridePrimary ? sampleWeddingConfig.groom.letters : sampleWeddingConfig.bride.letters;
 
-    return `<section class="full-page js-reveal" id="welcome"><div class="card"><div class="flower-corner flower-top-left"></div><div class="flower-corner flower-top-right"></div><div class="flower-corner flower-bottom-left"></div><div class="flower-corner flower-bottom-right"></div><div class="garland-top"></div><div class="card-inner"><div class="hero"><div class="tagline" style="font-size: 2.5rem; font-weight:bold; margin-bottom: 6px; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">${sampleWeddingConfig.familyLastName}</div><div class="tagline" style="font-size: 1.5rem; font-weight:bold; margin-bottom: 6px; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">Wedding Invitation</div><div class="hero-divider"></div><img src="${initialsLogoUri}" alt="Logo" class="couple-logo" style="filter: none;" /><h1 class="names" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;"><span class="word word-left">${p1}</span><span class="amp" style="color: var(--color-secondary) !important; text-shadow: 0 0 12px rgba(var(--theme-accent-rgb), 0.5) !important;">&amp;</span><span class="word word-right">${p2}</span></h1>${sampleWeddingConfig.hashtag ? `<div class="hashtag-line-last" style="color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">${sampleWeddingConfig.hashtag}</div>` : ''}<div class="hero-divider"></div><div class="hero-date-place" style="color: #ffffff !important; text-shadow: 0 2px 5px rgba(0,0,0,0.8) !important;">${sampleWeddingConfig.mainDatePlace}</div><div class="countdown" id="countdown"><div class="time-box"><div class="time-value" id="days">0</div><div class="time-label" style="color: var(--color-secondary);">Days</div></div><div class="time-box"><div class="time-value" id="hours">0</div><div class="time-label" style="color: var(--color-secondary);">Hours</div></div><div class="time-box"><div class="time-value" id="minutes">0</div><div class="time-label" style="color: var(--color-secondary);">Minutes</div></div><div class="time-box"><div class="time-value" id="seconds">0</div><div class="time-label" style="color: var(--color-secondary);">Seconds</div></div></div><div class="hero-divider"></div><p class="scroll-hint tagline" style="color: #ffffff !important; font-size: 0.8rem; text-transform: none; font-weight: normal; text-shadow: 0 2px 5px rgba(0,0,0,0.8) !important;">Scroll or use the dots to explore each celebration.</p></div></div><div class="card-footer" style="text-align: center;"><button class="btn btn-secondary" data-next="#couple">Next: The Couple ↓</button></div></div></section>`;
+    const p1 = primaryLettersArray.map(l => `<span class="letter">${l}</span>`).join('');
+    const p2 = secondaryLettersArray.map(l => `<span class="letter">${l}</span>`).join('');
+
+    const primaryFirstName = isBridePrimary ? sampleWeddingConfig.bride.firstName : sampleWeddingConfig.groom.firstName;
+    const secondaryFirstName = isBridePrimary ? sampleWeddingConfig.groom.firstName : sampleWeddingConfig.bride.firstName;
+    const initialsLogoUri = generateInitialsLogo(primaryFirstName, secondaryFirstName, currentThemeColors);
+
+    return `<section class="full-page js-reveal" id="welcome"><div class="card"><div class="flower-corner flower-top-left"></div><div class="flower-corner flower-top-right"></div><div class="flower-corner flower-bottom-left"></div><div class="flower-corner flower-bottom-right"></div><div class="garland-top"></div><div class="card-inner"><div class="hero"><div class="tagline" style="font-size: 2.5rem; font-weight:bold; margin-bottom: 6px; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">${sampleWeddingConfig.familyLastName}</div><div class="tagline" style="font-size: 1.5rem; font-weight:bold; margin-bottom: 6px; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">Wedding Invitation</div><div class="hero-divider"></div><img src="${initialsLogoUri}" alt="Logo" class="couple-logo" style="filter: none;" /><h1 class="names" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;"><span class="word word-left">${p1}</span><span class="amp" style="color: var(--color-secondary) !important; text-shadow: 0 0 12px rgba(var(--theme-accent-rgb), 0.5) !important;">&amp;</span><span class="word word-right">${p2}</span></h1>${sampleWeddingConfig.hashtag ? `<div class="hashtag-line-last" style="color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">${sampleWeddingConfig.hashtag}</div>` : ''}
+    <div class="hero-divider"></div>
+    <div class="hero-date-place" style="color: #ffffff !important; text-shadow: 0 2px 5px rgba(0,0,0,0.8) !important; letter-spacing: 0.15em; font-size: 1.05rem;">${sampleWeddingConfig.mainDatePlace}</div>
+    <div class="countdown" id="countdown">
+    <div class="time-box"><div class="time-value" id="days">0</div><div class="time-label" style="color: var(--color-secondary);">Days</div></div><div class="time-box"><div class="time-value" id="hours">0</div><div class="time-label" style="color: var(--color-secondary);">Hours</div></div><div class="time-box"><div class="time-value" id="minutes">0</div><div class="time-label" style="color: var(--color-secondary);">Minutes</div></div><div class="time-box"><div class="time-value" id="seconds">0</div><div class="time-label" style="color: var(--color-secondary);">Seconds</div></div></div><div class="hero-divider"></div><p class="scroll-hint tagline" style="color: #ffffff !important; font-size: 0.8rem; text-transform: none; font-weight: normal; text-shadow: 0 2px 5px rgba(0,0,0,0.8) !important;">Scroll or use the dots to explore each celebration.</p></div></div><div class="card-footer" style="text-align: center;"><button class="btn btn-secondary" data-next="#couple">Next: The Couple ↓</button></div></div></section>`;
 };
 
-const generateCoupleHTML = () => `<section class="full-page js-reveal" id="couple"><div class="card"><div class="flower-corner flower-top-left"></div><div class="flower-corner flower-bottom-right"></div><div class="garland-top"></div><div class="card-inner"><div class="hero"><div class="tagline" style="font-size:2.4rem;font-weight:bold; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">The Couple</div><div class="hero-divider"></div><div class="couple-split"><div class="couple-card groom-card"><div class="couple-role" style="font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">Groom</div><div class="hero-divider"></div><div class="couple-name" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${sampleWeddingConfig.groom.firstName}</div><p class="couple-role" style="color: var(--color-secondary);"><br/><br/><strong>Grandson of</strong></p><div class="hero-divider"></div><div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">${sampleWeddingConfig.groom.grandfather}<br/>${sampleWeddingConfig.groom.grandmother}</div><br/><p class="couple-role" style="color: var(--color-secondary);"><strong>Son of</strong></p><div class="hero-divider"></div><div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">${sampleWeddingConfig.groom.father}<br/>${sampleWeddingConfig.groom.mother}</div></div><div class="couple-card bride-card"><div class="couple-role" style="font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">Bride</div><div class="hero-divider"></div><div class="couple-name" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${sampleWeddingConfig.bride.firstName}</div><p class="couple-role" style="color: var(--color-secondary);"><br/><br/><strong>Granddaughter of</strong></p><div class="hero-divider"></div><div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">${sampleWeddingConfig.bride.grandfather}<br/>${sampleWeddingConfig.bride.grandmother}</div><br/><p class="couple-role" style="color: var(--color-secondary);"><strong>Daughter of</strong></p><div class="hero-divider"></div><div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">${sampleWeddingConfig.bride.father}<br/>${sampleWeddingConfig.bride.mother}</div></div></div></div></div><div class="hero-divider"></div><div class="card-footer" style="text-align: center;"><button class="btn btn-secondary" data-next="${sampleEventsData.length > 0 ? '#' + sampleEventsData[0].id : '#about-us'}">Next: ${sampleEventsData.length > 0 ? sampleEventsData[0].label : 'About Us'} ↓</button></div></div></section>`;
+const generateCoupleHTML = () => {
+    const brideCard = `<div class="couple-card bride-card"><div class="couple-role" style="font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">Bride</div><div class="hero-divider"></div><div class="couple-name" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${sampleWeddingConfig.bride.firstName}</div><p class="couple-role" style="color: var(--color-secondary);"><br/><br/><strong>Granddaughter of</strong></p><div class="hero-divider"></div><div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">${sampleWeddingConfig.bride.grandfather}<br/>${sampleWeddingConfig.bride.grandmother}</div><br/><p class="couple-role" style="color: var(--color-secondary);"><strong>Daughter of</strong></p><div class="hero-divider"></div><div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">${sampleWeddingConfig.bride.father}<br/>${sampleWeddingConfig.bride.mother}</div></div>`;
+    const groomCard = `<div class="couple-card groom-card"><div class="couple-role" style="font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">Groom</div><div class="hero-divider"></div><div class="couple-name" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${sampleWeddingConfig.groom.firstName}</div><p class="couple-role" style="color: var(--color-secondary);"><br/><br/><strong>Grandson of</strong></p><div class="hero-divider"></div><div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">${sampleWeddingConfig.groom.grandfather}<br/>${sampleWeddingConfig.groom.grandmother}</div><br/><p class="couple-role" style="color: var(--color-secondary);"><strong>Son of</strong></p><div class="hero-divider"></div><div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">${sampleWeddingConfig.groom.father}<br/>${sampleWeddingConfig.groom.mother}</div></div>`;
+    
+    const isBridePrimary = sampleWeddingConfig.primarySide === 'bride';
+    const coupleSplitContent = isBridePrimary ? (brideCard + groomCard) : (groomCard + brideCard);
 
-const generateEventHTML = (event) => `<section class="full-page js-reveal" id="${event.id}"><div class="card"><div class="flower-corner flower-top-left"></div><div class="flower-corner flower-bottom-right"></div><div class="garland-top"></div><div class="card-inner"><div class="hero"><h2 class="event-title" style="color: #ffffff !important; font-size: 2.2rem; letter-spacing: 0.15em; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${event.title}</h2>${event.subtitle ? `<div class="hero-divider"></div><div class="tagline" style="font-size: 1.1rem; font-family: 'Georgia', serif; font-weight: bold; color: #ffffff !important; text-transform: uppercase; text-shadow: none !important;">${event.subtitle}</div>` : ''}${event.quote ? `<div class="hero-divider"></div><div class="event-subtitle" style="font-style: italic; color: #ffffff !important; font-size: 0.95rem; line-height: 1.5; padding: 0 10px; text-shadow: none !important;">"${event.quote}"</div>` : ''}<div class="hero-divider"></div><div class="event-meta" style="margin-top: 15px; margin-bottom: 15px;"><div class="event-row" style="justify-content: flex-start; margin-left: 10%;"><div class="calendar-icon" style="min-width: 44px;"><span class="cal-month">${event.month}</span><span class="cal-day">${event.day}</span></div><span class="event-value" style="padding-left: 12px; font-size: 1.1rem; text-align: left; align-self: center; color: #ffffff !important; text-shadow: none !important;">${event.dateText}</span></div><div class="event-row" style="justify-content: flex-start; margin-left: 10%; margin-top: 10px;"><span style="font-size: 1.8rem; min-width: 44px; text-align: center;">⏰</span><span class="event-value" style="padding-left: 12px; font-size: 1.1rem; text-align: left; align-self: center; color: #ffffff !important; text-shadow: none !important;">${event.time}</span></div><div class="event-row" style="justify-content: flex-start; margin-left: 10%; margin-top: 10px;"><span style="font-size: 1.8rem; min-width: 44px; text-align: center;">📍</span><span class="event-value" style="padding-left: 12px; font-size: 1.1rem; text-align: left; align-self: center; color: #ffffff !important; text-shadow: none !important;">${event.location}</span></div></div><div class="cta" style="margin-top: 20px;"><a class="btn" href="${event.directions}" target="_blank" rel="noopener noreferrer" style="padding: 8px 24px; font-size: 0.9rem;">Get Directions</a></div>${event.description ? `<div class="hero-divider" style="margin-top: 20px;"></div><p class="event-text" style="font-size: 0.95rem; color: #ffffff !important; padding: 0 10px; line-height: 1.6; text-shadow: none !important;">${event.description}</p>` : ''}</div></div><div class="hero-divider"></div><div class="card-footer" style="text-align: center;"><button class="btn btn-secondary" data-next="${event.nextTarget}">Next: ${event.nextLabel} ↓</button></div></div></section>`;
+    return `<section class="full-page js-reveal" id="couple"><div class="card"><div class="flower-corner flower-top-left"></div><div class="flower-corner flower-bottom-right"></div><div class="garland-top"></div><div class="card-inner"><div class="hero"><div class="tagline" style="font-size:2.4rem;font-weight:bold; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">The Couple</div><div class="hero-divider"></div><div class="couple-split">${coupleSplitContent}</div></div></div><div class="hero-divider"></div><div class="card-footer" style="text-align: center;"><button class="btn btn-secondary" data-next="${sampleEventsData.length > 0 ? '#' + sampleEventsData[0].id : '#about-us'}">Next: ${sampleEventsData.length > 0 ? sampleEventsData[0].label : 'About Us'} ↓</button></div></div></section>`;
+};
+
+const generateEventHTML = (event) => `
+    <section class="full-page js-reveal" id="${event.id}">
+        <div class="card">
+            <div class="flower-corner flower-top-left"></div><div class="flower-corner flower-top-right"></div><div class="flower-corner flower-bottom-left"></div><div class="flower-corner flower-bottom-right"></div>
+            <div class="garland-top"></div>
+            
+            <div class="card-inner">
+                <div class="hero">
+                    <div class="tagline" style="font-size: 2.4rem; font-weight: bold; text-transform: uppercase; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">${event.label}</div>
+                    
+                    ${event.title ? `
+                        <div class="hero-divider" style="margin: 15px auto;"></div>
+                        <div class="tagline" style="font-size: 1.4rem; font-family: 'Georgia', serif; font-weight: bold; color: #ffffff !important; text-transform: uppercase; text-shadow: none !important;">${event.title}</div>
+                    ` : ''}
+
+                    <br/>
+                    
+                    ${event.quote ? `
+                        <div class="event-subtitle" style="font-style: italic; color: #ffffff !important; font-size: 1.1rem; line-height: 1.5; padding: 0 10px; margin-top: 10px; text-shadow: none !important;">${event.quote}</div>
+                    ` : ''}
+                    
+                    <div class="hero-divider" style="margin: 20px auto;"></div>
+                    
+                    <div class="event-meta" style="margin-top: 15px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                        <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                            <div class="calendar-icon" style="min-width: 44px;"><span class="cal-month">${event.month}</span><span class="cal-day">${event.day}</span></div>
+                            <span class="event-value" style="font-size: 1.3rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important;">${event.dateText}</span>
+                        </div>
+                        <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                            <span style="font-size: 1.4rem; min-width: 44px; text-align: center;">⏰</span>
+                            <span class="event-value" style="font-size: 1.3rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important;">${event.time}</span>
+                        </div>
+                        <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                            <span style="font-size: 1.4rem; min-width: 44px; text-align: center; color: var(--color-secondary);">📍</span>
+                            <span class="event-value" style="font-size: 1.3rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important; text-align: center;">${event.location}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="cta" style="margin-top: 20px;">
+                        <a class="btn" href="${event.directions}" target="_blank" rel="noopener noreferrer" style="padding: 10px 28px; font-size: 0.95rem; border-radius: 999px;">Get Directions</a>
+                    </div>
+                    
+                    ${event.description ? `
+                        <div class="hero-divider" style="margin: 25px auto;"></div>
+                        <p class="event-text" style="font-size: 1.05rem; color: #ffffff !important; padding: 0 15px; line-height: 1.6; text-shadow: none !important;">${event.description}</p>
+                    ` : ''}
+                </div>
+            </div>
+            <div class="hero-divider" style="margin: 20px auto;"></div>
+            <div class="card-footer" style="text-align: center; margin-top: 20px;"><button class="btn btn-secondary" data-next="${event.nextTarget}">Next: ${event.nextLabel} ↓</button></div>
+        </div>
+    </section>`;
 
 const generateAboutUsHTML = () => {
     const famText = sampleWeddingConfig.familyDetails ? sampleWeddingConfig.familyDetails.toUpperCase() : "OUR FAMILY";
