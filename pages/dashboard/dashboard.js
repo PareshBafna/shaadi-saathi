@@ -89,7 +89,8 @@ async function loadGlobalDashboardData(section) {
         section.appendChild(buildStatsGrid(globalStats));
         
         const listsWrapper = document.createElement("div");
-        listsWrapper.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--space-6); width: 100%; margin-top: var(--space-6); margin-bottom: var(--space-6);";
+        // FIX: Applied min(100%, 320px) to prevent mobile overflow
+        listsWrapper.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: var(--space-6); width: 100%; margin-top: var(--space-6); margin-bottom: var(--space-6);";
 
         const inProgressSection = buildWeddingListSection("In Progress", inProgressWeddings);
         const upcomingSection = buildWeddingListSection("Upcoming", upcomingWeddings);
@@ -119,9 +120,10 @@ async function loadGlobalDashboardData(section) {
 function buildStatsGrid(stats) {
     const grid = document.createElement("div");
     grid.className = "dashboard__stats";
+    // FIX: Applied min(100%, 240px) to prevent mobile overflow on stat cards
     grid.style.cssText = `
         display: grid; 
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); 
         gap: var(--space-6); 
         margin-bottom: var(--space-8);
         width: 100%;

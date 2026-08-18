@@ -3,7 +3,7 @@ import { supabase } from '../../database/js/api.js';
 
 // Components & Alerts
 import { validateSession, getWhatsAppVerificationLink, logoutUser } from './auth.js';
-import { createSidebar } from './sidebar.js';
+import { createSidebar, createBottomNav } from './sidebar.js';
 import { createHeader } from './header.js';
 import { showSweetAlert } from './sweet-alert-message.js';
 
@@ -121,24 +121,15 @@ function initApp(user) {
         rightWrapper = document.createElement("div");
         rightWrapper.id = "right-wrapper";
         
-        rightWrapper.style.display = "flex";
-        rightWrapper.style.flexDirection = "column";
-        rightWrapper.style.flexGrow = "1";
-        rightWrapper.style.minWidth = "0";
-        rightWrapper.style.height = "100vh";
-        
         mainContent.parentNode.insertBefore(rightWrapper, mainContent);
         
         if (!headerContainer) {
             headerContainer = document.createElement("div");
             headerContainer.id = "header-container";
         }
-        
+
         rightWrapper.appendChild(headerContainer);
         rightWrapper.appendChild(mainContent);
-        
-        mainContent.style.flexGrow = "1";
-        mainContent.style.overflowY = "auto";
     }
 
     if (user) {
@@ -156,9 +147,18 @@ function initApp(user) {
             },
             onLogout: logoutUser 
         });
+
+        const bottomNav = createBottomNav({
+            role: user.role,
+            activeItemId: activeId || 'calendar',
+            onNavigate: (pageId) => {
+                window.location.hash = `#${pageId}`;
+            }
+        });
         
         if (layout && !document.querySelector('.sidebar')) {
             layout.prepend(sidebar);
+            layout.appendChild(bottomNav);
         }
     }
     
@@ -181,13 +181,13 @@ async function router() {
     
     if (route === '#login') {
         const sidebarEl = document.querySelector('.sidebar');
+        const bottomNavEl = document.querySelector('.bottom-nav');
         const headerEl = document.getElementById('header-container');
         if (sidebarEl) sidebarEl.style.display = 'none';
+        if (bottomNavEl) bottomNavEl.style.display = 'none';
         if (headerEl) headerEl.style.display = 'none';
 
         contentEl.innerHTML = "";
-        contentEl.style.marginLeft = '0';
-        contentEl.style.padding = '0';
         contentEl.appendChild(renderLogin());
         return;
     }
@@ -197,10 +197,6 @@ async function router() {
         if (layoutEl) layoutEl.innerHTML = ""; 
         
         document.body.innerHTML = "";
-        document.body.style.margin = "0";
-        document.body.style.padding = "0";
-        document.body.style.overflow = "hidden"; 
-        
         renderSampleWebInvites();
         return;
     }
@@ -219,25 +215,49 @@ async function router() {
     let allowedRoles = []; 
 
     if (route === "#dashboard") 
-        { pageTitle = "Dashboard"; 
-            renderFunc = renderDashboard; 
-            allowedRoles = ['creator']; 
-        } 
+    { 
+        pageTitle = "Dashboard"; 
+        renderFunc = renderDashboard; 
+        allowedRoles = ['creator']; 
+    } 
     else if (route === "#calendar") 
     {
         pageTitle = "Event Calendar"; 
-        renderFunc = renderCalendar; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+        renderFunc = renderCalendar; 
+        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
     }
-    else if (route === "#weddings") { pageTitle = "Weddings"; renderFunc = renderWeddings; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; } 
-    else if (route === "#wedding-details") {
+    else if (route === "#weddings") 
+    { 
+        pageTitle = "Weddings"; 
+        renderFunc = renderWeddings; 
+        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+    } 
+    else if (route === "#wedding-details") 
+    {
         pageArgs = params.get('id');
         if (!pageArgs) { showAccessRestricted(); return; }
-        pageTitle = "Wedding Details"; renderFunc = renderWeddingDetails; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+        pageTitle = "Wedding Details"; 
+        renderFunc = renderWeddingDetails; 
+        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
     } 
-    
-    else if (route === "#events") { pageTitle = "Events"; renderFunc = renderEvents; allowedRoles = ['creator']; }
-    else if (route === "#users") { pageTitle = "Users"; renderFunc = renderUsers; allowedRoles = ['creator']; } 
-    else if (route === "#hosts") { pageTitle = "Hosts"; renderFunc = renderHosts; allowedRoles = ['creator']; } 
+    else if (route === "#events") 
+    { 
+        pageTitle = "Events"; 
+        renderFunc = renderEvents; 
+        allowedRoles = ['creator']; 
+    }
+    else if (route === "#users") 
+    { 
+        pageTitle = "Users"; 
+        renderFunc = renderUsers; 
+        allowedRoles = ['creator']; 
+    } 
+    else if (route === "#hosts") 
+    { 
+        pageTitle = "Hosts"; 
+        renderFunc = renderHosts; 
+        allowedRoles = ['creator']; 
+    } 
     else if (route === "#sample-weddings") 
     { 
         pageTitle = "Sample Wedding"; 
@@ -251,9 +271,23 @@ async function router() {
         renderFunc = renderSampleWeddingDetails; 
         allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
     }
-    else if (route === "#web-invites") { pageTitle = "Web Invites"; renderFunc = renderWebInvites; allowedRoles = ['creator']; } 
-    else if (route === "#profile") { pageTitle = "Profile"; renderFunc = renderWeddings; allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; } 
-    else { showAccessRestricted(); return; }
+    else if (route === "#web-invites") 
+    { 
+        pageTitle = "Web Invites"; 
+        renderFunc = renderWebInvites; 
+        allowedRoles = ['creator']; 
+    } 
+    else if (route === "#profile") 
+    { 
+        pageTitle = "Profile"; 
+        renderFunc = renderWeddings; 
+        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+    } 
+    else 
+    { 
+        showAccessRestricted(); 
+        return; 
+    }
 
     if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
         showAccessRestricted();
@@ -269,24 +303,27 @@ async function router() {
         activeId = 'sample-weddings';
     }
 
-    document.querySelectorAll('.sidebar__nav-link').forEach(link => {
+    // Synchronize active highlights across desktop and mobile navs
+    document.querySelectorAll('.sidebar__nav-link, .bottom-nav__item').forEach(link => {
         const pageId = link.getAttribute('data-page-id');
         if (pageId === activeId) {
             link.classList.add('sidebar__nav-link--active');
+            link.classList.add('bottom-nav__item--active');
             link.setAttribute('aria-current', 'page');
         } else {
             link.classList.remove('sidebar__nav-link--active');
+            link.classList.remove('bottom-nav__item--active');
             link.removeAttribute('aria-current');
         }
     });
 
     const sidebarEl = document.querySelector('.sidebar');
+    const bottomNavEl = document.querySelector('.bottom-nav');
     const headerEl = document.getElementById('header-container');
-    if (sidebarEl) sidebarEl.style.display = '';
-    if (headerEl) headerEl.style.display = '';
     
-    contentEl.style.marginLeft = '';
-    contentEl.style.padding = '';
+    if (sidebarEl) sidebarEl.style.display = '';
+    if (bottomNavEl) bottomNavEl.style.display = ''; 
+    if (headerEl) headerEl.style.display = '';
 
     updateHeader(pageTitle);
 
@@ -347,8 +384,7 @@ function updateHeader(title) {
         user: displayUser,
         isVerified: window.currentUser.is_verified,
         verifyLink: window.currentUser.is_verified ? "" : getWhatsAppVerificationLink(window.currentUser.verification_code, window.currentUser.name),
-        notificationCount: 2,
-        onMobileMenuClick: () => document.querySelector(".sidebar")?.classList.toggle("sidebar--open")
+        notificationCount: 2
     });
 
     if (oldHeader) oldHeader.replaceWith(newHeader);

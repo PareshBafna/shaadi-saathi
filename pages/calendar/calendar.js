@@ -3,26 +3,25 @@ import { supabase } from '../../database/js/api.js';
 let allEvents = [];
 let allWeddings = [];
 
-// State variables for Calendar View
-let currentView = 'week'; // 'week' or 'month'
-let activeFilter = 'all-events'; // Set 'all-events' as the default filter
-let currentDate = new Date(); // Controls what month/week is visible in the grid
-let selectedDate = null; // Set to null by default so the filter takes precedence
+let currentView = 'week';
+let activeFilter = 'all-events';
+let currentDate = new Date();
+let selectedDate = null;
 
 export function renderCalendar() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const errSec = document.createElement("div");
-        errSec.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
-        errSec.textContent = "Please log in to view your calendar.";
+        errSec.className = "calendar-page-container";
+        errSec.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to view your calendar.</div>`;
         return errSec;
     }
 
     const section = document.createElement("div");
-    section.style.cssText = "width: 100%; margin: 0 auto; padding-bottom: var(--space-8);";
+    section.className = "calendar-page-container";
 
     const calendarCard = document.createElement("div");
     calendarCard.id = "calendar-card-container";
-    calendarCard.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6); box-shadow: 0 1px 3px rgba(0,0,0,0.05);";
+    calendarCard.className = "calendar-card";
     
     const eventsContainer = document.createElement("div");
     eventsContainer.id = "calendar-events-list";
@@ -55,14 +54,13 @@ async function loadUserEvents() {
             return;
         }
 
-        // 1. Normalize the logged-in user's phone to the final 10 digits
         const cleanedUserPhone = user.phone ? user.phone.replace(/[^0-9]/g, '') : null;
         const baseUserPhone = cleanedUserPhone ? cleanedUserPhone.slice(-10) : null;
 
         const [hostRes, wUserRes, guestRes] = await Promise.all([
             supabase.from('wedding_hosts').select('wedding_id').eq('user_id', user.id),
             supabase.from('wedding_users').select('wedding_id').eq('user_id', user.id),
-            supabase.from('guests').select('id, wedding_id, phone') // Make sure to fetch phone here
+            supabase.from('guests').select('id, wedding_id, phone')
         ]);
 
         const hostIds = (hostRes.data || []).map(h => h.wedding_id);
@@ -76,7 +74,6 @@ async function loadUserEvents() {
             if (fullEvents) finalEvents.push(...fullEvents);
         }
 
-        // 2. Filter the guests table in-memory using the robust 10-digit endsWith check
         if (guestRes.data && guestRes.data.length > 0) {
             const matchedGuests = guestRes.data.filter(g => {
                 const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
@@ -118,19 +115,9 @@ window.setEventFilter = function(filter) {
     if (filter === 'this-week') { 
         currentView = 'week'; 
         currentDate = new Date(now); 
-    } else if (filter === 'next-week') { 
-        currentView = 'week'; 
-        currentDate = new Date(now); 
-        currentDate.setDate(now.getDate() + 7); 
     } else if (filter === 'this-month') { 
         currentView = 'month'; 
         currentDate = new Date(now); 
-    } else if (filter === 'next-month') { 
-        currentView = 'month'; 
-        currentDate = new Date(now); 
-        currentDate.setMonth(now.getMonth() + 1); 
-    } else if (filter === 'all-events') {
-        // Do nothing
     }
     updateCalendarUI();
 };
@@ -141,20 +128,6 @@ window.setCalendarView = function(view) {
     updateCalendarUI();
 };
 
-window.searchCalendarDate = function(dateStr) {
-    if (!dateStr) return;
-    const [y, m, d] = dateStr.split('-');
-    const parsedDate = new Date(y, m - 1, d);
-    currentDate = new Date(parsedDate);
-    selectedDate = new Date(parsedDate);
-    activeFilter = null;
-    
-    if (currentView === 'week') {
-        currentView = 'month';
-    }
-    updateCalendarUI();
-};
-
 function updateCalendarUI() {
     const calendarCard = document.getElementById("calendar-card-container");
     if (!calendarCard) return;
@@ -162,38 +135,27 @@ function updateCalendarUI() {
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const titleText = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
 
-    const getBtnStyle = (filterName) => activeFilter === filterName 
-        ? `background: var(--color-primary); color: var(--color-text-on-accent); border: 1px solid var(--color-primary);` 
-        : `background: var(--color-bg); color: var(--color-text-secondary); border: 1px solid var(--color-border);`;
-
-    const getToggleStyle = (viewName) => currentView === viewName 
-        ? `background: var(--color-primary); color: var(--color-text-on-accent); font-weight: bold;` 
-        : `background: transparent; color: var(--color-text-primary);`;
-
     const filterHTML = `
-        <button onclick="setEventFilter('this-week')" style="padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: var(--font-weight-medium); cursor: pointer; transition: all 0.2s; ${getBtnStyle('this-week')}">This Week</button>
-        <button onclick="setEventFilter('next-week')" style="padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: var(--font-weight-medium); cursor: pointer; transition: all 0.2s; ${getBtnStyle('next-week')}">Next Week</button>
-        <button onclick="setEventFilter('this-month')" style="padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: var(--font-weight-medium); cursor: pointer; transition: all 0.2s; ${getBtnStyle('this-month')}">This Month</button>
-        <button onclick="setEventFilter('next-month')" style="padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: var(--font-weight-medium); cursor: pointer; transition: all 0.2s; ${getBtnStyle('next-month')}">Next Month</button>
-        <button onclick="setEventFilter('all-events')" style="padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: var(--font-weight-medium); cursor: pointer; transition: all 0.2s; ${getBtnStyle('all-events')}">All Events</button>
-    `;
-
-    const viewToggleHTML = `
-        <div style="display: flex; background: var(--color-bg); border-radius: var(--radius-sm); border: 1px solid var(--color-border); overflow: hidden;">
-            <button onclick="setCalendarView('week')" style="padding: 6px 16px; font-size: 0.8rem; border: none; cursor: pointer; transition: all 0.2s; ${getToggleStyle('week')}">Week</button>
-            <button onclick="setCalendarView('month')" style="padding: 6px 16px; font-size: 0.8rem; border: none; cursor: pointer; transition: all 0.2s; ${getToggleStyle('month')}">Month</button>
+        <div class="segmented-group">
+            <button class="segmented-btn ${activeFilter === 'this-week' ? 'segmented-btn--active' : ''}" onclick="setEventFilter('this-week')">This Week</button>
+            <button class="segmented-btn ${activeFilter === 'this-month' ? 'segmented-btn--active' : ''}" onclick="setEventFilter('this-month')">This Month</button>
+            <button class="segmented-btn ${activeFilter === 'all-events' ? 'segmented-btn--active' : ''}" onclick="setEventFilter('all-events')">All</button>
         </div>
     `;
 
-    const dateSearchHTML = `
-        <div style="display: flex; align-items: center; gap: 8px; background: var(--color-bg); padding: 2px 4px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); cursor: pointer;" onclick="try { this.querySelector('input[type=date]').showPicker(); } catch(e) {}">
-            <i data-lucide="calendar-search" style="width: 16px; height: 16px; color: var(--color-text-secondary); margin-left: 6px;"></i>
-            <input type="date" title="Search Date" style="border: none; background: transparent; font-size: 0.8rem; color: var(--color-text-primary); cursor: pointer; padding: 4px; outline: none;" onclick="try{this.showPicker()}catch(e){ event.stopPropagation(); }" onchange="searchCalendarDate(this.value)">
+    const viewToggleHTML = `
+        <div class="segmented-group">
+            <button class="segmented-btn ${currentView === 'week' ? 'segmented-btn--active' : ''}" onclick="setCalendarView('week')" title="Week View">
+                <i data-lucide="calendar-range" style="width: 16px; height: 16px;"></i>
+            </button>
+            <button class="segmented-btn ${currentView === 'month' ? 'segmented-btn--active' : ''}" onclick="setCalendarView('month')" title="Month View">
+                <i data-lucide="calendar-days" style="width: 16px; height: 16px;"></i>
+            </button>
         </div>
     `;
 
     const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    let gridHTML = daysOfWeek.map(d => `<div style="font-size: 0.75rem; font-weight: var(--font-weight-bold); color: var(--color-text-secondary); text-transform: uppercase; padding-bottom: 8px;">${d}</div>`).join('');
+    let gridHTML = daysOfWeek.map(d => `<div class="calendar-grid__day-label">${d}</div>`).join('');
 
     const createCellHTML = (checkDate) => {
         const isSelected = selectedDate && checkDate.toDateString() === selectedDate.toDateString();
@@ -204,37 +166,32 @@ function updateCalendarUI() {
             return ed.toDateString() === checkDate.toDateString();
         });
 
-        let dotsHTML = `<div style="height: 10px; margin-top: 4px;"></div>`;
+        let dotsHTML = `<div class="calendar-day-cell__dots-container"></div>`;
         if (dayEvents.length > 0) {
-            const dotColor = isSelected ? 'var(--color-text-on-accent)' : 'var(--color-primary)';
-            dotsHTML = `<div style="display: flex; gap: 3px; justify-content: center; margin-top: 4px; flex-wrap: wrap;">`;
+            dotsHTML = `<div class="calendar-day-cell__dots-container">`;
             const maxDots = Math.min(dayEvents.length, 4);
-            for(let i=0; i<maxDots; i++) {
-                dotsHTML += `<div style="width: 6px; height: 6px; background: ${dotColor}; border-radius: 50%;"></div>`;
+            for (let i = 0; i < maxDots; i++) {
+                dotsHTML += `<div class="calendar-day-cell__dot"></div>`;
             }
             if (dayEvents.length > 4) {
-                 dotsHTML += `<span style="font-size: 9px; color: ${dotColor}; line-height: 6px; font-weight: bold;">+</span>`;
+                dotsHTML += `<span style="font-size: 9px; line-height: 6px; font-weight: bold; color: inherit;">+</span>`;
             }
             dotsHTML += `</div>`;
         }
 
-        let cellStyle = `padding: 10px 0; cursor: pointer; border-radius: var(--radius-sm); transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid transparent;`;
-        let textStyle = `font-size: 0.9rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary);`;
-
+        let cellClasses = ['calendar-day-cell'];
         if (currentView === 'month' && checkDate.getMonth() !== currentDate.getMonth()) {
-            textStyle = `font-size: 0.9rem; font-weight: var(--font-weight-medium); color: var(--color-text-muted); opacity: 0.5;`;
+            cellClasses.push('calendar-day-cell--muted');
         }
-
         if (isSelected) {
-            cellStyle += ` background: var(--color-primary);`;
-            textStyle = `font-size: 0.9rem; font-weight: var(--font-weight-bold); color: var(--color-text-on-accent);`;
+            cellClasses.push('calendar-day-cell--selected');
         } else if (isToday) {
-            cellStyle += ` border: 1px solid var(--color-primary);`;
+            cellClasses.push('calendar-day-cell--today');
         }
 
         return `
-            <div class="calendar-day-cell" data-year="${checkDate.getFullYear()}" data-month="${checkDate.getMonth()}" data-day="${checkDate.getDate()}" style="${cellStyle}" onmouseover="if(!${isSelected}) this.style.background='var(--color-bg)'" onmouseout="if(!${isSelected}) this.style.background='transparent'">
-                <span style="${textStyle}">${checkDate.getDate()}</span>
+            <div class="${cellClasses.join(' ')}" data-year="${checkDate.getFullYear()}" data-month="${checkDate.getMonth()}" data-day="${checkDate.getDate()}">
+                <span class="calendar-day-cell__text">${checkDate.getDate()}</span>
                 ${dotsHTML}
             </div>
         `;
@@ -263,23 +220,16 @@ function updateCalendarUI() {
     }
 
     calendarCard.innerHTML = `
-        <div id="calendar-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); flex-wrap: wrap; gap: 16px;">
-            <div style="flex: 1; min-width: 150px; display: flex; justify-content: flex-start;">
-                ${viewToggleHTML}
-            </div>
-            <div style="flex: 2; min-width: 300px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
-                ${filterHTML}
-            </div>
-            <div style="flex: 1; min-width: 150px; display: flex; justify-content: flex-end;">
-                ${dateSearchHTML}
-            </div>
+        <div class="calendar-controls">
+            <div>${viewToggleHTML}</div>
+            <div>${filterHTML}</div>
         </div>
-        <div id="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5);">
-            <button id="cal-prev-btn" style="background: none; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 6px; cursor: pointer; color: var(--color-text-primary); display: flex; align-items: center; justify-content: center; transition: background 0.2s;" onmouseover="this.style.background='var(--color-bg)'" onmouseout="this.style.background='transparent'"><i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i></button>
-            <h2 id="cal-title-header" style="margin: 0; font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); color: var(--color-text-primary); cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-primary)'" title="Go to Today">${titleText}</h2>
-            <button id="cal-next-btn" style="background: none; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 6px; cursor: pointer; color: var(--color-text-primary); display: flex; align-items: center; justify-content: center; transition: background 0.2s;" onmouseover="this.style.background='var(--color-bg)'" onmouseout="this.style.background='transparent'"><i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i></button>
+        <div class="calendar-header">
+            <button id="cal-prev-btn" class="calendar-header__nav-btn"><i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i></button>
+            <h2 id="cal-title-header" class="calendar-header__title" title="Go to Today">${titleText}</h2>
+            <button id="cal-next-btn" class="calendar-header__nav-btn"><i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i></button>
         </div>
-        <div id="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center;">
+        <div class="calendar-grid">
             ${gridHTML}
         </div>
     `;
@@ -330,7 +280,6 @@ function renderFilteredEvents() {
     const listContainer = document.getElementById("calendar-events-list");
     if (!listContainer) return;
 
-    // Helper function to format 24-hour time to 12-hour AM/PM
     const formatTime = (timeStr) => {
         if (!timeStr) return '';
         const timePart = timeStr.includes('T') ? timeStr.split('T')[1] : timeStr;
@@ -357,20 +306,10 @@ function renderFilteredEvents() {
             filterEnd = new Date(filterStart);
             filterEnd.setDate(filterStart.getDate() + 6);
             titleText = 'Events for This Week';
-        } else if (activeFilter === 'next-week') {
-            filterStart = new Date(now);
-            filterStart.setDate(now.getDate() - now.getDay() + 7);
-            filterEnd = new Date(filterStart);
-            filterEnd.setDate(filterStart.getDate() + 6);
-            titleText = 'Events for Next Week';
         } else if (activeFilter === 'this-month') {
             filterStart = new Date(now.getFullYear(), now.getMonth(), 1);
             filterEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
             titleText = 'Events for This Month';
-        } else if (activeFilter === 'next-month') {
-            filterStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-            filterEnd = new Date(now.getFullYear(), now.getMonth() + 2, 0);
-            titleText = 'Events for Next Month';
         } else if (activeFilter === 'all-events') {
             titleText = 'All Scheduled Events';
         }
@@ -400,7 +339,7 @@ function renderFilteredEvents() {
     displayEvents.sort((a, b) => new Date(`${a.date} ${a.time || '12:00 AM'}`).getTime() - new Date(`${b.date} ${b.time || '12:00 AM'}`).getTime());
 
     let html = `
-        <h3 style="font-size: 1.1rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0 0 var(--space-4) 0; border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-3);">
+        <h3 style="font-size: 1.1rem; font-weight: bold; color: var(--color-text-primary); margin: 0 0 var(--space-4) 0; border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-3);">
             ${titleHTML}
         </h3>
     `;
@@ -416,52 +355,49 @@ function renderFilteredEvents() {
             return acc;
         }, {});
 
-        html += `<div style="display: flex; flex-direction: column; position: relative; padding-left: 12px; margin-top: 12px;">`;
-        html += `<div style="position: absolute; left: 16px; top: 12px; bottom: 20px; width: 2px; background: var(--color-border);"></div>`;
+        html += `<div class="timeline-container">`;
+        html += `<div class="timeline-line"></div>`;
 
-        Object.entries(groupedByDate).forEach(([dateLabel, dayEvents], groupIdx) => {
+        Object.entries(groupedByDate).forEach(([dateLabel, dayEvents]) => {
             if (activeFilter) {
                 html += `
-                    <div style="position: relative; margin-top: ${groupIdx === 0 ? '0' : '24px'}; margin-bottom: 16px; display: flex; align-items: center;">
-                        <div style="position: absolute; left: -1.5px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary); border: 2px solid var(--color-white); z-index: 2;"></div>
-                        <h3 style="font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-primary); margin: 0 0 0 24px;">
-                            ${dateLabel}
-                        </h3>
+                    <div class="timeline-date-header">
+                        <div class="timeline-date-header__bullet"></div>
+                        <h3 class="timeline-date-header__title">${dateLabel}</h3>
                     </div>
                 `;
             }
             
-            dayEvents.forEach((ev, idx) => {
+            dayEvents.forEach((ev) => {
                 const wedding = allWeddings.find(w => w.id === ev.wedding_id);
                 const displayNames = wedding ? (wedding.primary_side === 'groom' ? `${wedding.groom_name} & ${wedding.bride_name}` : `${wedding.bride_name} & ${wedding.groom_name}`) : 'Wedding Event';
                 const familyName = wedding && wedding.family_name ? wedding.family_name : '';
                 
                 const venueHTML = ev.venue_map_link 
-                    ? `<a href="${ev.venue_map_link}" target="_blank" style="line-height: 1.4; color: var(--color-primary); font-weight: 500; text-decoration: underline; text-underline-offset: 2px;">${ev.venue}</a>`
-                    : `<span style="line-height: 1.4;">${ev.venue}</span>`;
+                    ? `<a href="${ev.venue_map_link}" target="_blank" style="color: var(--color-primary); text-decoration: underline;">${ev.venue}</a>`
+                    : `<span>${ev.venue}</span>`;
 
                 html += `
-                    <div class="timeline-event-card" style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
-                        <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
-                        
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <h4 style="margin: 0; font-size: 1.15rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.event_name || ev.title}</h4>
-                                <div style="display: flex; gap: 16px; color: var(--color-text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium); flex-wrap: wrap; margin-top: 4px;">
-                                    <div style="display: flex; align-items: center; gap: 6px;">
-                                        <i data-lucide="clock" style="width: 16px; height: 16px; color: var(--color-text-secondary);"></i> ${formatTime(ev.time) || '-'}
+                    <div class="timeline-event-card">
+                        <div class="timeline-event-card__bullet"></div>
+                        <div class="event-card-inner">
+                            <div class="event-card-main">
+                                <h4 class="event-card-title">${ev.event_name || ev.title}</h4>
+                                <div class="event-card-meta-row">
+                                    <div class="event-card-meta-item">
+                                        <i data-lucide="clock"></i> ${formatTime(ev.time) || '-'}
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 6px;">
-                                        <i data-lucide="map-pin" style="width: 16px; height: 16px; color: var(--color-text-secondary);"></i> ${venueHTML}
+                                    <div class="event-card-meta-item">
+                                        <i data-lucide="map-pin"></i> ${venueHTML}
                                     </div>
                                 </div>
                             </div>
                             
-                            <div style="display: flex; flex-direction: column; align-items: flex-end; text-align: right;">
-                                <span style="font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-primary); display: flex; align-items: center; gap: 6px;">
-                                    <i data-lucide="heart" style="width: 16px; height: 16px; color: var(--color-primary);"></i>${displayNames}
+                            <div class="event-card-side">
+                                <span class="event-card-names">
+                                    <i data-lucide="heart"></i>${displayNames}
                                 </span>
-                                ${familyName ? `<span style="font-size: 0.85rem; color: var(--color-text-secondary); font-weight: var(--font-weight-medium); margin-top: 4px;">${familyName}</span>` : ''}
+                                ${familyName ? `<span class="event-card-family">${familyName}</span>` : ''}
                             </div>
                         </div>
                     </div>
