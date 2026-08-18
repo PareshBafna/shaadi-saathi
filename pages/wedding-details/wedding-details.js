@@ -361,15 +361,22 @@ function buildEventItinerarySection(wedding, events, canConfig) {
     headerRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4); flex-wrap: wrap; gap: 12px;";
 
     let centerHTML = canConfig ? `
-        <button id="add-event-main-btn" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center;">
+        <button id="add-event-main-btn" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
             <i data-lucide="plus" style="width:16px; height:16px; margin-right:4px;"></i> Event
+        </button>
+    ` : '';
+    
+    // UPDATED: Changed style to match the solid primary button theme
+    let rightHTML = events && events.length > 0 ? `
+        <button id="add-to-calendar-btn" style="background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+            <i data-lucide="calendar-plus" style="width:16px; height:16px; margin-right:6px;"></i> Add To Calendar
         </button>
     ` : '';
     
     headerRow.innerHTML = `
         <div style="flex: 1 1 0; display: flex; justify-content: flex-start; min-width: 150px;"></div>
         <div style="flex: 1 1 0; display: flex; justify-content: center; min-width: 150px;">${centerHTML}</div>
-        <div style="flex: 1 1 0; display: flex; justify-content: flex-end; min-width: 150px;"></div>
+        <div style="flex: 1 1 0; display: flex; justify-content: flex-end; min-width: 150px;">${rightHTML}</div>
     `;
     section.appendChild(headerRow);
 
@@ -429,7 +436,6 @@ function buildEventItinerarySection(wedding, events, canConfig) {
                     ? `<a href="${ev.venue_map_link}" target="_blank" style="line-height: 1.4; color: var(--color-primary); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; transition: color 0.2s;" onmouseover="this.style.color='var(--color-text-primary)'" onmouseout="this.style.color='var(--color-primary)'">${ev.venue}</a>`
                     : `<span style="line-height: 1.4;">${ev.venue}</span>`;
 
-                // CHANGED: Use only event_name and removed the subTitleHTML logic completely
                 const eventHeading = ev.event_name || 'Untitled Event';
 
                 htmlContent += `
@@ -475,16 +481,77 @@ function buildEventItinerarySection(wedding, events, canConfig) {
 
     setTimeout(() => {
         renderEventsView();
+        
         if (canConfig) {
             const addEventMainBtn = document.getElementById('add-event-main-btn');
             if (addEventMainBtn) {
                 addEventMainBtn.addEventListener('click', () => window.openEventModal(wedding.id, wedding.start_date, wedding.end_date));
             }
         }
+        
+        const addToCalBtn = document.getElementById('add-to-calendar-btn');
+        if (addToCalBtn) {
+            addToCalBtn.addEventListener('click', () => {
+                downloadICS(wedding, events);
+            });
+        }
+        
     }, 0);
 
     return section;
 }
+
+// ==========================================
+// ICS DOWNLOAD HELPER
+// ==========================================
+window.downloadICS = function(wedding, events) {
+    if (!events || events.length === 0) return;
+
+    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Shaadi Saathi//Wedding Events//EN\n";
+
+    const displayNames = wedding.primary_side === 'groom' 
+        ? `${wedding.groom_name} & ${wedding.bride_name}` 
+        : `${wedding.bride_name} & ${wedding.groom_name}`;
+
+    events.forEach(ev => {
+        const startDate = new Date(`${ev.date}T${ev.time || '00:00'}`);
+        if (isNaN(startDate.getTime())) return; 
+
+        // Set default 2 hour duration for the calendar blocking
+        const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); 
+
+        const formatICSDate = (d) => {
+            return d.getFullYear().toString() +
+                   (d.getMonth() + 1).toString().padStart(2, '0') +
+                   d.getDate().toString().padStart(2, '0') + 'T' +
+                   d.getHours().toString().padStart(2, '0') +
+                   d.getMinutes().toString().padStart(2, '0') +
+                   d.getSeconds().toString().padStart(2, '0');
+        };
+
+        const summary = `${ev.event_name || ev.title} - ${displayNames} Wedding`;
+        const description = ev.description || ev.one_liner || '';
+        const location = ev.venue || '';
+
+        icsContent += "BEGIN:VEVENT\n";
+        icsContent += `DTSTART:${formatICSDate(startDate)}\n`;
+        icsContent += `DTEND:${formatICSDate(endDate)}\n`;
+        icsContent += `SUMMARY:${summary}\n`;
+        icsContent += `DESCRIPTION:${description}\n`;
+        icsContent += `LOCATION:${location}\n`;
+        icsContent += "END:VEVENT\n";
+    });
+
+    icsContent += "END:VCALENDAR";
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', `${displayNames.replace(/ & /g, '_')}_Wedding_Events.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
 
 // ==========================================
 // 4. HOST SECTION LOGIC 
