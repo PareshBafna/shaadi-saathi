@@ -221,7 +221,7 @@ function buildGallerySection(title, weddings) {
         if (wedding.has_web_invite) {
             webInviteHTML = `
             <div style="margin-top: 12px; display: flex; justify-content: center; width: 100%;">
-                <a href="${window.location.origin}/sample-invite.html" target="_blank" onclick="event.stopPropagation();" style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 8px 16px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                <a href="#sample-web-invites-preview?id=${wedding.id}" target="_blank" onclick="event.stopPropagation();" style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 8px 16px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
                     <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation
                 </a>
             </div>`;

@@ -382,7 +382,7 @@ function buildGallerySection(title, weddings) {
         if (wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000') {
             let inviteUrl = `${window.location.origin}/invite.html?id=${wedding.id}`;
             if (wedding.id === '00000000-0000-0000-0000-000000000000') {
-                inviteUrl = `${window.location.origin}/sample-invite.html`;
+                inviteUrl = `${window.location.origin}/invite.html`;
             }
 
             webInviteHTML = `

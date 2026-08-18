@@ -37,7 +37,7 @@ export function checkSessionOrShowAlert() {
 window.checkSessionOrShowAlert = checkSessionOrShowAlert;
 
 // --- NEW PUBLIC ROUTING WHITELIST ---
-const publicRoutes = ['#login', '#/', '#sample-web-invites'];
+const publicRoutes = ['#login', '#/', '#sample-web-invites-preview'];
 
 document.addEventListener("DOMContentLoaded", async () => {
     document.body.style.opacity = '0.5';
@@ -144,6 +144,8 @@ function initApp(user) {
     if (user) {
         if (activeId === 'wedding-details') {
             activeId = 'weddings';
+        } else if (activeId === 'sample-wedding-details') {
+            activeId = 'sample-weddings';
         }
         
         const sidebar = createSidebar({ 
@@ -190,7 +192,7 @@ async function router() {
         return;
     }
 
-    if (route === '#sample-web-invites') {
+    if (route === '#sample-web-invites-preview') {
         const layoutEl = document.getElementById('layout');
         if (layoutEl) layoutEl.innerHTML = ""; 
         
@@ -236,7 +238,7 @@ async function router() {
     else if (route === "#events") { pageTitle = "Events"; renderFunc = renderEvents; allowedRoles = ['creator']; }
     else if (route === "#users") { pageTitle = "Users"; renderFunc = renderUsers; allowedRoles = ['creator']; } 
     else if (route === "#hosts") { pageTitle = "Hosts"; renderFunc = renderHosts; allowedRoles = ['creator']; } 
-    else if (route === "#sample-weddings" || route === "#sample") 
+    else if (route === "#sample-weddings") 
     { 
         pageTitle = "Sample Wedding"; 
         renderFunc = renderSampleWeddings; 
@@ -263,6 +265,8 @@ async function router() {
     let activeId = route.replace('#', '');
     if (activeId === 'wedding-details') {
         activeId = 'weddings';
+    } else if (activeId === 'sample-wedding-details') {
+        activeId = 'sample-weddings';
     }
 
     document.querySelectorAll('.sidebar__nav-link').forEach(link => {

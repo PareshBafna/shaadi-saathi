@@ -241,7 +241,8 @@ function buildMockHeader(wedding) {
     const rightSide = document.createElement("div");
     rightSide.style.cssText = "display: flex; flex-direction: column; align-items: flex-end; gap: 10px;";
 
-    const inviteUrl = `${window.location.origin}/sample-invite.html`;
+    const inviteUrl = `#sample-web-invites-preview?id=${wedding.id}`;
+    
     const webInviteHTML = wedding.has_web_invite ? `
         <a href="${inviteUrl}" target="_blank" style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 0 16px; height: 36px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s; box-sizing: border-box;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
             <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation
