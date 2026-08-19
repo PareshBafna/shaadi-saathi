@@ -208,19 +208,16 @@ async function loadWeddingsData(container) {
             });
 
             wedding.wedding_users = wUsersData ? wUsersData.filter(u => u.wedding_id === wedding.id) : [];
-            
             wedding.has_web_invite = (wedding.id === '00000000-0000-0000-0000-000000000000') || (webInvitesData ? webInvitesData.some(w => w.wedding_id === wedding.id) : false);
 
-            let eventsQuery = supabase.from('wedding_events').select('*', { count: 'exact' }).eq('wedding_id', wedding.id);
+            let eventsQuery = supabase.from('wedding_events').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
             
             const isHost = wedding.hosts.some(h => h.user_id === userId);
             const isWUser = wedding.wedding_users.some(u => u.user_id === userId);
-            
             const canViewAll = isCreator || isHost || isWUser;
 
             if (!canViewAll) {
                 const { data: weddingGuests } = await supabase.from('guests').select('id, phone').eq('wedding_id', wedding.id);
-                
                 const guestData = (weddingGuests || []).find(g => {
                      const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
                      return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
@@ -402,22 +399,44 @@ function buildGallerySection(title, weddings) {
     `;
 }
 
-function forceStyleModalButtons() {
-    const btns = Array.from(document.querySelectorAll('button'));
-    btns.forEach(btn => {
-        const txt = btn.textContent.trim();
-        if (txt === 'Cancel' && !btn.hasAttribute('data-styled')) {
-            btn.className += ' modal-btn-cancel';
-            btn.setAttribute('data-styled', 'true');
-        } else if (txt === 'Delete' && !btn.hasAttribute('data-styled')) {
-            btn.className += ' modal-btn-delete';
-            if (btn.parentElement) {
-                btn.parentElement.style.display = 'flex';
-                btn.parentElement.style.width = '100%';
-            }
-            btn.setAttribute('data-styled', 'true');
-        }
-    });
+function layoutModalFooter(isEditModal = false) {
+    const allBtns = Array.from(document.querySelectorAll('button'));
+    const cancelBtn = allBtns.find(b => b.textContent.trim() === 'Cancel');
+    const deleteBtn = allBtns.find(b => b.textContent.trim() === 'Delete');
+    const primaryBtn = allBtns.find(b => ['Add', 'Edit', 'Update'].includes(b.textContent.trim()));
+
+    if (cancelBtn) {
+        cancelBtn.classList.add('modal-btn-cancel');
+        cancelBtn.style.order = '1';
+        cancelBtn.style.flexShrink = '0';
+        cancelBtn.style.marginRight = isEditModal ? '0' : '0';
+    }
+
+    if (deleteBtn) {
+        deleteBtn.classList.add('modal-btn-delete');
+        deleteBtn.style.order = '2';
+        deleteBtn.style.flexShrink = '0';
+        deleteBtn.style.margin = '0 auto';
+    }
+
+    if (primaryBtn) {
+        primaryBtn.style.order = '3';
+        primaryBtn.style.flexShrink = '0';
+        primaryBtn.style.marginLeft = isEditModal ? '0' : 'auto';
+        primaryBtn.style.whiteSpace = 'nowrap';
+    }
+
+    const container = cancelBtn?.parentElement;
+    if (container) {
+        container.style.display = 'flex';
+        container.style.flexDirection = 'row';
+        container.style.flexWrap = 'nowrap';
+        container.style.width = '100%';
+        container.style.justifyContent = 'space-between';
+        container.style.alignItems = 'center';
+        container.style.gap = '8px';
+        container.style.boxSizing = 'border-box';
+    }
 }
 
 export function openCreateWeddingModal() {
@@ -484,7 +503,7 @@ export function openCreateWeddingModal() {
 
             <div>
                 <label class="wedding-modal-label">Family Details *</label>
-                <input type="text" id="familyDetails" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--invalid">
+                <textarea id="familyDetails" rows="3" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--invalid" style="resize: vertical;"></textarea>
             </div>
         </form>
     `;
@@ -587,7 +606,7 @@ export function openCreateWeddingModal() {
     });
 
     setTimeout(() => {
-        forceStyleModalButtons();
+        layoutModalFooter(false);
         const requiredIds = ['brideName', 'groomName', 'startDate', 'endDate', 'familyName', 'familyDetails'];
         requiredIds.forEach(id => {
             const el = document.getElementById(id);
@@ -699,13 +718,17 @@ export function openEditWeddingModal(wedding) {
 
             <div>
                 <label class="wedding-modal-label">Family Details *</label>
-                <input type="text" id="editFamilyDetails" value="${(wedding.family_details || '').replace(/"/g, '&quot;')}" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--valid">
+                <textarea id="editFamilyDetails" rows="3" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--valid" style="resize: vertical;">${wedding.family_details || ''}</textarea>
             </div>
         </form>
     `;
 
     const modalActions = [];
 
+    // 1. Cancel on Left
+    modalActions.push({ label: "Cancel", variant: "ghost" });
+
+    // 2. Delete in Center (if creator)
     if (userRole === 'creator') {
         modalActions.push({
             label: "Delete",
@@ -738,8 +761,7 @@ export function openEditWeddingModal(wedding) {
         });
     }
 
-    modalActions.push({ label: "Cancel", variant: "ghost" });
-    
+    // 3. Edit on Right
     modalActions.push({ 
         label: "Edit", 
         variant: "primary", 
@@ -830,7 +852,7 @@ export function openEditWeddingModal(wedding) {
     });
 
     setTimeout(() => {
-        forceStyleModalButtons();
+        layoutModalFooter(true);
         const requiredIds = ['editBrideName', 'editGroomName', 'editStartDate', 'editEndDate', 'editFamilyName', 'editFamilyDetails'];
         requiredIds.forEach(id => {
             const el = document.getElementById(id);

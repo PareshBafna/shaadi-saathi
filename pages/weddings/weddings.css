@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  padding: 0;
+  padding: 0 0 calc(var(--space-8, 2rem) + 140px) 0 !important;
   max-width: var(--container-max-width, 100%);
   margin: 0 auto;
   width: 100%;
@@ -332,15 +332,19 @@
 }
 
 /* ============================================================
-   MODAL FORM CONTROLS
+   MODAL FORM CONTROLS (OVERLAP-FREE SCROLLBAR BUFFER)
    ============================================================ */
 .wedding-modal-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   overflow-y: auto;
-  max-height: 60vh;
-  padding-right: 5px;
+  overflow-x: hidden !important;
+  scrollbar-gutter: stable;
+  max-height: 52dvh !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  padding: 4px 14px 8px 4px !important; /* 14px right buffer gives clearance from scrollbar */
 }
 
 .wedding-modal-label {
@@ -375,16 +379,22 @@
 .wedding-modal-row {
   display: flex;
   gap: var(--space-3);
-  flex-wrap: wrap;
+  width: 100% !important;
+  box-sizing: border-box;
 }
 
 .wedding-modal-col {
-  flex: 1;
-  min-width: 140px;
+  flex: 1 1 50%;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
 }
 
 .wedding-modal-input {
-  width: 100%;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 38px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   color: var(--color-text-primary);
@@ -392,7 +402,33 @@
   border-radius: var(--radius-sm);
   box-sizing: border-box;
   outline: none;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  text-align: left !important;
+  text-align-last: left !important;
   transition: border-color var(--transition-fast);
+}
+
+textarea.wedding-modal-input {
+  min-height: 80px;
+}
+
+/* Explicit width containment for date & time pickers */
+.wedding-modal-input[type="date"],
+.wedding-modal-input[type="time"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 38px !important;
+  display: block !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.wedding-modal-input[type="date"]::-webkit-date-and-time-value,
+.wedding-modal-input[type="time"]::-webkit-date-and-time-value {
+  text-align: left !important;
 }
 
 .wedding-modal-input--valid {
@@ -408,10 +444,11 @@
   background: #6b7280 !important;
   color: #ffffff !important;
   border: 1px solid #6b7280 !important;
-  padding: 0.5rem 1.25rem !important;
+  padding: 0.45rem 1.15rem !important;
   border-radius: var(--radius-sm) !important;
   font-weight: var(--font-weight-medium) !important;
   cursor: pointer !important;
+  white-space: nowrap !important;
   transition: opacity var(--transition-fast) !important;
 }
 
@@ -423,12 +460,12 @@
   background: #dc2626 !important;
   color: #ffffff !important;
   border: 1px solid #dc2626 !important;
-  padding: 0.5rem 1.25rem !important;
+  padding: 0.45rem 1.15rem !important;
   border-radius: var(--radius-sm) !important;
   font-weight: var(--font-weight-semibold) !important;
   cursor: pointer !important;
+  white-space: nowrap !important;
   transition: opacity var(--transition-fast) !important;
-  margin-right: auto !important;
 }
 
 .modal-btn-delete:hover {
@@ -463,5 +500,22 @@
     width: 12px;
     height: 12px;
     left: 7px;
+  }
+
+  .wedding-modal-row {
+    flex-direction: column !important;
+    gap: var(--space-3) !important;
+  }
+
+  .wedding-modal-col {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+
+  .wedding-modal-form {
+    padding-right: 12px !important;
+    max-height: 52dvh !important;
   }
 }
