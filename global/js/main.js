@@ -2,7 +2,7 @@
 import { supabase } from '../../database/js/api.js';
 
 // Components & Alerts
-import { validateSession, getWhatsAppVerificationLink, logoutUser } from './auth.js';
+import { validateSession, logoutUser } from '../../pages/login/login.js';
 import { createSidebar, createBottomNav } from './sidebar.js';
 import { createHeader } from './header.js';
 import { showSweetAlert } from './sweet-alert-message.js';
@@ -22,6 +22,30 @@ import { renderWebInvites } from '../../pages/web-invites/web-invites.js';
 import { renderSampleWeddings } from '../../pages/sample-weddings/sample-weddings.js';
 import { renderSampleWeddingDetails } from '../../pages/sample-wedding-details/sample-wedding-details.js';
 import { renderSampleWebInvites } from '../../pages/sample-web-invites-preview/sample-web-invites-preview.js';
+
+// --- DYNAMIC PAGE STYLESHEET LOADER ---
+function loadPageStyle(pageName) {
+    const existingStyle = document.getElementById('dynamic-page-style');
+    if (existingStyle) {
+        existingStyle.remove();
+    }
+
+    if (!pageName) return;
+
+    const link = document.createElement('link');
+    link.id = 'dynamic-page-style';
+    link.rel = 'stylesheet';
+    link.href = `/pages/${pageName}/${pageName}.css`;
+    document.head.appendChild(link);
+}
+
+// --- WHATSAPP ADMIN SUPPORT CONFIG ---
+const ADMIN_WHATSAPP_NUMBER = "919791146838";
+
+function getWhatsAppVerificationLink(verificationCode, name) {
+    const message = `Hi Shaadi Saathi, please verify my account.\n\nName: ${name || 'User'}\nCode: ${verificationCode || 'N/A'}`;
+    return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
 
 // --- CENTRALIZED SESSION VALIDATION HELPER ---
 export function checkSessionOrShowAlert() {
@@ -176,10 +200,29 @@ async function router() {
     const [route, queryString] = hash.split('?');
     const params = new URLSearchParams(queryString || '');
 
+    // Extract active page name for dynamic stylesheet loading
+    let activePageName = route.replace('#', '');
+    if (activePageName === '' || activePageName === '/') activePageName = 'login';
+    loadPageStyle(activePageName);
+
     const contentEl = document.getElementById("main-content");
     if (!contentEl) return;
     
     if (route === '#login') {
+        // Prevent active sessions from getting trapped on the login page
+        const activeUserId = localStorage.getItem('ss_user_id');
+        if (activeUserId && window.currentUser) {
+            const role = window.currentUser.role;
+            if (role === 'creator') {
+                window.location.hash = '#dashboard';
+            } else if (role === 'host' || role === 'wedding_user') {
+                window.location.hash = '#weddings';
+            } else {
+                window.location.hash = '#calendar';
+            }
+            return;
+        }
+
         const sidebarEl = document.querySelector('.sidebar');
         const bottomNavEl = document.querySelector('.bottom-nav');
         const headerEl = document.getElementById('header-container');

@@ -1,0 +1,114 @@
+/* ============================================================
+   LOGIN & REGISTER PAGE STYLES
+   ============================================================ */
+
+.login-page-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden !important;
+  padding: 0 var(--space-4, 16px);
+}
+
+.login-card {
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-8, 32px);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
+  font-family: var(--font-family-sans, system-ui, sans-serif);
+  box-sizing: border-box;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: var(--space-6, 24px);
+}
+
+.login-header h1 {
+  margin: 0 0 var(--space-2, 8px) 0;
+  font-family: var(--font-family-display, inherit);
+  color: var(--color-text-primary, #0f172a);
+  font-size: var(--font-size-3xl, 1.5rem);
+  font-weight: var(--font-weight-bold, 700);
+}
+
+.login-header p {
+  margin: 0;
+  color: var(--color-text-secondary, #64748b);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.login-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.login-field-container {
+  text-align: left;
+}
+
+.login-label {
+  display: block;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-secondary, #64748b);
+  margin-bottom: 4px;
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.login-input {
+  width: 100%;
+  background: var(--color-bg, #f8fafc);
+  border: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-primary, #0f172a);
+  padding: var(--space-3, 12px);
+  border-radius: var(--radius-sm, 6px);
+  outline: none;
+  font-size: 16px; /* Prevents auto-zoom on mobile devices */
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.login-submit-btn {
+  width: 100%;
+  padding: var(--space-3, 12px);
+  background: var(--color-primary, #0f172a);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-top: var(--space-2, 8px);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-family: inherit;
+}
+
+.login-submit-btn:hover {
+  opacity: 0.85;
+}
+
+.login-switch-footer {
+  text-align: center;
+  margin-top: var(--space-6, 24px);
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-secondary, #64748b);
+}
+
+.login-switch-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary, #0f172a);
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-family: inherit;
+}
