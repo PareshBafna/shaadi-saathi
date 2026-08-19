@@ -4,14 +4,15 @@ import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 export function renderLogin() {
     const container = document.createElement('div');
     
-    // Centers the login card
+    // Centers the login card and enforces no horizontal scrolling
     container.style.cssText = `
         display: flex; align-items: center; justify-content: center;
-        min-height: 80vh; width: 100%;
+        min-height: 80vh; width: 100%; box-sizing: border-box;
+        overflow-x: hidden !important; padding: 0 var(--space-4, 16px);
     `;
 
     container.innerHTML = `
-        <div style="background: var(--color-white, #ffffff); border: 1px solid var(--color-border, #e2e8f0); border-radius: var(--radius-lg, 12px); padding: var(--space-8, 32px); width: 100%; max-width: 400px; box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1)); font-family: var(--font-family-sans, system-ui, sans-serif);">
+        <div style="background: var(--color-white, #ffffff); border: 1px solid var(--color-border, #e2e8f0); border-radius: var(--radius-lg, 12px); padding: var(--space-8, 32px); width: 100%; max-width: 400px; box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1)); font-family: var(--font-family-sans, system-ui, sans-serif); box-sizing: border-box;">
             
             <!-- LOGIN VIEW -->
             <div id="login-view">
@@ -23,7 +24,8 @@ export function renderLogin() {
                 <div style="display: flex; flex-direction: column; gap: var(--space-4, 16px);">
                     <div style="text-align: left;">
                         <label style="display:block; font-size:var(--font-size-sm, 0.875rem); color:var(--color-text-secondary, #64748b); margin-bottom:4px; font-weight: var(--font-weight-medium, 500);">Phone Number *</label>
-                        <input type="tel" id="login-phone" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="e.g., 919876543210" style="width:100%; background:var(--color-bg, #f8fafc); border:1px solid var(--color-border, #e2e8f0); color:var(--color-text-primary, #0f172a); padding:var(--space-3, 12px); border-radius:var(--radius-sm, 6px); outline:none; transition: border-color 0.2s; box-sizing: border-box; font-family: inherit; font-size: var(--font-size-sm, 0.875rem);" required>
+                        <input type="tel" id="login-phone" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="e.g., 919876543210" 
+                        style="width:100%; background:var(--color-bg, #f8fafc); border:1px solid var(--color-border, #e2e8f0); color:var(--color-text-primary, #0f172a); padding:var(--space-3, 12px); border-radius:var(--radius-sm, 6px); outline:none; font-family: inherit; font-size: 16px; box-sizing: border-box;"                        required>
                     </div>
 
                     <div style="text-align: left;">
@@ -89,6 +91,13 @@ export function renderLogin() {
     const registerView = container.querySelector('#register-view');
     const btnShowRegister = container.querySelector('#btn-show-register');
     const btnShowLogin = container.querySelector('#btn-show-login');
+
+    const hashChangeCleanup = () => {
+        const modalBackdrops = document.querySelectorAll('.modal-backdrop, .swal2-container');
+        modalBackdrops.forEach(b => b.remove());
+        window.removeEventListener('hashchange', hashChangeCleanup);
+    };
+    window.addEventListener('hashchange', hashChangeCleanup);
 
     btnShowRegister.addEventListener('click', () => { 
         loginView.style.display = 'none'; 
