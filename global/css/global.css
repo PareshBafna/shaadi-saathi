@@ -170,3 +170,28 @@ button:active {
 ::-webkit-scrollbar-thumb:hover { 
     background: var(--color-primary-dark, var(--color-primary)); 
 }
+
+/* Ensure the mobile bottom navigation sits below modal overlays */
+.bottom-nav {
+  z-index: 990 !important;
+}
+
+/* Ensure modal overlays, backdrops, and SweetAlert containers cover everything */
+.modal-backdrop,
+.modal-overlay,
+.swal2-container {
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+}
+
+/* When a modal is open, prevent scrolling and background clicks on mobile */
+body.modal-open,
+body.swal2-shown {
+  overflow: hidden !important;
+  touch-action: none !important;
+}
+
+body.modal-open .bottom-nav,
+body.swal2-shown .bottom-nav {
+  pointer-events: none !important;
+}

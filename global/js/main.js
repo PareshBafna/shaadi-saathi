@@ -194,8 +194,18 @@ function initApp(user) {
 }
 
 async function router() {
+    // 1. Force close SweetAlert dialogs
     if (window.Swal && Swal.isVisible() && Swal.getTitle()?.textContent !== 'Session Expired') Swal.close();
     
+    // 2. Remove all open modal elements and backdrops
+    document.querySelectorAll('.modal-backdrop, .modal, .custom-modal, .swal2-container').forEach(el => {
+        el.remove();
+    });
+
+    // 3. Reset body overflow/modal classes
+    document.body.classList.remove('modal-open', 'swal2-shown');
+    document.body.style.overflow = '';
+
     const hash = window.location.hash || '#login';
     const [route, queryString] = hash.split('?');
     const params = new URLSearchParams(queryString || '');
