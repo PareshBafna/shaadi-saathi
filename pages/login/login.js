@@ -1,19 +1,12 @@
 import { supabase } from '../../database/js/api.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
-const ADMIN_WHATSAPP_NUMBER = "919791146838";
-
 function cleanPhoneNumber(phone) {
     return phone.replace(/[^0-9+]/g, '');
 }
 
 function generateVerificationCode() {
     return 'VERIFY-' + Math.floor(100000 + Math.random() * 900000);
-}
-
-export function getWhatsAppVerificationLink(verificationCode, name) {
-    const message = `Hi Shaadi Saathi, please verify my account.\n\nName: ${name}\nCode: ${verificationCode}`;
-    return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
 export async function validateSession() {
@@ -98,6 +91,12 @@ export function logoutUser() {
     window.location.reload();
 }
 
+function getRoleRedirectHash(role) {
+    if (role === 'creator') return '#dashboard';
+    if (role === 'host' || role === 'wedding_user') return '#weddings';
+    return '#calendar';
+}
+
 export function renderLogin() {
     const container = document.createElement('div');
     container.className = 'login-page-wrapper';
@@ -168,10 +167,16 @@ export function renderLogin() {
         ['login-phone', 'login-pin', 'reg-name', 'reg-phone', 'reg-pin'].forEach(id => {
             const el = container.querySelector(`#${id}`);
             if (el) {
-                el.style.borderColor = el.value.trim() === '' ? 'var(--color-border)' : 'green';
-                el.addEventListener('input', () => {
-                    el.style.borderColor = el.value.trim() === '' ? 'red' : 'green';
-                });
+                const updateValidationState = () => {
+                    if (el.value.trim() === '') {
+                        el.classList.remove('login-input--valid');
+                        el.classList.remove('login-input--invalid');
+                    } else {
+                        el.classList.remove('login-input--invalid');
+                        el.classList.add('login-input--valid');
+                    }
+                };
+                el.addEventListener('input', updateValidationState);
             }
         });
     }, 50);
@@ -191,13 +196,19 @@ export function renderLogin() {
     btnShowRegister.addEventListener('click', () => { 
         loginView.style.display = 'none'; 
         registerView.style.display = 'block'; 
-        container.querySelectorAll('input').forEach(el => el.style.borderColor = 'var(--color-border)');
+        container.querySelectorAll('input').forEach(el => {
+            el.classList.remove('login-input--valid');
+            el.classList.remove('login-input--invalid');
+        });
     });
     
     btnShowLogin.addEventListener('click', () => { 
         registerView.style.display = 'none'; 
         loginView.style.display = 'block'; 
-        container.querySelectorAll('input').forEach(el => el.style.borderColor = 'var(--color-border)');
+        container.querySelectorAll('input').forEach(el => {
+            el.classList.remove('login-input--valid');
+            el.classList.remove('login-input--invalid');
+        });
     });
 
     container.querySelector('#btn-login').addEventListener('click', async () => {
@@ -212,11 +223,13 @@ export function renderLogin() {
         requiredFields.forEach(field => {
             const el = container.querySelector(`#${field.id}`);
             if (!el.value.trim()) { 
-                el.style.borderColor = "red"; 
+                el.classList.remove('login-input--valid');
+                el.classList.add('login-input--invalid'); 
                 isValid = false; 
-                if(!firstEmpty) firstEmpty = field.name; 
+                if (!firstEmpty) firstEmpty = field.name; 
             } else { 
-                el.style.borderColor = "green"; 
+                el.classList.remove('login-input--invalid');
+                el.classList.add('login-input--valid'); 
             }
         });
 
@@ -228,14 +241,16 @@ export function renderLogin() {
         const pin = container.querySelector('#login-pin').value.trim();
 
         if (!/^\d{6}$/.test(pin)) {
-            container.querySelector('#login-pin').style.borderColor = "red";
+            const pinEl = container.querySelector('#login-pin');
+            pinEl.classList.remove('login-input--valid');
+            pinEl.classList.add('login-input--invalid');
             return showSweetAlert('error', 'Invalid PIN', 'PIN must be exactly 6 digits.');
         }
 
         try {
             const user = await loginUser({ phone, pin });
             window.currentUser = user; 
-            window.location.hash = user.role === 'creator' ? '#dashboard' : '#weddings';
+            window.location.hash = getRoleRedirectHash(user.role);
             window.location.reload();
         } catch (err) {
             if (err.message.includes("User not found")) {
@@ -259,11 +274,13 @@ export function renderLogin() {
         requiredFields.forEach(field => {
             const el = container.querySelector(`#${field.id}`);
             if (!el.value.trim()) { 
-                el.style.borderColor = "red"; 
+                el.classList.remove('login-input--valid');
+                el.classList.add('login-input--invalid'); 
                 isValid = false; 
-                if(!firstEmpty) firstEmpty = field.name; 
+                if (!firstEmpty) firstEmpty = field.name; 
             } else { 
-                el.style.borderColor = "green"; 
+                el.classList.remove('login-input--invalid');
+                el.classList.add('login-input--valid'); 
             }
         });
 
@@ -276,14 +293,16 @@ export function renderLogin() {
         const pin = container.querySelector('#reg-pin').value.trim();
 
         if (!/^\d{6}$/.test(pin)) {
-            container.querySelector('#reg-pin').style.borderColor = "red";
+            const regPinEl = container.querySelector('#reg-pin');
+            regPinEl.classList.remove('login-input--valid');
+            regPinEl.classList.add('login-input--invalid');
             return showSweetAlert('error', 'Invalid PIN', 'PIN must be exactly 6 digits.');
         }
 
         try {
             const user = await registerUser({ name, phone, pin });
             window.currentUser = user;
-            window.location.hash = user.role === 'creator' ? '#dashboard' : '#weddings';
+            window.location.hash = getRoleRedirectHash(user.role);
             window.location.reload();
         } catch (err) {
             showSweetAlert('error', 'Registration Failed', err.message);
