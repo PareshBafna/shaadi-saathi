@@ -42,43 +42,23 @@ export function formatWeddingDateRange(startIso, endIso) {
 export function renderSampleWeddings() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const wrapper = document.createElement('section');
-        wrapper.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        wrapper.className = "sample-weddings-auth-message";
         wrapper.textContent = "Please log in to view sample weddings.";
         return wrapper;
     }
 
-    if (!document.getElementById('weddings-styles')) {
-        const link = document.createElement('link');
-        link.id = 'weddings-styles';
-        link.rel = 'stylesheet';
-        let basePath = window.location.pathname;
-        if(basePath.endsWith('.html')) basePath = basePath.substring(0, basePath.lastIndexOf('/'));
-        if(!basePath.endsWith('/')) basePath += '/';
-        link.href = basePath + 'pages/weddings/weddings.css';
-        document.head.appendChild(link);
-    }
-
     const wrapper = document.createElement('section');
-    wrapper.className = "weddings-page-wrapper"; 
-    wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
+    wrapper.className = "sample-weddings-page-wrapper"; 
 
     const controls = document.createElement('div');
-    controls.className = "weddings-control-bar";
-    controls.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); background: var(--color-white); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border);";
+    controls.className = "sample-weddings-control-bar";
 
     controls.innerHTML = `
-        <div style="display: flex; align-items: center; gap: var(--space-2);">
-            <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Sort by:</span>
-            <select id="sortSampleWeddings" style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); font-size: var(--font-size-sm); cursor: pointer; outline: none;">
-                <option value="date-asc">Date (Earliest first)</option>
-                <option value="date-desc">Date (Latest first)</option>
-                <option value="name-asc">Couple Names (A-Z)</option>
-            </select>
-        </div>
-        <div></div>
-        <div style="position: relative;">
-            <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--color-text-secondary);"></i>
-            <input type="text" id="searchSampleWeddings" placeholder="Search ..." style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3) var(--space-2) 32px; border-radius: var(--radius-sm); font-size: var(--font-size-sm); width: 250px; outline: none;">
+        <div class="sample-weddings-search-container">
+            <div class="sample-weddings-search-input-wrapper">
+                <i data-lucide="search" class="sample-weddings-search-icon"></i>
+                <input type="text" id="searchSampleWeddings" placeholder="Search ..." class="sample-weddings-search-input">
+            </div>
         </div>
     `;
     wrapper.appendChild(controls);
@@ -90,7 +70,6 @@ export function renderSampleWeddings() {
     setTimeout(() => {
         loadSampleWeddingsData();
         document.getElementById('searchSampleWeddings')?.addEventListener('input', filterAndRenderGalleries);
-        document.getElementById('sortSampleWeddings')?.addEventListener('change', filterAndRenderGalleries);
         if (window.lucide) window.lucide.createIcons();
     }, 50);
 
@@ -159,23 +138,13 @@ function loadSampleWeddingsData() {
 
 function filterAndRenderGalleries() {
     const searchTerm = document.getElementById('searchSampleWeddings')?.value.toLowerCase() || '';
-    const sortValue = document.getElementById('sortSampleWeddings')?.value || 'date-asc';
     
     let filtered = allSampleWeddings.filter(w => {
         const full = `${w.groom_name} & ${w.bride_name}`.toLowerCase();
         return full.includes(searchTerm.replace(/\s+/g, '')) || w.bride_name.toLowerCase().includes(searchTerm) || w.groom_name.toLowerCase().includes(searchTerm);
     });
 
-    filtered.sort((a, b) => {
-        if (sortValue === 'date-asc') return new Date(a.start_date) - new Date(b.start_date);
-        if (sortValue === 'date-desc') return new Date(b.start_date) - new Date(a.start_date);
-        if (sortValue === 'name-asc') {
-            const nameA = a.primary_side === 'groom' ? `${a.groom_name} & ${a.bride_name}` : `${a.bride_name} & ${a.groom_name}`;
-            const nameB = b.primary_side === 'groom' ? `${b.groom_name} & ${b.bride_name}` : `${b.bride_name} & ${b.groom_name}`;
-            return nameA.localeCompare(nameB);
-        }
-        return 0;
-    });
+    filtered.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 
     const inProgress = filtered.filter(w => w.status === 'in-progress');
     const upcoming = filtered.filter(w => w.status === 'upcoming');
@@ -185,21 +154,21 @@ function filterAndRenderGalleries() {
     if (!container) return;
 
     if (filtered.length === 0) {
-        container.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-muted); background: var(--color-white); border-radius: var(--radius-lg); border: 1px solid var(--color-border);">No sample weddings match your search.</div>`;
+        container.innerHTML = `<div class="sample-weddings-empty-state">No sample weddings match your search.</div>`;
         return;
     }
 
     container.innerHTML = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: var(--space-6); width: 100%; align-items: start;">
+        <div class="sample-weddings-galleries-grid">
             ${buildGallerySection("In Progress", inProgress)}
             ${buildGallerySection("Upcoming", upcoming)}
             ${buildGallerySection("Archived", archived)}
         </div>
     `;
 
-    container.querySelectorAll('.gallery-card').forEach(card => {
+    container.querySelectorAll('.sample-wedding-card').forEach(card => {
         card.addEventListener('click', (e) => {
-            if(!e.target.closest('a')) {
+            if (!e.target.closest('a')) {
                 const id = card.getAttribute('data-wedding-id');
                 window.location.hash = `#sample-wedding-details?id=${id}`;
             }
@@ -218,36 +187,40 @@ function buildGallerySection(title, weddings) {
             : `${wedding.bride_name} & ${wedding.groom_name}`;
 
         const inlineHosts = wedding.hosts.map(h => `${h.name} - ${h.phone}`).join(', ');
-        const hostsHTML = `<div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px; flex-wrap: wrap;"><i data-lucide="phone" style="width:14px; height:14px; flex-shrink: 0;"></i> <span>${inlineHosts}</span></div>`;
+        const hostsHTML = `
+            <div class="sample-wedding-card__row">
+                <i data-lucide="phone"></i> <span>${inlineHosts}</span>
+            </div>
+        `;
 
         let webInviteHTML = '';
         if (wedding.has_web_invite) {
             webInviteHTML = `
-            <div style="margin-top: 12px; display: flex; justify-content: center; width: 100%;">
-                <a href="#sample-web-invites-preview?id=${wedding.id}" target="_blank" onclick="event.stopPropagation();" style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 8px 16px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation
+            <div class="sample-wedding-card__invite-wrap">
+                <a href="#sample-web-invites-preview?id=${wedding.id}" target="_blank" onclick="event.stopPropagation();" class="sample-wedding-card__invite-btn">
+                    <i data-lucide="external-link"></i> Wedding Invitation
                 </a>
             </div>`;
         }
 
         return `
-        <div class="stat-card gallery-card" data-wedding-id="${wedding.id}" style="position: relative; cursor: pointer; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s ease;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div style="background: var(--color-border); color: var(--color-primary); width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i data-lucide="heart" style="width: 16px; height: 16px;"></i>
+        <div class="sample-wedding-card" data-wedding-id="${wedding.id}">
+            <div class="sample-wedding-card__header">
+                <div class="sample-wedding-card__title-group">
+                    <div class="sample-wedding-card__icon-badge">
+                        <i data-lucide="heart"></i>
                     </div>
                     <div>
-                        <h3 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${displayNames}</h3>
-                        <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--color-text-secondary);"><i data-lucide="calendar" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
+                        <h3 class="sample-wedding-card__names">${displayNames}</h3>
+                        <p class="sample-wedding-card__dates"><i data-lucide="calendar"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
                     </div>
                 </div>
             </div>
-            <div style="border-top: 1px solid var(--color-border); margin-top: 4px; padding-top: 8px;">
-                <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="home" style="width:14px; height:14px;"></i> ${wedding.family_name}</div>
-                <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary); margin-bottom: 6px;"><i data-lucide="users" style="width:14px; height:14px;"></i> ${wedding.family_details}</div>
+            <div class="sample-wedding-card__details">
+                <div class="sample-wedding-card__row"><i data-lucide="home"></i> <span>${wedding.family_name}</span></div>
+                <div class="sample-wedding-card__row"><i data-lucide="users"></i> <span>${wedding.family_details}</span></div>
                 ${hostsHTML}
-                <div style="display:flex; align-items:center; gap:6px; font-size:var(--font-size-xs); color:var(--color-text-secondary);"><i data-lucide="calendar-days" style="width:14px; height:14px;"></i> ${wedding.events_count} Events</div>
+                <div class="sample-wedding-card__row"><i data-lucide="calendar-days"></i> <span>${wedding.events_count} Events</span></div>
                 ${webInviteHTML}
             </div>
         </div>
@@ -255,9 +228,9 @@ function buildGallerySection(title, weddings) {
     }).join('');
 
     return `
-        <div style="background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
-            <h2 style="font-size: 1.25rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;">${title}</h2>
-            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+        <div class="sample-dashboard-section">
+            <h2 class="sample-dashboard-section__heading">${title}</h2>
+            <div class="sample-dashboard-section__list">
                 ${listItems}
             </div>
         </div>

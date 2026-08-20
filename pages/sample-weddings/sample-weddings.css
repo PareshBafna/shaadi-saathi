@@ -1,0 +1,274 @@
+/* ============================================================
+   SAMPLE WEDDINGS PAGE CONTAINER & CONTROL BAR
+   ============================================================ */
+.sample-weddings-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: 0 0 calc(var(--space-8, 2rem) + 140px) 0 !important;
+  max-width: var(--container-max-width, 100%);
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sample-weddings-auth-message {
+  width: 100%;
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--color-text-secondary);
+}
+
+.sample-weddings-control-bar {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  background: var(--color-white);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+/* Compact Search Bar */
+.sample-weddings-search-container {
+  width: 190px;
+  max-width: 190px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sample-weddings-search-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.sample-weddings-search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-secondary);
+}
+
+.sample-weddings-search-input {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  padding: 0.35rem 0.6rem 0.35rem 28px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  width: 100%;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* ============================================================
+   STATUS & EMPTY STATES
+   ============================================================ */
+.sample-weddings-empty-state {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--color-text-muted);
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+/* ============================================================
+   GALLERIES GRID & CARDS (MATCHED TO WEDDINGS)
+   ============================================================ */
+.sample-weddings-galleries-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: var(--space-6);
+  width: 100%;
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.sample-dashboard-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  box-sizing: border-box;
+}
+
+.sample-dashboard-section__heading {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.sample-dashboard-section__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Sample Wedding Card */
+.sample-wedding-card {
+  cursor: pointer;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: transform var(--transition-fast, 0.15s ease), border-color var(--transition-fast, 0.15s ease);
+  background: var(--color-bg);
+}
+
+.sample-wedding-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-strong, rgba(255, 255, 255, 0.2));
+}
+
+.sample-wedding-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.sample-wedding-card__title-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sample-wedding-card__icon-badge {
+  background: var(--color-border);
+  color: var(--color-primary);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sample-wedding-card__icon-badge i,
+.sample-wedding-card__icon-badge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sample-wedding-card__names {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.sample-wedding-card__dates {
+  margin: 4px 0 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sample-wedding-card__dates i,
+.sample-wedding-card__dates svg {
+  width: 12px;
+  height: 12px;
+}
+
+.sample-wedding-card__details {
+  border-top: 1px solid var(--color-border);
+  margin-top: 4px;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sample-wedding-card__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-secondary);
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.sample-wedding-card__row i,
+.sample-wedding-card__row svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sample-wedding-card__invite-wrap {
+  margin-top: 6px;
+  display: flex;
+  justify-content: center;
+}
+
+.sample-wedding-card__invite-btn {
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity var(--transition-fast, 0.15s ease);
+}
+
+.sample-wedding-card__invite-btn:hover {
+  opacity: 0.85;
+}
+
+.sample-wedding-card__invite-btn i,
+.sample-wedding-card__invite-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ============================================================
+   RESPONSIVE MOBILE ADJUSTMENTS
+   ============================================================ */
+@media (max-width: 600px) {
+  .sample-weddings-control-bar {
+    padding: var(--space-2) var(--space-3);
+    gap: 8px;
+  }
+
+  .sample-weddings-search-container {
+    width: 145px;
+    max-width: 145px;
+  }
+
+  .sample-weddings-search-input {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.4rem 0.3rem 24px;
+  }
+
+  .sample-weddings-search-icon {
+    width: 12px;
+    height: 12px;
+    left: 7px;
+  }
+}
