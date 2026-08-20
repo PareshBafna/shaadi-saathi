@@ -374,10 +374,32 @@
   color: var(--color-primary);
 }
 
+/* ============================================================
+   TABLE HORIZONTAL SCROLL CONTAINERS
+   ============================================================ */
+.sample-details-table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+
+.sample-details-table-inner--simple {
+  min-width: 600px;
+  padding-right: 16px;
+  box-sizing: border-box;
+}
+
+.sample-details-table-inner--guests {
+  min-width: 680px;
+  padding-right: 16px;
+  box-sizing: border-box;
+}
+
 /* Simple List (Hosts & Users) */
 .sample-details-table-header--simple {
   display: grid;
-  grid-template-columns: 50px 1.5fr 1fr;
+  grid-template-columns: 50px 1.5fr 1fr 12px;
   align-items: center;
   padding: 0 var(--space-4) var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border);
@@ -398,7 +420,7 @@
 
 .sample-details-table-row--simple {
   display: grid;
-  grid-template-columns: 50px 1.5fr 1fr;
+  grid-template-columns: 50px 1.5fr 1fr 12px;
   align-items: center;
   padding: var(--space-3) var(--space-4);
   gap: 12px;
@@ -438,7 +460,7 @@
 /* Guests Table */
 .sample-details-guests-header {
   display: grid;
-  grid-template-columns: 32px 50px 1.5fr 1fr 1fr;
+  grid-template-columns: 32px 50px 1.5fr 1fr 1fr 12px;
   align-items: center;
   padding: 0 var(--space-4) var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border);
@@ -451,7 +473,7 @@
 
 .sample-details-guests-row {
   display: grid;
-  grid-template-columns: 32px 50px 1.5fr 1fr 1fr;
+  grid-template-columns: 32px 50px 1.5fr 1fr 1fr 12px;
   align-items: center;
   padding: var(--space-3) var(--space-4);
   transition: background 0.2s ease;
@@ -559,7 +581,7 @@
 }
 
 /* ============================================================
-   RESPONSIVE ADJUSTMENTS (MATCHED TO WEDDING-DETAILS)
+   RESPONSIVE ADJUSTMENTS
    ============================================================ */
 @media (max-width: 768px) {
   .sample-details-header {
@@ -601,31 +623,6 @@
     width: 12px;
     height: 12px;
     left: 7px;
-  }
-
-  /* Simple List in Mobile View */
-  .sample-details-table-header--simple,
-  .sample-details-table-row--simple {
-    grid-template-columns: 1.5fr 1fr !important;
-    gap: 8px !important;
-    padding: var(--space-2) var(--space-3) !important;
-  }
-
-  .sample-details-sno-col-simple {
-    display: none !important;
-  }
-
-  /* Guests List in Mobile View */
-  .sample-details-guests-header,
-  .sample-details-guests-row {
-    grid-template-columns: 28px 1.5fr 1fr !important;
-    gap: 8px !important;
-    padding: var(--space-2) var(--space-3) !important;
-  }
-
-  .sample-details-sno-col,
-  .sample-details-events-col {
-    display: none !important;
   }
 
   .sample-details-guests-child {

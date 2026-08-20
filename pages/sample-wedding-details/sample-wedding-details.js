@@ -377,24 +377,33 @@ function buildMockList(title, items) {
         }
 
         let html = `
-            <div class="sample-details-table-header--simple">
-                <div class="sample-details-sno-col-simple">S.No</div>
-                <div>Name</div>
-                <div>Phone Number</div>
-            </div>
+            <div class="sample-details-table-scroll-container">
+                <div class="sample-details-table-inner--simple">
+                    <div class="sample-details-table-header--simple">
+                        <div>S.No</div>
+                        <div>Name</div>
+                        <div>Phone Number</div>
+                        <div></div>
+                    </div>
         `;
 
         html += filtered.map((item, index) => `
             <div class="sample-details-table-row-wrap">
                 <div class="sample-details-table-row--simple">
-                    <div class="sample-details-sno-col-simple" style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${index + 1}</div>
+                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${index + 1}</div>
                     <div style="color: var(--color-text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.name}</div>
                     <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> <span>${item.phone}</span>
                     </div>
+                    <div></div>
                 </div>
             </div>
         `).join('');
+
+        html += `
+                </div>
+            </div>
+        `;
 
         listContent.innerHTML = html;
         if (window.lucide) window.lucide.createIcons();
@@ -448,19 +457,23 @@ function buildMockGuests(guests, events) {
         const startIndex = (currentPage - 1) * itemsPerPage;
         const paginatedGuests = filteredGuests.slice(startIndex, startIndex + itemsPerPage);
 
-        let listHTML = `
-            <div class="sample-details-guests-header">
-                <div></div>
-                <div class="sample-details-sno-col">S.No</div>
-                <div>Name</div>
-                <div>Phone Number</div>
-                <div class="sample-details-events-col">Events Count</div>
-            </div>
-        `;
-
         if (paginatedGuests.length === 0) {
-            listHTML += `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No guests match your search.</div>`;
+            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No guests match your search.</div>`;
+            return;
         }
+
+        let listHTML = `
+            <div class="sample-details-table-scroll-container">
+                <div class="sample-details-table-inner--guests">
+                    <div class="sample-details-guests-header">
+                        <div></div>
+                        <div>S.No</div>
+                        <div>Name</div>
+                        <div>Phone Number</div>
+                        <div>Events</div>
+                        <div></div>
+                    </div>
+        `;
 
         listHTML += paginatedGuests.map((guest, index) => {
             const globalIndex = startIndex + index + 1;
@@ -479,12 +492,13 @@ function buildMockGuests(guests, events) {
                     <button class="toggle-events-mock-btn sample-details-guests-toggle-btn" data-target="child-mock-${guest.id}">
                         <i data-lucide="chevron-right"></i>
                     </button>
-                    <div class="sample-details-sno-col" style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
+                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
                     <div style="color: var(--color-text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${guest.name}</div>
                     <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> <span>${guest.phone}</span>
                     </div>
-                    <div class="sample-details-events-col" style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">${guestEvents.length} Invited</div>
+                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">${guestEvents.length}</div>
+                    <div></div>
                 </div>
                 <div id="child-mock-${guest.id}" class="sample-details-guests-child">
                     <div class="sample-details-guests-child-title">Events Invited To:</div>
@@ -494,6 +508,8 @@ function buildMockGuests(guests, events) {
         }).join('');
 
         listHTML += `
+                </div>
+            </div>
             <div class="sample-details-pagination-bar">
                 <div class="sample-details-pagination-info">Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, filteredGuests.length)} of ${filteredGuests.length} guests</div>
         `;

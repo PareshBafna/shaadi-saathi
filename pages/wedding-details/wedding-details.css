@@ -1,5 +1,5 @@
 /* ============================================================
-   SCOPED WEDDING DETAILS PAGE CONTAINER & X-SCROLL LOCK
+   SCOPED WEDDING DETAILS PAGE CONTAINER
    ============================================================ */
 .wedding-details-wrapper {
   display: flex;
@@ -10,7 +10,6 @@
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden !important;
 }
 
 /* ============================================================
@@ -71,26 +70,6 @@
   gap: 10px;
 }
 
-.wedding-details-header__invite-btn {
-  background: var(--color-primary, #eab308);
-  color: var(--color-text-on-accent, #000000);
-  padding: 0 16px;
-  height: 36px;
-  border-radius: var(--radius-sm, 4px);
-  text-decoration: none;
-  font-size: var(--font-size-sm, 0.875rem);
-  font-weight: var(--font-weight-medium, 500);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: opacity var(--transition-fast, 0.15s ease);
-  box-sizing: border-box;
-}
-
-.wedding-details-header__invite-btn:hover {
-  opacity: 0.85;
-}
-
 .wedding-details-header__instagram-btn {
   display: inline-flex;
   align-items: center;
@@ -109,6 +88,26 @@
 }
 
 .wedding-details-header__instagram-btn:hover {
+  opacity: 0.85;
+}
+
+.wedding-details-header__invite-btn {
+  background: var(--color-primary, #eab308);
+  color: var(--color-text-on-accent, #000000);
+  padding: 0 16px;
+  height: 36px;
+  border-radius: var(--radius-sm, 4px);
+  text-decoration: none;
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-medium, 500);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity var(--transition-fast, 0.15s ease);
+  box-sizing: border-box;
+}
+
+.wedding-details-header__invite-btn:hover {
   opacity: 0.85;
 }
 
@@ -352,37 +351,82 @@
 }
 
 /* ============================================================
-   RESPONSIVE TABLE WRAPPER & GRID CLASSES
+   RESPONSIVE TABLE WRAPPER & SCROLLABLE GRIDS (MATCHED ARCHITECTURE)
    ============================================================ */
 .wedding-details-table-container {
   width: 100%;
-  overflow-x: auto;
+  overflow-x: auto !important;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
 }
 
+.wedding-details-table-inner--hosts,
+.wedding-details-table-inner--users {
+  min-width: 520px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wedding-details-table-inner--guests {
+  min-width: 650px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wedding-details-table-header {
+  padding: 0 var(--space-4, 1rem) var(--space-2, 0.5rem) var(--space-4, 1rem);
+  border-bottom: 1px solid var(--color-border, #292524);
+  margin-bottom: var(--space-2, 0.5rem);
+  color: var(--color-text-secondary, #a1a1aa);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.wedding-details-table-row-wrap {
+  border: 1px solid var(--color-border, #292524);
+  border-radius: var(--radius-sm, 4px);
+  margin-bottom: var(--space-2, 0.5rem);
+  background: var(--color-bg, #0c0a09);
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Hosts & Users: 4 Columns [Action, S.No, Name, Phone Number] */
 .hosts-table-grid,
 .users-table-grid {
-  display: grid;
-  grid-template-columns: 32px 50px minmax(0, 1.5fr) minmax(0, 1fr);
+  display: grid !important;
+  grid-template-columns: 32px 45px minmax(160px, 1.5fr) minmax(140px, 1fr) !important;
   align-items: center;
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
   gap: 12px;
-  width: 100%;
+  box-sizing: border-box;
 }
 
+/* Guests Config: 7 Columns [Expand, Edit, S.No, Name, Phone Number, Events, WA] */
 .guests-table-grid--config {
-  display: grid;
-  grid-template-columns: 32px 32px 40px minmax(0, 1.5fr) minmax(0, 1fr) 55px 40px;
+  display: grid !important;
+  grid-template-columns: 32px 32px 45px minmax(160px, 1.5fr) minmax(130px, 1fr) 65px 40px !important;
   align-items: center;
-  gap: 8px;
-  width: 100%;
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+  gap: 10px;
+  box-sizing: border-box;
 }
 
+/* Guests Read-Only: 5 Columns [Expand, S.No, Name, Phone Number, Events] */
 .guests-table-grid--readonly {
-  display: grid;
-  grid-template-columns: 32px 40px minmax(0, 1.5fr) minmax(0, 1fr) 55px;
+  display: grid !important;
+  grid-template-columns: 32px 45px minmax(160px, 1.5fr) minmax(130px, 1fr) 65px !important;
   align-items: center;
-  gap: 8px;
-  width: 100%;
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.wedding-details-col-sno {
+  color: var(--color-text-secondary, #a1a1aa);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-medium, 500);
 }
 
 .guest-name-cell {
@@ -452,6 +496,13 @@
   width: 100% !important;
   box-sizing: border-box;
   padding: 4px 14px 8px 4px !important;
+}
+
+.wedding-modal-label {
+  display: block;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-secondary, #a1a1aa);
+  margin-bottom: 4px;
 }
 
 .wedding-modal-row {
@@ -550,7 +601,7 @@ textarea.wedding-modal-input {
 }
 
 /* ============================================================
-   RESPONSIVE ADJUSTMENTS (FORCED 2-LINE NAMES & BALANCED COLS)
+   RESPONSIVE ADJUSTMENTS
    ============================================================ */
 @media (max-width: 600px) {
   .wedding-details-header {
@@ -575,8 +626,8 @@ textarea.wedding-modal-input {
   }
 
   .wedding-details-search-wrapper {
-    width: 115px;
-    max-width: 115px;
+    width: 125px;
+    max-width: 125px;
   }
 
   .wedding-details-search-input {
@@ -589,55 +640,6 @@ textarea.wedding-modal-input {
     width: 11px;
     height: 11px;
     left: 6px;
-  }
-
-  /* Hide Serial Number & Events columns on mobile */
-  .col-sno,
-  .col-events {
-    display: none !important;
-  }
-
-  /* Force Name Cell to block layout so -webkit-line-clamp triggers reliably */
-  .guest-name-cell {
-    display: block !important;
-    min-width: 0 !important;
-    width: 100% !important;
-  }
-
-  /* 2-line wrapped names on mobile */
-  .guest-name-text {
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    white-space: normal !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    word-break: break-word !important;
-    overflow-wrap: break-word !important;
-    line-height: 1.25 !important;
-    font-size: 0.84rem !important;
-  }
-
-  .guest-phone-cell {
-    font-size: 0.78rem !important;
-    gap: 3px !important;
-  }
-
-  /* Clean full-width mobile card layout with room for 2-line names and phone */
-  .hosts-table-grid,
-  .users-table-grid {
-    grid-template-columns: 28px minmax(0, 1.15fr) minmax(0, 1.35fr) !important;
-    gap: 8px !important;
-  }
-
-  .guests-table-grid--config {
-    grid-template-columns: 24px 24px minmax(0, 1.15fr) minmax(0, 1.35fr) 28px !important;
-    gap: 6px !important;
-  }
-
-  .guests-table-grid--readonly {
-    grid-template-columns: 24px minmax(0, 1.15fr) minmax(0, 1.35fr) !important;
-    gap: 6px !important;
   }
 
   .wedding-modal-row {
