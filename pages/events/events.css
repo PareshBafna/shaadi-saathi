@@ -1,13 +1,15 @@
 /* ============================================================
-   EVENTS PAGE STYLES
+   EVENTS PAGE CONTAINER & CONTROL BAR
    ============================================================ */
-
 .events-page-wrapper {
-  width: 100%;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+  padding: 0 0 calc(var(--space-8, 2rem) + 140px) 0 !important;
+  max-width: var(--container-max-width, 100%);
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .events-auth-message {
@@ -22,7 +24,6 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-6);
   background: var(--color-white);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-lg);
@@ -50,13 +51,20 @@
   align-items: center;
   gap: 4px;
   white-space: nowrap;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-fast, 0.2s);
 }
 
 .events-add-btn:hover {
   opacity: 0.9;
 }
 
+.events-add-btn i,
+.events-add-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Compact Search Bar */
 .events-search-container {
   width: 190px;
   max-width: 190px;
@@ -64,7 +72,7 @@
   justify-content: flex-end;
 }
 
-.events-search-wrapper {
+.events-search-input-wrapper {
   position: relative;
   width: 100%;
 }
@@ -85,21 +93,49 @@
   color: var(--color-text-primary);
   padding: 0.35rem 0.6rem 0.35rem 28px;
   border-radius: var(--radius-sm);
-  font-size: 16px; /* Set to 16px to prevent mobile browser auto-zoom and scroll-x */
+  font-size: 0.8rem;
   width: 100%;
   outline: none;
   box-sizing: border-box;
 }
 
+/* ============================================================
+   STATUS & EMPTY STATES
+   ============================================================ */
+.events-loading-state {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--color-text-secondary);
+}
+
+.events-error-state {
+  color: var(--color-danger, #dc2626);
+  text-align: center;
+  padding: var(--space-8);
+}
+
+.events-empty-state {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--color-text-muted);
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+/* ============================================================
+   EVENTS CARD CONTAINER & TABLE
+   ============================================================ */
 .events-card-container {
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
   box-sizing: border-box;
+  width: 100%;
 }
 
-/* Horizontal Scroll Container for Events Table */
 .events-table-scroll-container {
   width: 100%;
   overflow-x: auto;
@@ -110,7 +146,7 @@
   min-width: 700px; 
 }
 
-/* Grid Table Layout (Desktop) */
+/* Grid Table Layout */
 .events-table-header {
   display: grid;
   grid-template-columns: 32px 50px 1.5fr 1.5fr 2fr 3fr;
@@ -137,12 +173,64 @@
   grid-template-columns: 32px 50px 1.5fr 1.5fr 2fr 3fr;
   align-items: center;
   padding: var(--space-3) var(--space-4);
-  transition: background 0.2s ease;
+  transition: background var(--transition-fast, 0.2s ease);
   gap: 12px;
 }
 
 .events-table-row:hover {
   background: var(--color-border);
+}
+
+.events-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast, 0.2s);
+}
+
+.events-edit-btn:hover {
+  color: var(--color-primary);
+}
+
+.events-edit-btn i,
+.events-edit-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.events-sno-col {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.events-name-col {
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.events-title-col {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.events-quote-col {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+}
+
+.events-desc-col {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  white-space: normal;
 }
 
 .events-text-clamp {
@@ -176,6 +264,13 @@
   align-items: center;
 }
 
+.events-page-indicator {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+  padding: 0 8px;
+}
+
 .events-page-btn {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -184,9 +279,23 @@
   color: var(--color-text-primary);
   display: flex;
   align-items: center;
+  cursor: pointer;
 }
 
-/* Modal Form Styles */
+.events-page-btn i,
+.events-page-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.events-page-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ============================================================
+   MODAL FORM CONTROLS (MATCHED TO WEDDINGS MODAL)
+   ============================================================ */
 .master-event-form {
   display: flex;
   flex-direction: column;
@@ -213,22 +322,32 @@
   min-width: 0 !important;
   min-height: 38px;
   background: var(--color-bg);
+  border: 1px solid var(--color-border);
   color: var(--color-text-primary);
   padding: var(--space-2);
   border-radius: var(--radius-sm);
-  outline: none;
-  transition: border-color 0.2s;
   box-sizing: border-box;
-  font-size: 16px; /* Prevents auto-zoom on mobile typing */
+  outline: none;
   font-family: inherit;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  transition: border-color var(--transition-fast);
 }
 
 textarea.master-event-input {
   min-height: 80px;
-  resize: vertical;
 }
 
-.master-modal-btn-cancel {
+.master-event-input--valid {
+  border-color: #16a34a !important;
+}
+
+.master-event-input--invalid {
+  border-color: #dc2626 !important;
+}
+
+/* Modal Action Buttons (Standard Weddings Palette & Sizing) */
+.modal-btn-cancel {
   background: #6b7280 !important;
   color: #ffffff !important;
   border: 1px solid #6b7280 !important;
@@ -237,14 +356,14 @@ textarea.master-event-input {
   font-weight: var(--font-weight-medium) !important;
   cursor: pointer !important;
   white-space: nowrap !important;
-  transition: opacity 0.2s !important;
+  transition: opacity var(--transition-fast) !important;
 }
 
-.master-modal-btn-cancel:hover {
+.modal-btn-cancel:hover {
   opacity: 0.85 !important;
 }
 
-.master-modal-btn-delete {
+.modal-btn-delete {
   background: #dc2626 !important;
   color: #ffffff !important;
   border: 1px solid #dc2626 !important;
@@ -253,15 +372,15 @@ textarea.master-event-input {
   font-weight: var(--font-weight-semibold) !important;
   cursor: pointer !important;
   white-space: nowrap !important;
-  transition: opacity 0.2s !important;
+  transition: opacity var(--transition-fast) !important;
 }
 
-.master-modal-btn-delete:hover {
+.modal-btn-delete:hover {
   opacity: 0.85 !important;
 }
 
 /* ============================================================
-   RESPONSIVE MOBILE ADJUSTMENTS (HIDES S.NO COLUMN)
+   RESPONSIVE ADJUSTMENTS
    ============================================================ */
 @media (max-width: 600px) {
   .events-control-bar {
@@ -280,7 +399,7 @@ textarea.master-event-input {
   }
 
   .events-search-input {
-    font-size: 16px;
+    font-size: 0.75rem;
     padding: 0.3rem 0.4rem 0.3rem 24px;
   }
 
@@ -290,7 +409,11 @@ textarea.master-event-input {
     left: 7px;
   }
 
-  /* Hide S.No column on mobile by shifting the grid columns layout */
+  .master-event-form {
+    padding-right: 12px !important;
+    max-height: 52dvh !important;
+  }
+
   .events-table-header {
     grid-template-columns: 32px 1.5fr 1.5fr 2fr 3fr !important;
   }

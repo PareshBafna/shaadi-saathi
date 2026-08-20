@@ -7,7 +7,6 @@ const itemsPerPage = 10;
 let searchQuery = '';
 let allEventsData = [];
 
-// Single-firing debounced broadcast helper to prevent duplicate re-renders
 let broadcastTimer = null;
 function broadcastMasterEventsUpdated() {
     if (broadcastTimer) return;
@@ -26,7 +25,7 @@ export function renderEvents() {
     }
 
     const section = document.createElement("section");
-    section.className = "events-page-wrapper weddings-page-wrapper"; 
+    section.className = "events-page-wrapper"; 
 
     const controls = document.createElement('div');
     controls.className = "events-control-bar";
@@ -36,14 +35,14 @@ export function renderEvents() {
     const createBtn = document.createElement("button");
     createBtn.id = "add-master-event-btn";
     createBtn.className = "events-add-btn";
-    createBtn.innerHTML = `<i data-lucide="plus" style="width:16px; height:16px; margin-right:4px; vertical-align:middle;"></i> Event`;
+    createBtn.innerHTML = `<i data-lucide="plus"></i> Event`;
     createBtn.addEventListener('click', () => openMasterEventModal());
     leftContainer.appendChild(createBtn);
 
     const searchContainer = document.createElement('div');
     searchContainer.className = "events-search-container";
     searchContainer.innerHTML = `
-        <div class="events-search-wrapper">
+        <div class="events-search-input-wrapper">
             <i data-lucide="search" class="events-search-icon"></i>
             <input type="text" id="eventSearchInput" placeholder="Search events..." class="events-search-input">
         </div>
@@ -72,7 +71,8 @@ export function renderEvents() {
             });
         }
         loadEventsData();
-    }, 0);
+        if (window.lucide) window.lucide.createIcons();
+    }, 50);
 
     const updateHandler = () => {
         if (document.body.contains(section)) {
@@ -99,7 +99,7 @@ export function renderEvents() {
 async function loadEventsData() {
     const content = document.getElementById("master-events-content");
     if (!content) return;
-    content.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading events...</div>`;
+    content.innerHTML = `<div class="events-loading-state">Loading events...</div>`;
 
     try {
         const { data: events, error } = await supabase.from('events').select('*');
@@ -108,7 +108,7 @@ async function loadEventsData() {
         allEventsData = events || [];
         renderEventsList();
     } catch (error) {
-        content.innerHTML = `<div style="color: var(--color-danger); padding: var(--space-5); text-align: center;">Error loading events: ${error.message}</div>`;
+        content.innerHTML = `<div class="events-error-state">Error loading events: ${error.message}</div>`;
     }
 }
 
@@ -132,7 +132,7 @@ function renderEventsList() {
     const paginatedEvents = filteredEvents.slice(startIndex, startIndex + itemsPerPage);
 
     if (filteredEvents.length === 0) {
-        content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No events match your search.</div>`;
+        content.innerHTML = `<div class="events-empty-state">No events match your search.</div>`;
         if (window.lucide) window.lucide.createIcons();
         return;
     }
@@ -156,26 +156,25 @@ function renderEventsList() {
         listHTML += `
         <div class="events-table-row-wrapper">
             <div class="events-table-row">
-                
-                <button class="edit-master-event-btn" data-id="${ev.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
-                    <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
+                <button class="edit-master-event-btn events-edit-btn" data-id="${ev.id}" title="Edit">
+                    <i data-lucide="edit-2"></i>
                 </button>
                 
-                <div class="events-sno-col" style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
+                <div class="events-sno-col">${globalIndex}</div>
                 
-                <div style="color: var(--color-text-primary); font-size: 0.95rem; font-weight: var(--font-weight-bold);" class="events-text-clamp">
+                <div class="events-name-col events-text-clamp">
                     ${ev.event_name || '-'}
                 </div>
 
-                <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm);" class="events-text-clamp">
+                <div class="events-title-col events-text-clamp">
                     ${ev.display_title || '-'}
                 </div>
 
-                <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-style: italic;" class="events-text-clamp">
+                <div class="events-quote-col events-text-clamp">
                     ${ev.one_liner || '-'}
                 </div>
 
-                <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); line-height: 1.4; white-space: normal;">
+                <div class="events-desc-col">
                     ${ev.description || '-'}
                 </div>
             </div>
@@ -194,9 +193,9 @@ function renderEventsList() {
     if (totalPages > 1) {
         listHTML += `
             <div class="events-pagination-controls">
-                <button class="pagination-btn events-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} style="cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === 1 ? '0.5' : '1'};"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
-                <span style="font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-medium); padding: 0 8px;">Page ${currentPage} of ${totalPages}</span>
-                <button class="pagination-btn events-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} style="cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === totalPages ? '0.5' : '1'};"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                <button class="pagination-btn events-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
+                <span class="events-page-indicator">Page ${currentPage} of ${totalPages}</span>
+                <button class="pagination-btn events-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
             </div>
         `;
     } else {
@@ -234,14 +233,14 @@ function layoutMasterModalFooter(isEditModal = false) {
     const primaryBtn = allBtns.find(b => ['Add', 'Edit', 'Update'].includes(b.textContent.trim()));
 
     if (cancelBtn) {
-        cancelBtn.classList.add('master-modal-btn-cancel');
+        cancelBtn.classList.add('modal-btn-cancel');
         cancelBtn.style.order = '1';
         cancelBtn.style.flexShrink = '0';
         cancelBtn.style.marginRight = isEditModal ? '0' : '0';
     }
 
     if (deleteBtn) {
-        deleteBtn.classList.add('master-modal-btn-delete');
+        deleteBtn.classList.add('modal-btn-delete');
         deleteBtn.style.order = '2';
         deleteBtn.style.flexShrink = '0';
         deleteBtn.style.margin = '0 auto';
@@ -285,19 +284,19 @@ window.openMasterEventModal = async function(eventId = null) {
         <form id="masterEventForm" novalidate class="master-event-form">
             <div>
                 <label class="master-event-label">Event Name *</label>
-                <input type="text" id="tplEventName" required placeholder="e.g., Grithpaan" class="master-event-input" style="border: 1px solid ${eventObj?.event_name ? '#16a34a' : '#dc2626'};">
+                <input type="text" id="tplEventName" required placeholder="e.g., Grithpaan" class="master-event-input ${eventObj?.event_name ? 'master-event-input--valid' : 'master-event-input--invalid'}">
             </div>
             <div>
                 <label class="master-event-label">Display Title *</label>
-                <input type="text" id="tplDisplayTitle" required placeholder="e.g., Blessings & Beginnings" class="master-event-input" style="border: 1px solid ${eventObj?.display_title ? '#16a34a' : '#dc2626'};">
+                <input type="text" id="tplDisplayTitle" required placeholder="e.g., Blessings & Beginnings" class="master-event-input ${eventObj?.display_title ? 'master-event-input--valid' : 'master-event-input--invalid'}">
             </div>
             <div>
                 <label class="master-event-label">One Liner Quote *</label>
-                <input type="text" id="tplOneLiner" required placeholder="e.g., Golden ghee, elders blessings..." class="master-event-input" style="border: 1px solid ${eventObj?.one_liner ? '#16a34a' : '#dc2626'};">
+                <textarea id="tplOneLiner" rows="2" required placeholder="e.g., Golden ghee, elders blessings..." class="master-event-input ${eventObj?.one_liner ? 'master-event-input--valid' : 'master-event-input--invalid'}" style="resize: vertical;"></textarea>
             </div>
             <div>
                 <label class="master-event-label">Description *</label>
-                <textarea id="tplDescription" rows="4" required placeholder="An auspicious start to our wedding celebrations..." class="master-event-input" style="border: 1px solid ${eventObj?.description ? '#16a34a' : '#dc2626'};"></textarea>
+                <textarea id="tplDescription" rows="4" required placeholder="An auspicious start to our wedding celebrations..." class="master-event-input ${eventObj?.description ? 'master-event-input--valid' : 'master-event-input--invalid'}" style="resize: vertical;"></textarea>
             </div>
         </form>
     `;
@@ -310,8 +309,13 @@ window.openMasterEventModal = async function(eventId = null) {
             closesModal: false,
             onClick: async () => {
                 const result = await Swal.fire({
-                    title: 'Are you sure?', text: `Do you really want to permanently delete this event?`, icon: 'question', 
-                    showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, delete!'
+                    title: 'Are you sure?', 
+                    text: `Do you really want to permanently delete this event?`, 
+                    icon: 'question', 
+                    showCancelButton: true, 
+                    confirmButtonColor: '#dc2626', 
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete!'
                 });
 
                 if (result.isConfirmed) {
@@ -346,11 +350,13 @@ window.openMasterEventModal = async function(eventId = null) {
                 requiredFields.forEach(field => {
                     const el = document.getElementById(field.id);
                     if (!el.value.trim()) {
-                        el.style.borderColor = '#dc2626';
+                        el.classList.add('master-event-input--invalid');
+                        el.classList.remove('master-event-input--valid');
                         isValid = false;
                         if (!firstEmpty) firstEmpty = field.name;
                     } else {
-                        el.style.borderColor = '#16a34a';
+                        el.classList.remove('master-event-input--invalid');
+                        el.classList.add('master-event-input--valid');
                     }
                 });
 
@@ -371,7 +377,9 @@ window.openMasterEventModal = async function(eventId = null) {
 
                     const duplicate = existingEvents.find(e => !eventObj || e.id !== eventObj.id);
                     if (duplicate) {
-                        document.getElementById('tplEventName').style.borderColor = '#dc2626';
+                        const el = document.getElementById('tplEventName');
+                        el.classList.add('master-event-input--invalid');
+                        el.classList.remove('master-event-input--valid');
                         showSweetAlert('warning', 'Duplicate Warning', 'An event with this name already exists.');
                         return;
                     }
@@ -416,10 +424,18 @@ window.openMasterEventModal = async function(eventId = null) {
         ['tplEventName', 'tplDisplayTitle', 'tplOneLiner', 'tplDescription'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
-                el.addEventListener('input', () => {
-                    el.style.borderColor = el.value.trim() === '' ? '#dc2626' : '#16a34a';
-                });
+                const updateValidationClass = () => {
+                    if (el.value.trim() === '') {
+                        el.classList.add('master-event-input--invalid');
+                        el.classList.remove('master-event-input--valid');
+                    } else {
+                        el.classList.remove('master-event-input--invalid');
+                        el.classList.add('master-event-input--valid');
+                    }
+                };
+
+                updateValidationClass();
+                el.addEventListener('input', updateValidationClass);
             }
         });
     }, 50);
