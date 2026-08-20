@@ -44,7 +44,7 @@ export function renderEvents() {
     searchContainer.innerHTML = `
         <div class="events-search-input-wrapper">
             <i data-lucide="search" class="events-search-icon"></i>
-            <input type="text" id="eventSearchInput" placeholder="Search events..." class="events-search-input">
+            <input type="text" id="eventSearchInput" placeholder="Search ..." class="events-search-input">
         </div>
     `;
 

@@ -466,7 +466,7 @@ function buildMockGuests(guests, events, wedding) {
     controlsRow.innerHTML = `
         <div style="position: relative; display: flex; align-items: center; width: 100%; max-width: 300px;">
             <i data-lucide="search" style="position: absolute; left: 10px; width: 16px; height: 16px; color: var(--color-text-muted);"></i>
-            <input type="text" id="mockGuestSearch" placeholder="Search guests by name or phone..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
+            <input type="text" id="mockGuestSearch" placeholder="Search ..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
         </div>
     `;
     section.appendChild(controlsRow);

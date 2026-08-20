@@ -39,7 +39,7 @@ export function renderHosts() {
     searchContainer.innerHTML = `
         <div class="hosts-search-input-wrapper">
             <i data-lucide="search" class="hosts-search-icon"></i>
-            <input type="text" id="hostSearchInput" placeholder="Search by name or phone..." class="hosts-search-input">
+            <input type="text" id="hostSearchInput" placeholder="Search ..." class="hosts-search-input">
         </div>
     `;
 
@@ -584,7 +584,7 @@ function convertToSearchableDropdown(selectId) {
 
     const input = document.createElement('input');
     input.type = 'text';
-    input.placeholder = 'Search user...';
+    input.placeholder = 'Search ...';
     input.className = 'host-input host-input--invalid';
     wrapper.appendChild(input);
 

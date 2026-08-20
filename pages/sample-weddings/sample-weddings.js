@@ -78,7 +78,7 @@ export function renderSampleWeddings() {
         <div></div>
         <div style="position: relative;">
             <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--color-text-secondary);"></i>
-            <input type="text" id="searchSampleWeddings" placeholder="Search samples..." style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3) var(--space-2) 32px; border-radius: var(--radius-sm); font-size: var(--font-size-sm); width: 250px; outline: none;">
+            <input type="text" id="searchSampleWeddings" placeholder="Search ..." style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3) var(--space-2) 32px; border-radius: var(--radius-sm); font-size: var(--font-size-sm); width: 250px; outline: none;">
         </div>
     `;
     wrapper.appendChild(controls);

@@ -98,7 +98,7 @@ export function renderWeddings() {
     searchContainer.innerHTML = `
         <div class="weddings-search-input-wrapper">
             <i data-lucide="search" class="weddings-search-icon"></i>
-            <input type="text" id="weddingSearchInput" placeholder="Search weddings..." class="weddings-search-input">
+            <input type="text" id="weddingSearchInput" placeholder="Search ..." class="weddings-search-input">
         </div>
     `;
 

@@ -35,7 +35,7 @@ export function renderUsers() {
     searchContainer.innerHTML = `
         <div class="users-search-input-wrapper">
             <i data-lucide="search" class="users-search-icon"></i>
-            <input type="text" id="userSearchInput" placeholder="Search by name or phone..." class="users-search-input">
+            <input type="text" id="userSearchInput" placeholder="Search ..." class="users-search-input">
         </div>
     `;
 

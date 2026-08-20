@@ -631,7 +631,7 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
         <div class="wedding-details-section__right-actions">
             <div class="wedding-details-search-wrapper">
                 <i data-lucide="search"></i>
-                <input type="text" id="hostSearchInput" placeholder="Search hosts..." class="wedding-details-search-input">
+                <input type="text" id="hostSearchInput" placeholder="Search ..." class="wedding-details-search-input">
             </div>
         </div>
     `;
@@ -796,7 +796,7 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
         <div class="wedding-details-section__right-actions">
             <div class="wedding-details-search-wrapper">
                 <i data-lucide="search"></i>
-                <input type="text" id="weddingUserSearchInput" placeholder="Search users..." class="wedding-details-search-input">
+                <input type="text" id="weddingUserSearchInput" placeholder="Search ..." class="wedding-details-search-input">
             </div>
         </div>
     `;
@@ -1281,7 +1281,7 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
         <div class="wedding-details-section__right-actions">
             <div class="wedding-details-search-wrapper">
                 <i data-lucide="search"></i>
-                <input type="text" id="guestSearchInput" placeholder="Search..." class="wedding-details-search-input">
+                <input type="text" id="guestSearchInput" placeholder="Search ..." class="wedding-details-search-input">
             </div>
         </div>
     `;
