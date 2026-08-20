@@ -77,7 +77,7 @@ function generateSampleData(weddingId) {
 export function renderSampleWeddingDetails(weddingId) {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const wrapper = document.createElement("div");
-        wrapper.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        wrapper.className = "sample-details-auth-message";
         wrapper.textContent = "Please log in to view sample wedding details.";
         return wrapper;
     }
@@ -86,15 +86,15 @@ export function renderSampleWeddingDetails(weddingId) {
     let currentViewRole = 'guest'; 
 
     const wrapper = document.createElement("div");
-    wrapper.style.cssText = "width: 100%; box-sizing: border-box; padding-bottom: var(--space-8);";
+    wrapper.className = "sample-details-wrapper";
 
     const toggleBar = document.createElement("div");
-    toggleBar.style.cssText = "display: flex; justify-content: center; gap: 8px; margin-bottom: var(--space-6); background: var(--color-bg); padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--color-border); max-width: 400px; margin-left: auto; margin-right: auto;";
+    toggleBar.className = "sample-details-toggle-bar";
     
     const createToggleBtn = (label, roleVal) => {
         const btn = document.createElement("button");
         btn.innerText = label;
-        btn.style.cssText = `flex: 1; padding: 8px 16px; border: none; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: var(--font-weight-medium); cursor: pointer; transition: all 0.2s;`;
+        btn.className = "sample-details-toggle-btn";
         btn.onclick = () => {
             currentViewRole = roleVal;
             updateToggles();
@@ -117,14 +117,10 @@ export function renderSampleWeddingDetails(weddingId) {
 
     const updateToggles = () => {
         [btnGuest, btnUser, btnHost].forEach(btn => {
-            btn.style.background = 'transparent';
-            btn.style.color = 'var(--color-text-secondary)';
-            btn.style.fontWeight = 'var(--font-weight-medium)';
+            btn.classList.remove('active');
         });
         const activeBtn = currentViewRole === 'guest' ? btnGuest : (currentViewRole === 'wedding_user' ? btnUser : btnHost);
-        activeBtn.style.background = 'var(--color-primary)';
-        activeBtn.style.color = 'var(--color-text-on-accent)';
-        activeBtn.style.fontWeight = 'var(--font-weight-bold)';
+        activeBtn.classList.add('active');
     };
 
     const renderContent = () => {
@@ -140,7 +136,7 @@ export function renderSampleWeddingDetails(weddingId) {
         if (canViewAll) {
             contentContainer.appendChild(buildMockList("Wedding Hosts", data.hosts));
             contentContainer.appendChild(buildMockList("Wedding Users", data.users));
-            contentContainer.appendChild(buildMockGuests(data.guests, data.events, data.wedding));
+            contentContainer.appendChild(buildMockGuests(data.guests, data.events));
         }
 
         if (window.lucide) window.lucide.createIcons();
@@ -157,31 +153,30 @@ export function renderSampleWeddingDetails(weddingId) {
 // ==========================================
 function buildMockHeader(wedding) {
     const header = document.createElement("div");
-    header.style.cssText = "display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-8); flex-wrap: wrap; gap: 16px;";
+    header.className = "sample-details-header";
     
     const leftSide = document.createElement("div");
-    leftSide.style.cssText = "display: flex; flex-direction: column; gap: var(--space-2);";
+    leftSide.className = "sample-details-header__left";
     
     const formattedDate = formatWeddingDateRange(wedding.start_date, wedding.end_date);
-    const hashtagHTML = wedding.hashtag ? `<div style="margin-top: 4px;"><span style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 4px 12px; border-radius: 16px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); letter-spacing: 0.5px; display: inline-flex; align-items: center; height: 28px; box-sizing: border-box;">${wedding.hashtag}</span></div>` : '';
+    const hashtagHTML = wedding.hashtag 
+        ? `<div class="sample-details-header__hashtag-wrap"><span class="sample-details-header__hashtag">${wedding.hashtag}</span></div>` 
+        : '';
 
-    const displayNames = wedding.primary_side === 'groom' ? `${wedding.groom_name} & ${wedding.bride_name}` : `${wedding.bride_name} & ${wedding.groom_name}`;
+    const displayNames = wedding.primary_side === 'groom' 
+        ? `${wedding.groom_name} & ${wedding.bride_name}` 
+        : `${wedding.bride_name} & ${wedding.groom_name}`;
 
     leftSide.innerHTML = `
-        <h1 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;">${displayNames}</h1>
-        <p style="color: var(--color-text-secondary); margin: 0; font-size: var(--font-size-base);">Date: <strong style="color: var(--color-primary);">${formattedDate}</strong></p>
+        <h1 class="sample-details-header__title">${displayNames}</h1>
+        <p class="sample-details-header__date">Date: <strong>${formattedDate}</strong></p>
         ${hashtagHTML}
     `;
 
     const rightSide = document.createElement("div");
-    rightSide.style.cssText = "display: flex; flex-direction: column; align-items: flex-end; gap: 10px;";
+    rightSide.className = "sample-details-header__right";
 
     const inviteUrl = `#sample-web-invites-preview?id=${wedding.id}`;
-
-    const webInviteHTML = wedding.has_web_invite ? `
-        <a href="${inviteUrl}" target="_blank" style="background: var(--color-primary); color: var(--color-text-on-accent); padding: 0 16px; height: 36px; border-radius: var(--radius-sm); text-decoration: none; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s; box-sizing: border-box;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation
-        </a>` : '';
 
     let instagramHTML = '';
     if (wedding.instagram) {
@@ -189,7 +184,7 @@ function buildMockHeader(wedding) {
         let handle = wedding.instagram.trim().replace('@', ''); 
 
         instagramHTML = `
-            <a href="${igUrl}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 0 16px; height: 32px; border-radius: 999px; color: white; transition: opacity 0.2s; box-sizing: border-box; font-size: 0.85rem; font-weight: bold; font-family: sans-serif;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'" title="Instagram">
+            <a href="${igUrl}" target="_blank" class="sample-details-header__instagram-btn" title="Instagram">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.282.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.478 2.478 0 0 1-.92-.598 2.48 2.48 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233 0-2.136.008-2.388.046-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334z"/>
                 </svg>
@@ -198,7 +193,13 @@ function buildMockHeader(wedding) {
         `;
     }
 
-    rightSide.innerHTML = `${webInviteHTML} ${instagramHTML}`;
+    const webInviteHTML = wedding.has_web_invite ? `
+        <a href="${inviteUrl}" target="_blank" class="sample-details-header__invite-btn">
+            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation
+        </a>` : '';
+
+    // Swapped order: Instagram first, Wedding Invitation second
+    rightSide.innerHTML = `${instagramHTML} ${webInviteHTML}`;
     header.appendChild(leftSide);
     header.appendChild(rightSide);
     return header;
@@ -206,27 +207,27 @@ function buildMockHeader(wedding) {
 
 function buildMockStats(wedding, eventsCount, guestsCount, hosts, canViewAll) {
     const container = document.createElement("div");
-    container.style.cssText = "display: flex; flex-direction: column; gap: var(--space-6); margin-bottom: var(--space-8);";
+    container.className = "sample-details-stats-container";
 
     const topRow = document.createElement("div");
-    topRow.style.cssText = "display: flex; gap: var(--space-6); width: 100%; flex-wrap: wrap;";
+    topRow.className = "sample-details-stats-top";
     
     topRow.innerHTML = `
-        <div class="stat-card" style="flex: 1; min-width: 250px; padding: var(--space-5); display: flex; align-items: center; justify-content: space-between; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg);">
+        <div class="sample-details-stat-card sample-details-stat-card--flex1">
             <div>
-                <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0; font-weight: var(--font-weight-medium);">Family Name</p>
-                <p style="color: var(--color-text-primary); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); margin: 4px 0 0 0;">${wedding.family_name}</p>
+                <p class="sample-details-stat-label">Family Name</p>
+                <p class="sample-details-stat-value">${wedding.family_name}</p>
             </div>
-            <div style="background: var(--color-border); color: var(--color-primary); width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;">
+            <div class="sample-details-stat-icon-wrap">
                 <i data-lucide="home" style="width: 20px; height: 20px;"></i>
             </div>
         </div>
-        <div class="stat-card" style="flex: 2; min-width: 300px; padding: var(--space-5); display: flex; align-items: center; justify-content: space-between; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg);">
+        <div class="sample-details-stat-card sample-details-stat-card--flex2">
             <div>
-                <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0; font-weight: var(--font-weight-medium);">Family Details</p>
-                <p style="color: var(--color-text-primary); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); margin: 4px 0 0 0; line-height: 1.4;">${wedding.family_details}</p>
+                <p class="sample-details-stat-label">Family Details</p>
+                <p class="sample-details-stat-value sample-details-stat-value--details">${wedding.family_details}</p>
             </div>
-            <div style="background: var(--color-border); color: var(--color-primary); width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;">
+            <div class="sample-details-stat-icon-wrap">
                 <i data-lucide="users" style="width: 20px; height: 20px;"></i>
             </div>
         </div>
@@ -234,29 +235,29 @@ function buildMockStats(wedding, eventsCount, guestsCount, hosts, canViewAll) {
     container.appendChild(topRow);
 
     const bottomGrid = document.createElement("div");
-    bottomGrid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-6);";
+    bottomGrid.className = "sample-details-stats-grid";
 
     let hostRowsHTML = hosts.map(host => `
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border);">
-            <span style="color: var(--color-text-primary); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold);">${host.name} - ${host.phone}</span>
+        <div class="sample-details-host-row">
+            <span class="sample-details-host-name">${host.name} - ${host.phone}</span>
         </div>
     `).join('');
 
     let bottomCardsHTML = `
-        <div class="stat-card" style="padding: var(--space-5); display: flex; flex-direction: column; justify-content: center; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg);">
-            <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0; font-weight: var(--font-weight-medium);">Wedding Host Details</p>
+        <div class="sample-details-stat-card sample-details-stat-card--column">
+            <p class="sample-details-stat-label">Wedding Host Details</p>
             ${hostRowsHTML}
         </div>
     `;
 
     if (canViewAll) {
         bottomCardsHTML += `
-            <div class="stat-card" style="padding: var(--space-5); display: flex; align-items: center; justify-content: space-between; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg);">
+            <div class="sample-details-stat-card">
                 <div>
-                    <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0; font-weight: var(--font-weight-medium);">Total Guests</p>
-                    <p style="color: var(--color-text-primary); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); margin: 4px 0 0 0;">${guestsCount}</p>
+                    <p class="sample-details-stat-label">Total Guests</p>
+                    <p class="sample-details-stat-value sample-details-stat-value--large">${guestsCount}</p>
                 </div>
-                <div style="background: var(--color-border); color: var(--color-primary); width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;">
+                <div class="sample-details-stat-icon-wrap">
                     <i data-lucide="users" style="width: 20px; height: 20px;"></i>
                 </div>
             </div>
@@ -264,12 +265,12 @@ function buildMockStats(wedding, eventsCount, guestsCount, hosts, canViewAll) {
     }
 
     bottomCardsHTML += `
-        <div class="stat-card" style="padding: var(--space-5); display: flex; align-items: center; justify-content: space-between; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg);">
+        <div class="sample-details-stat-card">
             <div>
-                <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0; font-weight: var(--font-weight-medium);">Total Events</p>
-                <p style="color: var(--color-text-primary); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); margin: 4px 0 0 0;">${eventsCount}</p>
+                <p class="sample-details-stat-label">Total Events</p>
+                <p class="sample-details-stat-value sample-details-stat-value--large">${eventsCount}</p>
             </div>
-            <div style="background: var(--color-border); color: var(--color-primary); width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;">
+            <div class="sample-details-stat-icon-wrap">
                 <i data-lucide="calendar" style="width: 20px; height: 20px;"></i>
             </div>
         </div>
@@ -282,11 +283,11 @@ function buildMockStats(wedding, eventsCount, guestsCount, hosts, canViewAll) {
 
 function buildMockEvents(events) {
     const section = document.createElement("div");
-    section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
+    section.className = "sample-details-card-section";
 
     const headerRow = document.createElement("div");
-    headerRow.style.cssText = "display: flex; justify-content: center; align-items: center; margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4);";
-    headerRow.innerHTML = `<h3 style="margin:0; font-size: 1.2rem; color: var(--color-text-primary);">Event Itinerary</h3>`;
+    headerRow.className = "sample-details-section-header";
+    headerRow.innerHTML = `<h3 class="sample-details-section-title">Event Itinerary</h3>`;
     section.appendChild(headerRow);
 
     const content = document.createElement("div");
@@ -310,29 +311,29 @@ function buildMockEvents(events) {
         return groups;
     }, {});
 
-    let htmlContent = `<div style="display: flex; flex-direction: column; position: relative; padding-left: 12px; margin-top: 12px;">`;
-    htmlContent += `<div style="position: absolute; left: 16px; top: 12px; bottom: 20px; width: 2px; background: var(--color-border);"></div>`;
+    let htmlContent = `<div class="sample-details-timeline-wrap">`;
+    htmlContent += `<div class="sample-details-timeline-line"></div>`;
     
     Object.entries(groupedEvents).forEach(([dateLabel, dayEvents], groupIdx) => {
         htmlContent += `
-            <div style="position: relative; margin-top: ${groupIdx === 0 ? '0' : '24px'}; margin-bottom: 16px; display: flex; align-items: center;">
-                <div style="position: absolute; left: -1.5px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary); border: 2px solid var(--color-white); z-index: 2;"></div>
-                <h3 style="font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-primary); margin: 0 0 0 24px;">${dateLabel}</h3>
+            <div class="sample-details-timeline-day" style="margin-top: ${groupIdx === 0 ? '0' : '24px'};">
+                <div class="sample-details-timeline-dot"></div>
+                <h3 class="sample-details-timeline-day-title">${dateLabel}</h3>
             </div>
         `;
         
         dayEvents.forEach(ev => {
             const venueHTML = ev.venue_map_link 
-                ? `<a href="${ev.venue_map_link}" target="_blank" style="line-height: 1.4; color: inherit; text-decoration: underline; text-underline-offset: 2px; transition: color 0.2s;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='inherit'">${ev.venue}</a>`
-                : `<span style="line-height: 1.4;">${ev.venue}</span>`;
+                ? `<a href="${ev.venue_map_link}" target="_blank" class="sample-details-event-card__venue-link">${ev.venue}</a>`
+                : `<span>${ev.venue}</span>`;
 
             htmlContent += `
-                <div class="timeline-event-card" style="position: relative; margin-left: 24px; padding: 16px; margin-bottom: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
-                    <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
-                    <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${ev.event_name || ev.title || 'Untitled Event'}</h4>
-                    <div style="display: flex; gap: 16px; color: var(--color-text-secondary); font-size: var(--font-size-sm); flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 6px;"><i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.time)}</div>
-                        <div style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> ${venueHTML}</div>
+                <div class="sample-details-event-card">
+                    <div class="sample-details-event-card__dot"></div>
+                    <h4 class="sample-details-event-card__title">${ev.event_name || ev.title || 'Untitled Event'}</h4>
+                    <div class="sample-details-event-card__meta">
+                        <div class="sample-details-event-card__meta-item"><i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.time)}</div>
+                        <div class="sample-details-event-card__meta-item"><i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> ${venueHTML}</div>
                     </div>
                 </div>
             `;
@@ -345,47 +346,92 @@ function buildMockEvents(events) {
 
 function buildMockList(title, items) {
     const section = document.createElement("div");
-    section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
+    section.className = "sample-details-card-section";
 
-    section.innerHTML = `
-        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4);">
-            <h3 style="margin:0; font-size: 1.2rem; color: var(--color-text-primary);">${title}</h3>
+    let searchQuery = '';
+    const sectionId = title.toLowerCase().replace(/\s+/g, '-');
+
+    const headerRow = document.createElement("div");
+    headerRow.className = "sample-details-section-header";
+    headerRow.innerHTML = `
+        <h3 class="sample-details-section-title">${title}</h3>
+        <div class="sample-details-section-search">
+            <i data-lucide="search" class="sample-details-section-search-icon"></i>
+            <input type="text" id="search-${sectionId}" placeholder="Search ..." class="sample-details-section-search-input">
         </div>
-        <div style="display: grid; grid-template-columns: 50px 1.5fr 1fr; align-items: center; padding: 0 var(--space-4) var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-2); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); gap: 12px;">
-            <div>S.No</div><div>Name</div><div>Phone Number</div>
-        </div>
-        ${items.map((item, index) => `
-            <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">
-                <div style="display: grid; grid-template-columns: 50px 1.5fr 1fr; align-items: center; padding: var(--space-3) var(--space-4); gap: 12px;">
-                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${index + 1}</div>
-                    <div style="color: var(--color-text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">${item.name}</div>
-                    <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
-                        <i data-lucide="phone" style="width: 14px; height: 14px;"></i> ${item.phone}
+    `;
+    section.appendChild(headerRow);
+
+    const listContent = document.createElement("div");
+    section.appendChild(listContent);
+
+    const renderListItems = () => {
+        const query = searchQuery.toLowerCase();
+        const filtered = items.filter(item => 
+            (item.name || '').toLowerCase().includes(query) || (item.phone || '').includes(query)
+        );
+
+        if (filtered.length === 0) {
+            listContent.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No records match your search.</div>`;
+            return;
+        }
+
+        let html = `
+            <div class="sample-details-table-header--simple">
+                <div class="sample-details-sno-col-simple">S.No</div>
+                <div>Name</div>
+                <div>Phone Number</div>
+            </div>
+        `;
+
+        html += filtered.map((item, index) => `
+            <div class="sample-details-table-row-wrap">
+                <div class="sample-details-table-row--simple">
+                    <div class="sample-details-sno-col-simple" style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${index + 1}</div>
+                    <div style="color: var(--color-text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.name}</div>
+                    <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> <span>${item.phone}</span>
                     </div>
                 </div>
             </div>
-        `).join('')}
-    `;
+        `).join('');
+
+        listContent.innerHTML = html;
+        if (window.lucide) window.lucide.createIcons();
+    };
+
+    setTimeout(() => {
+        const searchInput = section.querySelector(`#search-${sectionId}`);
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                renderListItems();
+            });
+        }
+        renderListItems();
+    }, 0);
+
     return section;
 }
 
 function buildMockGuests(guests, events) {
     const section = document.createElement("div");
-    section.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-6);";
+    section.className = "sample-details-card-section";
 
     let currentPage = 1;
     const itemsPerPage = 10;
     let searchQuery = '';
 
-    const controlsRow = document.createElement("div");
-    controlsRow.style.cssText = "display: flex; justify-content: flex-end; align-items: center; margin-bottom: var(--space-5); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4);";
-    controlsRow.innerHTML = `
-        <div style="position: relative; display: flex; align-items: center; width: 100%; max-width: 300px;">
-            <i data-lucide="search" style="position: absolute; left: 10px; width: 16px; height: 16px; color: var(--color-text-muted);"></i>
-            <input type="text" id="mockGuestSearch" placeholder="Search ..." style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 32px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: var(--font-size-sm); background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;">
+    const headerRow = document.createElement("div");
+    headerRow.className = "sample-details-section-header";
+    headerRow.innerHTML = `
+        <h3 class="sample-details-section-title">Wedding Guests</h3>
+        <div class="sample-details-section-search">
+            <i data-lucide="search" class="sample-details-section-search-icon"></i>
+            <input type="text" id="mockGuestSearch" placeholder="Search ..." class="sample-details-section-search-input">
         </div>
     `;
-    section.appendChild(controlsRow);
+    section.appendChild(headerRow);
 
     const content = document.createElement("div");
     section.appendChild(content);
@@ -403,8 +449,12 @@ function buildMockGuests(guests, events) {
         const paginatedGuests = filteredGuests.slice(startIndex, startIndex + itemsPerPage);
 
         let listHTML = `
-            <div style="display: grid; grid-template-columns: 32px 50px 1.5fr 1fr 1fr; align-items: center; padding: 0 var(--space-4) var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-2); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); gap: 12px;">
-                <div></div><div>S.No</div><div>Name</div><div>Phone Number</div><div>Events Count</div>
+            <div class="sample-details-guests-header">
+                <div></div>
+                <div class="sample-details-sno-col">S.No</div>
+                <div>Name</div>
+                <div>Phone Number</div>
+                <div class="sample-details-events-col">Events Count</div>
             </div>
         `;
 
@@ -417,35 +467,43 @@ function buildMockGuests(guests, events) {
             const guestEvents = events.filter(e => guest.invited_events.includes(e.id));
             guestEvents.sort((a, b) => new Date(a.date + 'T' + (a.time || '00:00:00')).getTime() - new Date(b.date + 'T' + (b.time || '00:00:00')).getTime());
 
-            const eventsTags = guestEvents.map(e => `<span style="background: var(--color-border); padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="calendar" style="width:12px; height:12px;"></i> ${e.event_name || e.title}</span>`).join('');
+            const eventsTags = guestEvents.map(e => `
+                <span class="sample-details-guest-event-tag">
+                    <i data-lucide="calendar" style="width:12px; height:12px;"></i> ${e.event_name || e.title}
+                </span>
+            `).join('');
 
             return `
-            <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">
-                <div style="display: grid; grid-template-columns: 32px 50px 1.5fr 1fr 1fr; align-items: center; padding: var(--space-3) var(--space-4); transition: background 0.2s ease; gap: 12px;" onmouseover="this.style.background='var(--color-border)';" onmouseout="this.style.background='transparent';">
-                    <button class="toggle-events-mock-btn" data-target="child-mock-${guest.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;"><i data-lucide="chevron-right" style="width: 18px; height: 18px; transition: transform 0.2s;"></i></button>
-                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
-                    <div style="color: var(--color-text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium);">${guest.name}</div>
-                    <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm);"><i data-lucide="phone" style="width: 14px; height: 14px;"></i> ${guest.phone}</div>
-                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">${guestEvents.length} Invited</div>
+            <div class="sample-details-table-row-wrap">
+                <div class="sample-details-guests-row">
+                    <button class="toggle-events-mock-btn sample-details-guests-toggle-btn" data-target="child-mock-${guest.id}">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                    <div class="sample-details-sno-col" style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
+                    <div style="color: var(--color-text-primary); font-size: 0.95rem; font-weight: var(--font-weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${guest.name}</div>
+                    <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> <span>${guest.phone}</span>
+                    </div>
+                    <div class="sample-details-events-col" style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">${guestEvents.length} Invited</div>
                 </div>
-                <div id="child-mock-${guest.id}" style="display: none; padding: var(--space-4) var(--space-4) var(--space-4) 42px; background: var(--color-white); border-top: 1px dashed var(--color-border);">
-                    <div style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: var(--font-weight-semibold);">Events Invited To:</div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">${eventsTags}</div>
+                <div id="child-mock-${guest.id}" class="sample-details-guests-child">
+                    <div class="sample-details-guests-child-title">Events Invited To:</div>
+                    <div class="sample-details-guests-child-tags">${eventsTags}</div>
                 </div>
             </div>`;
         }).join('');
 
         listHTML += `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border);">
-                <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, filteredGuests.length)} of ${filteredGuests.length} guests</div>
+            <div class="sample-details-pagination-bar">
+                <div class="sample-details-pagination-info">Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, filteredGuests.length)} of ${filteredGuests.length} guests</div>
         `;
 
         if (totalPages > 1) {
             listHTML += `
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <button class="mock-pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === 1 ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
-                    <span style="font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-medium); padding: 0 8px;">Page ${currentPage} of ${totalPages}</span>
-                    <button class="mock-pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === totalPages ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                <div class="sample-details-pagination-controls">
+                    <button class="mock-pagination-btn sample-details-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
+                    <span class="sample-details-page-indicator">Page ${currentPage} of ${totalPages}</span>
+                    <button class="mock-pagination-btn sample-details-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
                 </div>
             `;
         } else {
@@ -461,13 +519,13 @@ function buildMockGuests(guests, events) {
                     e.stopPropagation();
                     const targetId = btn.getAttribute('data-target');
                     const childRow = document.getElementById(targetId);
-                    const icon = btn.querySelector('i');
-                    if (childRow.style.display === 'none') {
+                    const icon = btn.querySelector('i, svg');
+                    if (childRow.style.display === 'none' || !childRow.style.display) {
                         childRow.style.display = 'block';
-                        icon.style.transform = 'rotate(90deg)';
+                        if (icon) icon.style.transform = 'rotate(90deg)';
                     } else {
                         childRow.style.display = 'none';
-                        icon.style.transform = 'rotate(0deg)';
+                        if (icon) icon.style.transform = 'rotate(0deg)';
                     }
                 });
             });
@@ -485,7 +543,7 @@ function buildMockGuests(guests, events) {
     };
 
     setTimeout(() => {
-        const searchInput = document.getElementById('mockGuestSearch');
+        const searchInput = section.querySelector('#mockGuestSearch');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 searchQuery = e.target.value;
