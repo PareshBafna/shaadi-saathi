@@ -4,7 +4,7 @@
 .sample-details-wrapper {
   width: 100%;
   box-sizing: border-box;
-  padding: 0 0 calc(var(--space-8, 2rem) + 140px) 0 !important;
+  padding: 0 0 var(--space-8, 2rem) 0 !important;
   max-width: var(--container-max-width, 100%);
   margin: 0 auto;
 }
