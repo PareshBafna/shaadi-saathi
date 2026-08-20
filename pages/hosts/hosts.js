@@ -7,61 +7,60 @@ let allWeddings = [];
 let allWeddingHosts = [];
 let hostUsersData = []; 
 
+let currentPage = 1;
+const itemsPerPage = 10;
+let searchQuery = '';
+
 export function renderHosts() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const errSec = document.createElement("section");
-        errSec.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        errSec.className = "hosts-auth-message";
         errSec.textContent = "Please log in to manage hosts.";
         return errSec;
     }
 
     const section = document.createElement("section");
-    section.className = "weddings-page-wrapper";
-    section.style.cssText = "width: 100%; box-sizing: border-box;";
+    section.className = "hosts-page-wrapper";
 
     const controls = document.createElement('div');
-    controls.className = "weddings-control-bar";
-    controls.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); background: var(--color-white); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border); flex-wrap: wrap; gap: 16px;";
+    controls.className = "hosts-control-bar";
 
-    const sortContainer = document.createElement('div');
-    sortContainer.innerHTML = `<div style="width: 150px;"></div>`;
-
-    const centerContainer = document.createElement('div');
+    const leftContainer = document.createElement('div');
+    leftContainer.className = "hosts-left-action";
     const createBtn = document.createElement("button");
     createBtn.id = "add-host-btn";
-    createBtn.innerHTML = `<i data-lucide="plus" style="width:16px; height:16px; margin-right:4px; vertical-align:middle;"></i> Host`;
-    createBtn.style.cssText = "background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;";
+    createBtn.className = "hosts-add-btn";
+    createBtn.innerHTML = `<i data-lucide="plus"></i> Host`;
     createBtn.addEventListener('click', () => openHostModal());
-    centerContainer.appendChild(createBtn);
+    leftContainer.appendChild(createBtn);
 
     const searchContainer = document.createElement('div');
-    searchContainer.style.cssText = "width: 250px; display: flex; justify-content: flex-end;";
+    searchContainer.className = "hosts-search-container";
     searchContainer.innerHTML = `
-        <div style="position: relative; width: 100%;">
-            <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--color-text-secondary);"></i>
-            <input type="text" id="hostSearchInput" placeholder="Search by name or phone..." style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3) var(--space-2) 32px; border-radius: var(--radius-sm); font-size: var(--font-size-sm); width: 100%; outline: none;">
+        <div class="hosts-search-input-wrapper">
+            <i data-lucide="search" class="hosts-search-icon"></i>
+            <input type="text" id="hostSearchInput" placeholder="Search by name or phone..." class="hosts-search-input">
         </div>
     `;
 
-    controls.appendChild(sortContainer);
-    controls.appendChild(centerContainer);
+    controls.appendChild(leftContainer);
     controls.appendChild(searchContainer);
     section.appendChild(controls);
 
     const cardContainer = document.createElement("div");
-    cardContainer.style.cssText = "background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);";
+    cardContainer.className = "hosts-card-container";
 
     const listContainer = document.createElement("div");
     listContainer.id = "hosts-list-container";
-    listContainer.style.cssText = "background: transparent;";
 
     cardContainer.appendChild(listContainer);
     section.appendChild(cardContainer);
 
-    listContainer.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading hosts...</div>`;
+    listContainer.innerHTML = `<div class="hosts-loading-state">Loading hosts...</div>`;
 
     setTimeout(() => {
         loadHostsData();
+        if (window.lucide) window.lucide.createIcons();
     }, 0);
 
     const updateHandler = () => {
@@ -69,9 +68,19 @@ export function renderHosts() {
             loadHostsData();
         } else {
             window.removeEventListener('hostsDataUpdated', updateHandler);
+            window.removeEventListener('hashchange', hashChangeCleanup);
         }
     };
+
+    const hashChangeCleanup = () => {
+        const modalBackdrops = document.querySelectorAll('.modal-backdrop, .swal2-container');
+        modalBackdrops.forEach(b => b.remove());
+        window.removeEventListener('hashchange', hashChangeCleanup);
+    };
+
+    window.removeEventListener('hostsDataUpdated', updateHandler);
     window.addEventListener('hostsDataUpdated', updateHandler);
+    window.addEventListener('hashchange', hashChangeCleanup);
 
     return section;
 }
@@ -109,13 +118,12 @@ async function loadHostsData() {
 
     } catch (error) {
         console.error("Error loading hosts:", error);
-        document.getElementById("hosts-list-container").innerHTML = `<div style="color: var(--color-danger); text-align: center; padding: var(--space-8);">Failed to load hosts: ${error.message}</div>`;
+        const container = document.getElementById("hosts-list-container");
+        if (container) {
+            container.innerHTML = `<div class="hosts-error-state">Failed to load hosts: ${error.message}</div>`;
+        }
     }
 }
-
-let currentPage = 1;
-const itemsPerPage = 10;
-let searchQuery = '';
 
 function renderHostsList() {
     const container = document.getElementById("hosts-list-container");
@@ -137,71 +145,68 @@ function renderHostsList() {
     const paginatedHosts = sortedHosts.slice(startIndex, startIndex + itemsPerPage);
 
     if (hostUsersData.length === 0) {
-        container.innerHTML = `<div style="text-align: center; padding: var(--space-8); background: var(--color-white); border: 1px dashed var(--color-border); border-radius: var(--radius-lg); color: var(--color-text-muted);">No hosts have been assigned to any weddings yet.</div>`;
+        container.innerHTML = `<div class="hosts-empty-state">No hosts have been assigned to any weddings yet.</div>`;
         bindStaticListeners();
         return;
     }
 
     if (paginatedHosts.length === 0) {
-        container.innerHTML = `<div style="text-align: center; padding: var(--space-8); background: var(--color-white); border: 1px dashed var(--color-border); border-radius: var(--radius-lg); color: var(--color-text-muted);">No hosts match your search criteria.</div>`;
+        container.innerHTML = `<div class="hosts-empty-state">No hosts match your search criteria.</div>`;
         bindStaticListeners();
         return;
     }
 
-    const gridTemplate = "32px 32px 50px 1.5fr 1fr 130px"; 
-
     let listHTML = `
-        <div style="display: grid; grid-template-columns: ${gridTemplate}; align-items: center; padding: 0 var(--space-4) var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-2); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); gap: 12px;">
-            <div></div> 
-            <div></div> 
-            <div>S.No</div>
-            <div>Name</div>
-            <div>Phone Number</div>
-            <div>Weddings Count</div>
-        </div>
+        <div class="hosts-table-scroll-container">
+            <div class="hosts-table-inner">
+                <div class="hosts-table-header">
+                    <div></div> 
+                    <div></div> 
+                    <div>Name</div>
+                    <div>Phone Number</div>
+                    <div>Weddings Count</div>
+                    <div></div>
+                </div>
     `;
 
-    paginatedHosts.forEach((host, index) => {
-        const globalIndex = startIndex + index + 1;
-        
+    paginatedHosts.forEach((host) => {
         const sortedWeddings = [...host.assigned_weddings].sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime());
         const weddingTags = sortedWeddings.length > 0 
             ? sortedWeddings.map(w => {
                 const displayNames = w.primary_side === 'groom' ? `${w.groom_name} & ${w.bride_name}` : `${w.bride_name} & ${w.groom_name}`;
-                return `<span style="background: var(--color-border); padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="heart" style="width:12px; height:12px; color: var(--color-primary);"></i> ${displayNames}</span>`;
+                return `<span class="hosts-wedding-tag"><i data-lucide="heart"></i> ${displayNames}</span>`;
             }).join('')
-            : `<span style="color: var(--color-text-muted); font-size: 0.8rem; font-style: italic;">No active assignments</span>`;
+            : `<span class="hosts-child-empty">No active assignments</span>`;
 
         listHTML += `
-        <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: var(--space-2); background: var(--color-bg); overflow: hidden;">
-            <div style="display: grid; grid-template-columns: ${gridTemplate}; align-items: center; padding: var(--space-3) var(--space-4); transition: background 0.2s ease; gap: 12px;" onmouseover="this.style.background='var(--color-border)';" onmouseout="this.style.background='transparent';">
+        <div class="hosts-table-row-wrapper">
+            <div class="hosts-table-row">
                 
-                <button class="toggle-weddings-btn" data-target="child-host-${host.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'">
-                    <i data-lucide="chevron-right" style="width: 16px; height: 16px; transition: transform 0.2s;"></i>
+                <button class="toggle-weddings-btn hosts-icon-btn hosts-toggle-btn" data-target="child-host-${host.id}">
+                    <i data-lucide="chevron-right"></i>
                 </button>
 
-                <button class="edit-host-btn" data-id="${host.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit Host">
-                    <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
+                <button class="edit-host-btn hosts-icon-btn hosts-edit-btn" data-id="${host.id}" title="Edit Host">
+                    <i data-lucide="edit-2"></i>
                 </button>
-
-                <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">${globalIndex}</div>
                 
-                <div style="display: flex; align-items: center; overflow: hidden;">
-                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: var(--font-weight-medium); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${host.name}</h4>
+                <div class="hosts-name-col">
+                    <h4>${host.name}</h4>
                 </div>
                 
-                <div style="display: flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-size: var(--font-size-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> ${host.phone}
+                <div class="hosts-phone-col">
+                    <i data-lucide="phone"></i> <span>${host.phone}</span>
                 </div>
                 
-                <div style="font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); color: var(--color-text-primary);">
+                <div class="hosts-count-col">
                     ${host.assigned_weddings.length}
                 </div>
+                <div></div>
             </div>
 
-            <div id="child-host-${host.id}" style="display: none; padding: var(--space-4) var(--space-4) var(--space-4) 150px; background: var(--color-white); border-top: 1px dashed var(--color-border);">
-                <div style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: var(--font-weight-semibold);">Assigned Weddings:</div>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <div id="child-host-${host.id}" class="hosts-child-row">
+                <div class="hosts-child-title">Assigned Weddings:</div>
+                <div class="hosts-child-tags">
                     ${weddingTags}
                 </div>
             </div>
@@ -209,18 +214,20 @@ function renderHostsList() {
     });
 
     listHTML += `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border);">
-            <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+            </div>
+        </div>
+        <div class="hosts-pagination-bar">
+            <div class="hosts-pagination-info">
                 Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, sortedHosts.length)} of ${sortedHosts.length} hosts
             </div>
     `;
 
     if (totalPages > 1) {
         listHTML += `
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === 1 ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
-                <span style="font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-medium); padding: 0 8px;">Page ${currentPage} of ${totalPages}</span>
-                <button class="pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === totalPages ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+            <div class="hosts-pagination-controls">
+                <button class="pagination-btn hosts-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
+                <span class="hosts-page-indicator">Page ${currentPage} of ${totalPages}</span>
+                <button class="pagination-btn hosts-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
             </div>
         `;
     } else {
@@ -238,15 +245,15 @@ function renderHostsList() {
             e.stopPropagation();
             const targetId = btn.getAttribute('data-target');
             const childRow = document.getElementById(targetId);
-            const icon = btn.querySelector('i');
+            const icon = btn.querySelector('i, svg');
             
-            if (childRow.style.display === 'none') {
+            if (childRow.style.display === 'none' || !childRow.style.display) {
                 childRow.style.display = 'block';
-                icon.style.transform = 'rotate(90deg)';
+                if (icon) icon.style.transform = 'rotate(90deg)';
                 btn.style.color = 'var(--color-primary)';
             } else {
                 childRow.style.display = 'none';
-                icon.style.transform = 'rotate(0deg)';
+                if (icon) icon.style.transform = 'rotate(0deg)';
                 btn.style.color = 'var(--color-text-muted)';
             }
         });
@@ -292,11 +299,45 @@ function bindStaticListeners() {
         });
         searchInput.setAttribute('data-bound', 'true');
     }
+}
 
-    const addBtn = document.getElementById('add-host-btn');
-    if (addBtn && !addBtn.hasAttribute('data-bound')) {
-        addBtn.addEventListener('click', () => openHostModal());
-        addBtn.setAttribute('data-bound', 'true');
+function layoutHostModalFooter(isEditModal = false) {
+    const allBtns = Array.from(document.querySelectorAll('button'));
+    const cancelBtn = allBtns.find(b => b.textContent.trim() === 'Cancel');
+    const deleteBtn = allBtns.find(b => b.textContent.trim() === 'Delete');
+    const primaryBtn = allBtns.find(b => ['Add', 'Edit', 'Update'].includes(b.textContent.trim()));
+
+    if (cancelBtn) {
+        cancelBtn.classList.add('modal-btn-cancel');
+        cancelBtn.style.order = '1';
+        cancelBtn.style.flexShrink = '0';
+        cancelBtn.style.marginRight = isEditModal ? '0' : '0';
+    }
+
+    if (deleteBtn) {
+        deleteBtn.classList.add('modal-btn-delete');
+        deleteBtn.style.order = '2';
+        deleteBtn.style.flexShrink = '0';
+        deleteBtn.style.margin = '0 auto';
+    }
+
+    if (primaryBtn) {
+        primaryBtn.style.order = '3';
+        primaryBtn.style.flexShrink = '0';
+        primaryBtn.style.marginLeft = isEditModal ? '0' : 'auto';
+        primaryBtn.style.whiteSpace = 'nowrap';
+    }
+
+    const container = cancelBtn?.parentElement;
+    if (container) {
+        container.style.display = 'flex';
+        container.style.flexDirection = 'row';
+        container.style.flexWrap = 'nowrap';
+        container.style.width = '100%';
+        container.style.justifyContent = 'space-between';
+        container.style.alignItems = 'center';
+        container.style.gap = '8px';
+        container.style.boxSizing = 'border-box';
     }
 }
 
@@ -324,22 +365,22 @@ function openHostModal(existingHost = null) {
     const weddingCheckboxes = activeWeddings.length > 0 ? activeWeddings.map(w => {
         const displayNames = w.primary_side === 'groom' ? `${w.groom_name} & ${w.bride_name}` : `${w.bride_name} & ${w.groom_name}`;
         const isPast = new Date(w.end_date).getTime() < today.getTime();
-        const pastLabel = isPast ? `<span style="font-size: 0.7rem; background: var(--color-danger); color: white; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">Past</span>` : '';
+        const pastLabel = isPast ? `<span class="host-past-badge">Past</span>` : '';
         
         return `
-        <label style="display: flex; align-items: center; gap: 8px; font-size: var(--font-size-sm); color: var(--color-text-primary); cursor: pointer; padding: 6px 0;">
-            <input type="checkbox" name="host_weddings" value="${w.id}" ${preSelectedWeddingIds.includes(w.id) ? 'checked' : ''} style="accent-color: var(--color-primary); cursor: pointer; width: 16px; height: 16px;">
+        <label class="host-checkbox-item">
+            <input type="checkbox" name="host_weddings" value="${w.id}" ${preSelectedWeddingIds.includes(w.id) ? 'checked' : ''}>
             ${displayNames} (${new Date(w.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}) ${pastLabel}
         </label>
-    `}).join('') : `<div style="color: var(--color-text-muted); font-size: var(--font-size-xs); padding: 8px 0;">No upcoming weddings available.</div>`;
+    `}).join('') : `<div class="hosts-child-empty">No upcoming weddings available.</div>`;
 
     let userSelectionHTML = '';
 
     if (existingHost) {
         userSelectionHTML = `
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Host Name</label>
-                <input type="text" id="hostDisplayInput" disabled style="width:100%; background:var(--color-border); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; opacity: 0.7;">
+                <label class="host-label">Host Name</label>
+                <input type="text" id="hostDisplayInput" disabled class="host-input">
                 <input type="hidden" id="sysUserId" value="${existingHost.id}">
             </div>
         `;
@@ -357,8 +398,8 @@ function openHostModal(existingHost = null) {
 
         userSelectionHTML = `
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Select User *</label>
-                <select id="sysUserId" required style="width:100%; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <label class="host-label">Select User *</label>
+                <select id="sysUserId" required class="host-input host-input--invalid">
                     <option value="" disabled selected>-- Select a User --</option>
                     ${optionsHtml}
                 </select>
@@ -367,11 +408,11 @@ function openHostModal(existingHost = null) {
     }
 
     const formHTML = `
-        <form id="hostForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-4); ${!existingHost ? 'padding-bottom: 200px;' : ''}">
+        <form id="hostForm" novalidate class="host-form">
             ${userSelectionHTML}
-            <div style="margin-top: var(--space-2);">
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:8px;">Assign to Weddings *</label>
-                <div id="weddingCheckboxContainer" style="display: flex; flex-direction: column; max-height: 200px; overflow-y: auto; border: 1px solid ${preSelectedWeddingIds.length > 0 ? '#16a34a' : '#dc2626'}; padding: var(--space-3); border-radius: var(--radius-sm); background: var(--color-bg); transition: border-color 0.2s;">
+            <div>
+                <label class="host-label">Assign to Weddings *</label>
+                <div id="weddingCheckboxContainer" class="host-checkbox-box ${preSelectedWeddingIds.length > 0 ? 'host-input--valid' : 'host-input--invalid'}">
                     ${weddingCheckboxes}
                 </div>
             </div>
@@ -381,7 +422,7 @@ function openHostModal(existingHost = null) {
     const actions = [
         { label: "Cancel", variant: "ghost" },
         { 
-            label: existingHost ? "Update" : "Add Host", 
+            label: existingHost ? "Edit" : "Add", 
             variant: "primary", 
             closesModal: false,
             onClick: async () => {
@@ -396,21 +437,29 @@ function openHostModal(existingHost = null) {
                 }
 
                 if (!userId) {
-                    targetInputEl.style.borderColor = '#dc2626';
+                    targetInputEl.classList.add('host-input--invalid');
+                    targetInputEl.classList.remove('host-input--valid');
                     showSweetAlert('error', 'Missing Information', 'Please fill out all mandatory fields. Missing: User Selection');
                     return;
                 } else {
-                    targetInputEl.style.borderColor = '#16a34a';
+                    targetInputEl.classList.remove('host-input--invalid');
+                    targetInputEl.classList.add('host-input--valid');
                 }
 
                 const selectedWeddings = Array.from(document.getElementById('hostForm').querySelectorAll('input[name="host_weddings"]:checked')).map(cb => cb.value);
 
                 if (selectedWeddings.length === 0) {
-                    if (containerEl) containerEl.style.borderColor = '#dc2626';
+                    if (containerEl) {
+                        containerEl.classList.add('host-input--invalid');
+                        containerEl.classList.remove('host-input--valid');
+                    }
                     showSweetAlert('error', 'Missing Information', 'Please fill out all mandatory fields. Missing: Assigned Weddings');
                     return;
                 } else {
-                    if (containerEl) containerEl.style.borderColor = '#16a34a';
+                    if (containerEl) {
+                        containerEl.classList.remove('host-input--invalid');
+                        containerEl.classList.add('host-input--valid');
+                    }
                 }
 
                 try {
@@ -475,6 +524,8 @@ function openHostModal(existingHost = null) {
     });
 
     setTimeout(() => {
+        layoutHostModalFooter(!!existingHost);
+
         if (existingHost) {
             const hostDisplayInput = document.getElementById('hostDisplayInput');
             if (hostDisplayInput) hostDisplayInput.value = existingHost.name || '';
@@ -486,30 +537,16 @@ function openHostModal(existingHost = null) {
             checkboxes.forEach(cb => {
                 cb.addEventListener('change', () => {
                     const anyChecked = containerEl.querySelectorAll('input[name="host_weddings"]:checked').length > 0;
-                    containerEl.style.borderColor = anyChecked ? '#16a34a' : '#dc2626';
+                    if (anyChecked) {
+                        containerEl.classList.remove('host-input--invalid');
+                        containerEl.classList.add('host-input--valid');
+                    } else {
+                        containerEl.classList.remove('host-input--valid');
+                        containerEl.classList.add('host-input--invalid');
+                    }
                 });
             });
         }
-
-        const btns = Array.from(document.querySelectorAll('button'));
-        btns.forEach(btn => {
-            const txt = btn.textContent.trim();
-            if (txt === 'Cancel' && !btn.hasAttribute('data-styled')) {
-                btn.style.cssText = 'background: #6b7280; color: #ffffff; border: 1px solid #6b7280; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-medium); cursor: pointer; transition: opacity 0.2s;';
-                btn.onmouseover = () => btn.style.opacity = '0.85';
-                btn.onmouseout = () => btn.style.opacity = '1';
-                btn.setAttribute('data-styled', 'true');
-            } else if (txt === 'Delete' && !btn.hasAttribute('data-styled')) {
-                btn.style.cssText = 'background: #dc2626; color: #ffffff; border: 1px solid #dc2626; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; transition: opacity 0.2s; margin-right: auto;';
-                if (btn.parentElement) {
-                    btn.parentElement.style.display = 'flex';
-                    btn.parentElement.style.width = '100%';
-                }
-                btn.onmouseover = () => btn.style.opacity = '0.85';
-                btn.onmouseout = () => btn.style.opacity = '1';
-                btn.setAttribute('data-styled', 'true');
-            }
-        });
 
         if (!existingHost) {
             convertToSearchableDropdown('sysUserId');
@@ -519,7 +556,15 @@ function openHostModal(existingHost = null) {
                     const wrapper = selectEl.previousElementSibling;
                     if (wrapper) {
                         const input = wrapper.querySelector('input');
-                        if (input) input.style.borderColor = e.target.value ? '#16a34a' : '#dc2626';
+                        if (input) {
+                            if (e.target.value) {
+                                input.classList.remove('host-input--invalid');
+                                input.classList.add('host-input--valid');
+                            } else {
+                                input.classList.remove('host-input--valid');
+                                input.classList.add('host-input--invalid');
+                            }
+                        }
                     }
                 });
             }
@@ -539,9 +584,8 @@ function convertToSearchableDropdown(selectId) {
 
     const input = document.createElement('input');
     input.type = 'text';
-    input.placeholder = 'Search...';
-    input.className = select.className; 
-    input.style.cssText = 'width: 100%; padding: var(--space-2); border: 1px solid #dc2626; border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;';
+    input.placeholder = 'Search user...';
+    input.className = 'host-input host-input--invalid';
     wrapper.appendChild(input);
 
     const list = document.createElement('div');
@@ -573,11 +617,9 @@ function convertToSearchableDropdown(selectId) {
             item.addEventListener('click', () => {
                 select.value = opt.value;
                 input.value = opt.text;
-                input.style.borderColor = '#16a34a';
+                input.classList.remove('host-input--invalid');
+                input.classList.add('host-input--valid');
                 list.style.display = 'none';
-                
-                const form = select.closest('form');
-                if (form) form.style.paddingBottom = '0px';
 
                 select.dispatchEvent(new Event('change')); 
             });
@@ -589,33 +631,26 @@ function convertToSearchableDropdown(selectId) {
         input.value = ''; 
         renderList('');
         list.style.display = 'block';
-        
-        const form = select.closest('form');
-        if (form) form.style.paddingBottom = '200px';
     });
 
     input.addEventListener('input', (e) => {
         renderList(e.target.value);
         list.style.display = 'block';
-        
-        const form = select.closest('form');
-        if (form) form.style.paddingBottom = '200px';
     });
 
     document.addEventListener('click', (e) => {
         if (!wrapper.contains(e.target)) {
             list.style.display = 'none';
-            
-            const form = select.closest('form');
-            if (form) form.style.paddingBottom = '0px';
 
             const selectedOpt = options.find(o => o.value === select.value);
             if (selectedOpt && select.value !== "") {
                 input.value = selectedOpt.text;
-                input.style.borderColor = '#16a34a';
+                input.classList.remove('host-input--invalid');
+                input.classList.add('host-input--valid');
             } else {
                 input.value = '';
-                input.style.borderColor = '#dc2626';
+                input.classList.remove('host-input--valid');
+                input.classList.add('host-input--invalid');
             }
         }
     });
@@ -623,6 +658,7 @@ function convertToSearchableDropdown(selectId) {
     const initialOpt = options.find(o => o.value === select.value);
     if (initialOpt && select.value !== "") {
         input.value = initialOpt.text;
-        input.style.borderColor = '#16a34a';
+        input.classList.remove('host-input--invalid');
+        input.classList.add('host-input--valid');
     }
 }

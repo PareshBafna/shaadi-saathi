@@ -444,6 +444,8 @@ window.openUserModal = async function(userOrId = null) {
         user = userOrId;
     }
 
+    const pinInputType = user ? 'text' : 'password';
+
     const formHTML = `
         <form id="sysUserForm" novalidate class="sys-user-form">
             <div>
@@ -456,7 +458,7 @@ window.openUserModal = async function(userOrId = null) {
             </div>
             <div>
                 <label class="sys-user-label">6-Digit PIN *</label>
-                <input type="password" id="sysUserPin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Enter 6-digit PIN" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required class="sys-user-input ${user?.pin ? 'sys-user-input--valid' : 'sys-user-input--invalid'}">
+                <input type="${pinInputType}" id="sysUserPin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Enter 6-digit PIN" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required class="sys-user-input ${user?.pin ? 'sys-user-input--valid' : 'sys-user-input--invalid'}">
             </div>
         </form>
     `;
@@ -493,7 +495,7 @@ window.openUserModal = async function(userOrId = null) {
             }
         }] : []),
         { 
-            label: user ? "Update" : "Add", 
+            label: user ? "Edit" : "Add", 
             variant: "primary", 
             closesModal: false,
             onClick: async () => {
