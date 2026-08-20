@@ -13,41 +13,36 @@ function startOfDay(date) {
 export function renderWebInvites() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const wrapper = document.createElement('section');
-        wrapper.style.cssText = "width: 100%; text-align: center; padding: var(--space-8); color: var(--color-text-secondary);";
+        wrapper.className = "web-invites-auth-message";
         wrapper.textContent = "Please log in to manage web invites.";
         return wrapper;
     }
     
     const wrapper = document.createElement('section');
-    wrapper.className = "weddings-page-wrapper"; 
-    wrapper.style.cssText = "width: 100%; box-sizing: border-box;";
+    wrapper.className = "web-invites-page-wrapper";
 
     const controls = document.createElement('div');
-    controls.className = "weddings-control-bar";
-    controls.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); background: var(--color-white); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border); flex-wrap: wrap; gap: 16px;";
+    controls.className = "web-invites-control-bar";
 
-    const sortContainer = document.createElement('div');
-    sortContainer.innerHTML = `<div style="width: 150px;"></div>`;
-
-    const centerContainer = document.createElement('div');
+    const leftContainer = document.createElement('div');
+    leftContainer.className = "web-invites-left-action";
     const createBtn = document.createElement("button");
     createBtn.id = "add-invite-btn";
-    createBtn.innerHTML = `<i data-lucide="plus" style="width:16px; height:16px; margin-right:4px; vertical-align:middle;"></i> Web Invite`;
-    createBtn.style.cssText = "background: var(--color-primary); color: var(--color-text-on-accent); border: none; padding: 0.5rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; font-size: var(--font-size-sm); display: flex; align-items: center; transition: opacity 0.2s;";
+    createBtn.className = "web-invites-add-btn";
+    createBtn.innerHTML = `<i data-lucide="plus"></i> Web Invite`;
     createBtn.addEventListener('click', () => openInviteModal());
-    centerContainer.appendChild(createBtn);
+    leftContainer.appendChild(createBtn);
 
     const searchContainer = document.createElement('div');
-    searchContainer.style.cssText = "width: 250px; display: flex; justify-content: flex-end;";
+    searchContainer.className = "web-invites-search-container";
     searchContainer.innerHTML = `
-        <div style="position: relative; width: 100%;">
-            <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--color-text-secondary);"></i>
-            <input type="text" id="inviteSearchInput" placeholder="Search web invites..." style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--space-2) var(--space-3) var(--space-2) 32px; border-radius: var(--radius-sm); font-size: var(--font-size-sm); width: 100%; outline: none;">
+        <div class="web-invites-search-input-wrapper">
+            <i data-lucide="search" class="web-invites-search-icon"></i>
+            <input type="text" id="inviteSearchInput" placeholder="Search ..." class="web-invites-search-input">
         </div>
     `;
 
-    controls.appendChild(sortContainer);
-    controls.appendChild(centerContainer);
+    controls.appendChild(leftContainer);
     controls.appendChild(searchContainer);
     wrapper.appendChild(controls);
 
@@ -57,17 +52,30 @@ export function renderWebInvites() {
 
     loadInvitesData(sectionsContainer);
 
-    window.addEventListener('invitesDataUpdated', () => {
-        if (document.getElementById('invites-galleries')) {
-            loadInvitesData(document.getElementById('invites-galleries'));
+    const updateHandler = () => {
+        if (document.body.contains(wrapper)) {
+            loadInvitesData(sectionsContainer);
+        } else {
+            window.removeEventListener('invitesDataUpdated', updateHandler);
+            window.removeEventListener('hashchange', hashChangeCleanup);
         }
-    });
+    };
+
+    const hashChangeCleanup = () => {
+        const modalBackdrops = document.querySelectorAll('.modal-backdrop, .swal2-container');
+        modalBackdrops.forEach(b => b.remove());
+        window.removeEventListener('hashchange', hashChangeCleanup);
+    };
+
+    window.removeEventListener('invitesDataUpdated', updateHandler);
+    window.addEventListener('invitesDataUpdated', updateHandler);
+    window.addEventListener('hashchange', hashChangeCleanup);
 
     setTimeout(() => {
         document.getElementById('inviteSearchInput')?.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase();
-            const filtered = window.__invitesData.filter(inv => {
-                const w = inv.weddings;
+            const filtered = (window.__invitesData || []).filter(inv => {
+                const w = inv.weddings || {};
                 return (w.bride_name || '').toLowerCase().includes(query) || 
                        (w.groom_name || '').toLowerCase().includes(query) ||
                        (w.hashtag || '').toLowerCase().includes(query);
@@ -75,13 +83,13 @@ export function renderWebInvites() {
             renderInviteGalleries(sectionsContainer, filtered);
         });
         if (window.lucide) window.lucide.createIcons();
-    }, 0);
+    }, 50);
 
     return wrapper;
 }
 
 async function loadInvitesData(container) {
-    container.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-secondary);">Loading web invites...</div>`;
+    container.innerHTML = `<div class="web-invites-loading-state">Loading web invites...</div>`;
     
     try {
         const { data: invites, error } = await supabase
@@ -96,13 +104,13 @@ async function loadInvitesData(container) {
         window.__invitesData = invites || [];
         renderInviteGalleries(container, window.__invitesData);
     } catch (err) {
-        container.innerHTML = `<div style="color: var(--color-danger); text-align: center; padding: var(--space-8);">Failed to load invites: ${err.message}</div>`;
+        container.innerHTML = `<div class="web-invites-error-state">Failed to load invites: ${err.message}</div>`;
     }
 }
 
 function renderInviteGalleries(container, invites) {
-    if (invites.length === 0) {
-        container.innerHTML = `<div style="text-align: center; padding: var(--space-8); color: var(--color-text-muted); background: var(--color-white); border-radius: var(--radius-lg); border: 1px solid var(--color-border);">No web invitations found.</div>`;
+    if (!invites || invites.length === 0) {
+        container.innerHTML = `<div class="web-invites-empty-state">No web invitations found.</div>`;
         return;
     }
 
@@ -113,7 +121,7 @@ function renderInviteGalleries(container, invites) {
     const archived = [];
 
     invites.forEach(inv => {
-        const w = inv.weddings;
+        const w = inv.weddings || {};
         const start = w.start_date ? startOfDay(new Date(w.start_date)).getTime() : todayTime;
         const end = w.end_date ? startOfDay(new Date(w.end_date)).getTime() : start;
 
@@ -127,8 +135,8 @@ function renderInviteGalleries(container, invites) {
     });
 
     const sortByEarliest = (a, b) => {
-        const dateA = new Date(a.weddings.start_date || a.weddings.end_date || 0);
-        const dateB = new Date(b.weddings.start_date || b.weddings.end_date || 0);
+        const dateA = new Date(a.weddings?.start_date || a.weddings?.end_date || 0);
+        const dateB = new Date(b.weddings?.start_date || b.weddings?.end_date || 0);
         return dateA - dateB;
     };
 
@@ -137,7 +145,7 @@ function renderInviteGalleries(container, invites) {
     archived.sort(sortByEarliest);
 
     container.innerHTML = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: var(--space-6); width: 100%; align-items: start;">
+        <div class="web-invites-galleries-grid">
             ${buildGallerySection("In Progress", inProgress, false)}
             ${buildGallerySection("Upcoming", upcoming, false)}
             ${buildGallerySection("Archived", archived, true)}
@@ -146,6 +154,7 @@ function renderInviteGalleries(container, invites) {
 
     container.querySelectorAll('.edit-invite-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const data = JSON.parse(btn.getAttribute('data-invite'));
             openInviteModal(data);
         });
@@ -170,7 +179,7 @@ function buildGallerySection(title, invites, isArchived) {
     };
 
     const listItems = invites.map(inv => {
-        const w = inv.weddings;
+        const w = inv.weddings || {};
         const displayNames = w.primary_side === 'groom' 
             ? `${w.groom_name} & ${w.bride_name}` 
             : `${w.bride_name} & ${w.groom_name}`;
@@ -178,38 +187,38 @@ function buildGallerySection(title, invites, isArchived) {
         const targetDate = w.end_date || w.start_date;
         const dateStr = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
         
-        const inviteUrl = `/invite.html?id=${w.id}`;
+        const inviteUrl = `${INVITE_BASE_URL}?id=${w.id}`;
         const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
         const t = themePalettes[inv.theme] || themePalettes.blue;
 
         const editButtonHtml = isArchived ? '' : `
-            <button class="edit-invite-btn" data-invite='${invJson}' style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='${t.accent}'; this.style.color='#000';" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.color='#fff';" title="Edit Invite">
+            <button class="edit-invite-btn web-invite-card__edit-btn" data-invite='${invJson}' title="Edit Invite" onmouseover="this.style.background='${t.accent}'; this.style.color='#000';" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.color='#fff';">
                 <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i>
             </button>
         `;
 
         return `
-        <div style="background: ${t.bgDark}; border: 1px solid ${t.accent}; border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.2)';">
-            <div style="background: rgba(0,0,0,0.2); padding: var(--space-6); text-align: center; position: relative; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div class="web-invite-card" style="background: ${t.bgDark}; border-color: ${t.accent};">
+            <div class="web-invite-card__header">
                 ${editButtonHtml}
-                <div style="width: 60px; height: 60px; background: ${t.accent}; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-                    <i data-lucide="mail" style="width: 28px; height: 28px; color: ${t.bgDark};"></i>
+                <div class="web-invite-card__icon-wrap" style="background: ${t.accent};">
+                    <i data-lucide="mail" style="color: ${t.bgDark};"></i>
                 </div>
             </div>
-            <div style="padding: var(--space-5); display: flex; flex-direction: column; flex-grow: 1;">
-                <h3 style="margin: 0 0 12px 0; font-size: 1.15rem; color: #ffffff; text-align: center;">${displayNames}</h3>
+            <div class="web-invite-card__body">
+                <h3 class="web-invite-card__names">${displayNames}</h3>
                 
-                <p style="margin: 0 0 16px 0; font-size: 0.85rem; color: #cbd5e1; text-align: center; font-weight: var(--font-weight-medium);">
-                    <span style="color: ${t.accent}; font-weight: bold; font-size: 1rem; letter-spacing: 0.05em;">${w.hashtag || ''}</span><br/>
-                    <span style="display:inline-block; margin-top: 6px;">${dateStr}</span>
+                <p class="web-invite-card__meta">
+                    <span class="web-invite-card__hashtag" style="color: ${t.accent};">${w.hashtag || ''}</span><br/>
+                    <span class="web-invite-card__date">${dateStr}</span>
                 </p>
                 
-                <div style="margin-top: auto; display: flex; gap: 8px;">
-                    <a href="${inviteUrl}" target="_blank" style="flex: 1; text-align: center; background: ${t.accent}; color: ${t.bgDark}; padding: 10px; border-radius: var(--radius-sm); text-decoration: none; font-size: 0.9rem; font-weight: var(--font-weight-semibold); transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                <div class="web-invite-card__actions">
+                    <a href="${inviteUrl}" target="_blank" class="web-invite-card__view-btn" style="background: ${t.accent}; color: ${t.bgDark};">
                         View Invite
                     </a>
-                    <button onclick="navigator.clipboard.writeText(window.location.origin + '${inviteUrl}'); showSweetAlert('success', 'Copied!', 'Link copied to clipboard');" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" title="Copy Link">
-                        <i data-lucide="link" style="width: 18px; height: 18px;"></i>
+                    <button onclick="navigator.clipboard.writeText(window.location.origin + '${inviteUrl}'); showSweetAlert('success', 'Copied!', 'Link copied to clipboard');" class="web-invite-card__copy-btn" title="Copy Link">
+                        <i data-lucide="link"></i>
                     </button>
                 </div>
             </div>
@@ -218,13 +227,53 @@ function buildGallerySection(title, invites, isArchived) {
     }).join('');
 
     return `
-        <div style="background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
-            <h2 style="font-size: 1.25rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary); margin: 0;">${title}</h2>
-            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+        <div class="web-invites-section">
+            <h2 class="web-invites-section__heading">${title}</h2>
+            <div class="web-invites-section__list">
                 ${listItems}
             </div>
         </div>
     `;
+}
+
+function layoutInviteModalFooter(isEditModal = false) {
+    const allBtns = Array.from(document.querySelectorAll('button'));
+    const cancelBtn = allBtns.find(b => b.textContent.trim() === 'Cancel');
+    const deleteBtn = allBtns.find(b => b.textContent.trim() === 'Delete');
+    const primaryBtn = allBtns.find(b => ['Add', 'Edit', 'Create', 'Update'].includes(b.textContent.trim()));
+
+    if (cancelBtn) {
+        cancelBtn.classList.add('modal-btn-cancel');
+        cancelBtn.style.order = '1';
+        cancelBtn.style.flexShrink = '0';
+        cancelBtn.style.marginRight = isEditModal ? '0' : '0';
+    }
+
+    if (deleteBtn) {
+        deleteBtn.classList.add('modal-btn-delete');
+        deleteBtn.style.order = '2';
+        deleteBtn.style.flexShrink = '0';
+        deleteBtn.style.margin = '0 auto';
+    }
+
+    if (primaryBtn) {
+        primaryBtn.style.order = '3';
+        primaryBtn.style.flexShrink = '0';
+        primaryBtn.style.marginLeft = isEditModal ? '0' : 'auto';
+        primaryBtn.style.whiteSpace = 'nowrap';
+    }
+
+    const container = cancelBtn?.parentElement;
+    if (container) {
+        container.style.display = 'flex';
+        container.style.flexDirection = 'row';
+        container.style.flexWrap = 'nowrap';
+        container.style.width = '100%';
+        container.style.justifyContent = 'space-between';
+        container.style.alignItems = 'center';
+        container.style.gap = '8px';
+        container.style.boxSizing = 'border-box';
+    }
 }
 
 async function openInviteModal(existingInvite = null) {
@@ -233,8 +282,8 @@ async function openInviteModal(existingInvite = null) {
     if (!existingInvite) {
         const { data: allWeddings } = await supabase.from('weddings').select('id, bride_name, groom_name, start_date, end_date, hashtag, primary_side');
         const { data: existingIds } = await supabase.from('wedding_web_invite').select('wedding_id');
-        const usedIds = existingIds.map(e => e.wedding_id);
-        eligibleWeddings = allWeddings.filter(w => !usedIds.includes(w.id));
+        const usedIds = (existingIds || []).map(e => e.wedding_id);
+        eligibleWeddings = (allWeddings || []).filter(w => !usedIds.includes(w.id));
     }
 
     const optionsHtml = eligibleWeddings.map(w => {
@@ -246,70 +295,70 @@ async function openInviteModal(existingInvite = null) {
 
     const weddingSelectionHTML = existingInvite 
         ? `<div>
-            <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Wedding</label>
-            <input type="text" value="${existingInvite.weddings.bride_name} & ${existingInvite.weddings.groom_name}" disabled style="width:100%; box-sizing: border-box; background:var(--color-border); border:1px solid var(--color-border); color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; opacity: 0.7;">
+            <label class="invite-modal-label">Wedding</label>
+            <input type="text" value="${existingInvite.weddings?.bride_name || ''} & ${existingInvite.weddings?.groom_name || ''}" disabled class="invite-modal-input">
             <input type="hidden" id="inviteWeddingId" value="${existingInvite.wedding_id}">
            </div>`
         : `<div>
-            <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Select Wedding *</label>
-            <select id="inviteWeddingId" required style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid #dc2626; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+            <label class="invite-modal-label">Select Wedding *</label>
+            <select id="inviteWeddingId" required class="invite-modal-input invite-modal-input--invalid">
                 <option value="" disabled selected>-- Select a Wedding --</option>
                 ${optionsHtml}
             </select>
            </div>`;
 
     const formHTML = `
-        <form id="inviteForm" novalidate style="display:flex; flex-direction:column; gap:var(--space-4); width: 100%; box-sizing: border-box;">
+        <form id="inviteForm" novalidate class="invite-modal-form">
             ${weddingSelectionHTML}
             
-            <h4 style="margin: 0; padding-bottom: 4px; border-bottom: 1px solid var(--color-border); color: var(--color-text-primary); font-size: 1rem;">Bride's Family</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+            <div class="invite-modal-heading">Bride's Family</div>
+            <div class="invite-modal-grid-2">
                 <div>
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Grandfather *</label>
-                    <input type="text" id="bGrandfather" required placeholder="e.g., Shri Jain" value="${existingInvite?.bride_grandfather || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.bride_grandfather ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <label class="invite-modal-label">Grandfather *</label>
+                    <input type="text" id="bGrandfather" required placeholder="e.g., Shri Jain" value="${existingInvite?.bride_grandfather || ''}" class="invite-modal-input ${existingInvite?.bride_grandfather ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
                 <div>
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Grandmother *</label>
-                    <input type="text" id="bGrandmother" required placeholder="e.g., Smt. Jain" value="${existingInvite?.bride_grandmother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.bride_grandmother ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <label class="invite-modal-label">Grandmother *</label>
+                    <input type="text" id="bGrandmother" required placeholder="e.g., Smt. Jain" value="${existingInvite?.bride_grandmother || ''}" class="invite-modal-input ${existingInvite?.bride_grandmother ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
                 <div>
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Father *</label>
-                    <input type="text" id="bFather" required placeholder="e.g., Rajesh" value="${existingInvite?.bride_father || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.bride_father ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <label class="invite-modal-label">Father *</label>
+                    <input type="text" id="bFather" required placeholder="e.g., Rajesh" value="${existingInvite?.bride_father || ''}" class="invite-modal-input ${existingInvite?.bride_father ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
                 <div>
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Mother *</label>
-                    <input type="text" id="bMother" required placeholder="e.g., Sunita" value="${existingInvite?.bride_mother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.bride_mother ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
-                </div>
-            </div>
-
-            <h4 style="margin: 8px 0 0 0; padding-bottom: 4px; border-bottom: 1px solid var(--color-border); color: var(--color-text-primary); font-size: 1rem;">Groom's Family</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
-                <div>
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Grandfather *</label>
-                    <input type="text" id="gGrandfather" required placeholder="e.g., Shri Mutha" value="${existingInvite?.groom_grandfather || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.groom_grandfather ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
-                </div>
-                <div>
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Grandmother *</label>
-                    <input type="text" id="gGrandmother" required placeholder="e.g., Smt. Mutha" value="${existingInvite?.groom_grandmother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.groom_grandmother ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
-                </div>
-                <div>
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Father *</label>
-                    <input type="text" id="gFather" required placeholder="e.g., Vijayji" value="${existingInvite?.groom_father || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.groom_father ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
-                </div>
-                <div>
-                    <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Mother *</label>
-                    <input type="text" id="gMother" required placeholder="e.g., Kavita" value="${existingInvite?.groom_mother || ''}" style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.groom_mother ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                    <label class="invite-modal-label">Mother *</label>
+                    <input type="text" id="bMother" required placeholder="e.g., Sunita" value="${existingInvite?.bride_mother || ''}" class="invite-modal-input ${existingInvite?.bride_mother ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
             </div>
 
-            <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Story / About Us Quote *</label>
-                <textarea id="storyText" required rows="3" placeholder="A short quote or story for the About Us page..." style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid ${existingInvite?.story_text ? '#16a34a' : '#dc2626'}; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s; resize: vertical;">${existingInvite ? existingInvite.story_text : ''}</textarea>
+            <div class="invite-modal-heading">Groom's Family</div>
+            <div class="invite-modal-grid-2">
+                <div>
+                    <label class="invite-modal-label">Grandfather *</label>
+                    <input type="text" id="gGrandfather" required placeholder="e.g., Shri Mutha" value="${existingInvite?.groom_grandfather || ''}" class="invite-modal-input ${existingInvite?.groom_grandfather ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
+                </div>
+                <div>
+                    <label class="invite-modal-label">Grandmother *</label>
+                    <input type="text" id="gGrandmother" required placeholder="e.g., Smt. Mutha" value="${existingInvite?.groom_grandmother || ''}" class="invite-modal-input ${existingInvite?.groom_grandmother ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
+                </div>
+                <div>
+                    <label class="invite-modal-label">Father *</label>
+                    <input type="text" id="gFather" required placeholder="e.g., Vijayji" value="${existingInvite?.groom_father || ''}" class="invite-modal-input ${existingInvite?.groom_father ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
+                </div>
+                <div>
+                    <label class="invite-modal-label">Mother *</label>
+                    <input type="text" id="gMother" required placeholder="e.g., Kavita" value="${existingInvite?.groom_mother || ''}" class="invite-modal-input ${existingInvite?.groom_mother ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
+                </div>
             </div>
 
             <div>
-                <label style="display:block; font-size:var(--font-size-sm); color:var(--color-text-secondary); margin-bottom:4px;">Invite Theme Color *</label>
-                <select id="inviteTheme" required style="width:100%; box-sizing: border-box; background:var(--color-bg); border:1px solid #16a34a; color:var(--color-text-primary); padding:var(--space-2); border-radius:var(--radius-sm); outline:none; transition: border-color 0.2s;">
+                <label class="invite-modal-label">Story / About Us Quote *</label>
+                <textarea id="storyText" required rows="3" placeholder="A short quote or story for the About Us page..." class="invite-modal-input ${existingInvite?.story_text ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">${existingInvite ? existingInvite.story_text : ''}</textarea>
+            </div>
+
+            <div>
+                <label class="invite-modal-label">Invite Theme Color *</label>
+                <select id="inviteTheme" required class="invite-modal-input invite-modal-input--valid">
                     <option value="blue" ${existingInvite?.theme === 'blue' ? 'selected' : ''}>Sapphire Blue (Default)</option>
                     <option value="green" ${existingInvite?.theme === 'green' ? 'selected' : ''}>Emerald Green</option>
                     <option value="maroon" ${existingInvite?.theme === 'maroon' ? 'selected' : ''}>Burgundy Maroon</option>
@@ -326,8 +375,36 @@ async function openInviteModal(existingInvite = null) {
 
     const actions = [
         { label: "Cancel", variant: "ghost" },
+        ...(existingInvite ? [{
+            label: "Delete",
+            variant: "danger", 
+            closesModal: false,
+            onClick: async () => {
+                const result = await Swal.fire({
+                    title: 'Delete Invite?',
+                    text: `Are you sure you want to permanently delete this web invite?`,
+                    icon: 'question', 
+                    showCancelButton: true, 
+                    confirmButtonColor: '#dc2626', 
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete it!'
+                });
+
+                if (result.isConfirmed) {
+                    try {
+                        const { error } = await supabase.from('wedding_web_invite').delete().eq('id', existingInvite.id);
+                        if (error) throw error;
+                        modal.close();
+                        window.dispatchEvent(new Event('invitesDataUpdated')); 
+                        showSweetAlert('success', 'Deleted!', 'Invite removed.');
+                    } catch (error) {
+                        showSweetAlert('error', 'Database Error', error.message);
+                    }
+                }
+            }
+        }] : []),
         { 
-            label: existingInvite ? "Update" : "Create", 
+            label: existingInvite ? "Edit" : "Add", 
             variant: "primary", 
             closesModal: false,
             onClick: async () => {
@@ -360,10 +437,12 @@ async function openInviteModal(existingInvite = null) {
                     }
 
                     if (!el.value.trim()) {
-                        targetEl.style.borderColor = '#dc2626'; 
+                        targetEl.classList.add('invite-modal-input--invalid');
+                        targetEl.classList.remove('invite-modal-input--valid');
                         if (!firstError) firstError = field.name; 
                     } else {
-                        targetEl.style.borderColor = '#16a34a'; 
+                        targetEl.classList.remove('invite-modal-input--invalid');
+                        targetEl.classList.add('invite-modal-input--valid');
                     }
                 });
 
@@ -420,75 +499,29 @@ async function openInviteModal(existingInvite = null) {
         }
     ];
 
-    if (existingInvite) {
-        actions.unshift({
-            label: "Delete",
-            variant: "danger", 
-            closesModal: false,
-            onClick: async () => {
-                const result = await Swal.fire({
-                    title: 'Delete Invite?',
-                    text: `Are you sure you want to permanently delete this web invite?`,
-                    icon: 'question', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, delete it!'
-                });
-
-                if (result.isConfirmed) {
-                    try {
-                        const { error } = await supabase.from('wedding_web_invite').delete().eq('id', existingInvite.id);
-                        if (error) throw error;
-                        modal.close();
-                        window.dispatchEvent(new Event('invitesDataUpdated')); 
-                        showSweetAlert('success', 'Deleted!', 'Invite removed.');
-                    } catch (error) {
-                        showSweetAlert('error', 'Database Error', error.message);
-                    }
-                }
-            }
-        });
-    }
-
     const modal = openModal({
-        title: existingInvite ? `Edit Web Invite` : `Create Web Invite`,
+        title: existingInvite ? `Edit Web Invite` : `Add Web Invite`,
         content: formHTML,
         actions: actions
     });
 
     setTimeout(() => {
-        const form = document.getElementById('inviteForm');
-        if (form) {
-            let parent = form.parentElement;
-            while (parent && parent.tagName !== 'BODY') {
-                if (window.getComputedStyle(parent).position === 'fixed') {
-                    break;
-                }
-                parent.style.maxWidth = '800px';
-                parent.style.width = '95vw';
-                parent = parent.parentElement;
-            }
-        }
+        layoutInviteModalFooter(!!existingInvite);
 
         ['bGrandfather', 'bGrandmother', 'bFather', 'bMother', 'gGrandfather', 'gGrandmother', 'gFather', 'gMother', 'storyText', 'inviteTheme'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.addEventListener('input', (e) => {
-                    e.target.style.borderColor = e.target.value.trim() ? '#16a34a' : '#dc2626';
-                });
-                el.addEventListener('change', (e) => {
-                    e.target.style.borderColor = e.target.value.trim() ? '#16a34a' : '#dc2626';
-                });
-            }
-        });
-
-        const btns = Array.from(document.querySelectorAll('button'));
-        btns.forEach(btn => {
-            const txt = btn.textContent.trim();
-            if (txt === 'Cancel' && !btn.hasAttribute('data-styled')) {
-                btn.style.cssText = 'background: #6b7280; color: #ffffff; border: 1px solid #6b7280; padding: 0.6rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-medium); cursor: pointer; transition: opacity 0.2s;';
-                btn.setAttribute('data-styled', 'true');
-            } else if (txt === 'Delete' && !btn.hasAttribute('data-styled')) {
-                btn.style.cssText = 'background: #dc2626; color: #ffffff; border: 1px solid #dc2626; padding: 0.6rem 1.25rem; border-radius: var(--radius-sm); font-weight: var(--font-weight-semibold); cursor: pointer; transition: opacity 0.2s; margin-right: auto;';
-                if(btn.parentElement) { btn.parentElement.style.display = 'flex'; btn.parentElement.style.width = '100%'; }
-                btn.setAttribute('data-styled', 'true');
+                const updateVal = (e) => {
+                    if (e.target.value.trim()) {
+                        e.target.classList.remove('invite-modal-input--invalid');
+                        e.target.classList.add('invite-modal-input--valid');
+                    } else {
+                        e.target.classList.remove('invite-modal-input--valid');
+                        e.target.classList.add('invite-modal-input--invalid');
+                    }
+                };
+                el.addEventListener('input', updateVal);
+                el.addEventListener('change', updateVal);
             }
         });
 
@@ -500,7 +533,15 @@ async function openInviteModal(existingInvite = null) {
                     const wrapper = selectEl.previousElementSibling;
                     if (wrapper && wrapper.tagName === 'DIV') {
                         const input = wrapper.querySelector('input');
-                        if (input) input.style.borderColor = e.target.value ? '#16a34a' : '#dc2626';
+                        if (input) {
+                            if (e.target.value) {
+                                input.classList.remove('invite-modal-input--invalid');
+                                input.classList.add('invite-modal-input--valid');
+                            } else {
+                                input.classList.remove('invite-modal-input--valid');
+                                input.classList.add('invite-modal-input--invalid');
+                            }
+                        }
                     }
                 });
             }
@@ -520,9 +561,8 @@ function convertToSearchableDropdown(selectId) {
     
     const input = document.createElement('input');
     input.type = 'text';
-    input.placeholder = 'Search...';
-    input.className = select.className; 
-    input.style.cssText = 'width: 100%; padding: var(--space-2); border: 1px solid #dc2626; border-radius: var(--radius-sm); box-sizing: border-box; background: var(--color-bg); color: var(--color-text-primary); outline: none; transition: border-color 0.2s;';
+    input.placeholder = 'Search ...';
+    input.className = 'invite-modal-input invite-modal-input--invalid';
     wrapper.appendChild(input);
     
     const list = document.createElement('div');
@@ -550,11 +590,9 @@ function convertToSearchableDropdown(selectId) {
             item.addEventListener('click', () => {
                 select.value = opt.value; 
                 input.value = opt.text; 
-                input.style.borderColor = '#16a34a';
+                input.classList.remove('invite-modal-input--invalid');
+                input.classList.add('invite-modal-input--valid');
                 list.style.display = 'none'; 
-                
-                const form = select.closest('form');
-                if (form) form.style.paddingBottom = '0px';
                 
                 select.dispatchEvent(new Event('change')); 
             });
@@ -566,33 +604,26 @@ function convertToSearchableDropdown(selectId) {
         input.value = ''; 
         renderList(''); 
         list.style.display = 'block'; 
-        
-        const form = select.closest('form');
-        if (form) form.style.paddingBottom = '150px';
     });
     
     input.addEventListener('input', (e) => { 
         renderList(e.target.value); 
         list.style.display = 'block'; 
-        
-        const form = select.closest('form');
-        if (form) form.style.paddingBottom = '150px';
     });
     
     document.addEventListener('click', (e) => {
         if (!wrapper.contains(e.target)) {
             list.style.display = 'none';
             
-            const form = select.closest('form');
-            if (form) form.style.paddingBottom = '0px';
-            
             const selectedOpt = options.find(o => o.value === select.value);
             if (selectedOpt && select.value !== "") {
                 input.value = selectedOpt.text;
-                input.style.borderColor = '#16a34a';
+                input.classList.remove('invite-modal-input--invalid');
+                input.classList.add('invite-modal-input--valid');
             } else {
                 input.value = '';
-                input.style.borderColor = '#dc2626';
+                input.classList.remove('invite-modal-input--valid');
+                input.classList.add('invite-modal-input--invalid');
             }
         }
     });
@@ -600,6 +631,7 @@ function convertToSearchableDropdown(selectId) {
     const initialOpt = options.find(o => o.value === select.value);
     if (initialOpt && select.value !== "") {
         input.value = initialOpt.text;
-        input.style.borderColor = '#16a34a';
+        input.classList.remove('invite-modal-input--invalid');
+        input.classList.add('invite-modal-input--valid');
     }
 }
