@@ -28,6 +28,20 @@ const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
     document.body.style.setProperty('background-color', '#0f172a', 'important');
     document.body.classList.add('theme-loaded'); 
 
+    const navigateTo = () => {
+        // Reset favicon and title before leaving error state
+        document.title = "Shaadi Saathi";
+        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+        const defaultFavicon = document.createElement('link');
+        defaultFavicon.rel = 'icon';
+        defaultFavicon.type = 'image/x-icon';
+        defaultFavicon.href = `/global/icons/favicon.ico?v=${Date.now()}`;
+        document.head.appendChild(defaultFavicon);
+
+        window.location.href = `/${redirectUrl}`;
+        window.location.reload();
+    };
+
     if (typeof Swal !== 'undefined') {
         Swal.fire({
             icon: 'error',
@@ -38,11 +52,11 @@ const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
             allowEscapeKey: false,
             confirmButtonColor: '#eab308'
         }).then(() => {
-            window.location.hash = redirectUrl;
+            navigateTo();
         });
     } else {
         alert(`${title}\n\n${text}`);
-        window.location.hash = redirectUrl;
+        navigateTo();
     }
 };
 
@@ -115,10 +129,7 @@ async function initDynamicInvite(inviteId) {
             .calendar-icon { background: var(--color-secondary) !important; box-shadow: 0 0 10px rgba(var(--theme-accent-rgb), 0.6) !important; } .calendar-icon .cal-month, .calendar-icon .cal-day { color: var(--color-bg-dark) !important; }
             
             .flower-corner { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), rgba(var(--theme-accent-rgb), 0.2) 50%, rgba(var(--theme-bg-dark-rgb), 0.8) 90%) !important; box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.3), 0 0 20px rgba(var(--theme-accent-rgb), 0.5) !important; }
-            .flower-top-left { top: -40px !important; left: -30px !important; }
-            .flower-top-right { top: -40px !important; right: -30px !important; }
-            .flower-bottom-left { bottom: -40px !important; left: -30px !important; }
-            .flower-bottom-right { bottom: -40px !important; right: -30px !important; }
+            
 
             .btn { background: radial-gradient(circle at 30% 30%, #ffffff, var(--color-secondary)) !important; border: 1px solid rgba(255, 255, 255, 0.4) !important; color: var(--color-bg-dark) !important; box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.9), 0 0 30px rgba(var(--theme-accent-rgb), 0.8) !important; }
             .btn-secondary { background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), var(--color-secondary)) !important; border: 1px solid rgba(255, 255, 255, 0.6) !important; color: var(--color-bg-dark) !important; box-shadow: 0 0 12px rgba(var(--theme-accent-rgb), 0.85), 0 0 24px rgba(var(--theme-accent-rgb), 0.7) !important; } .btn-secondary:hover { color: #ffffff !important; background: rgba(var(--theme-bg-dark-rgb), 0.8) !important; border: 1px solid var(--color-secondary) !important; box-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 35px var(--color-secondary) !important; }
@@ -184,13 +195,13 @@ async function initDynamicInvite(inviteId) {
         const dynamicLogoUri = generateDynamicLogo(primaryFirstName, secondaryFirstName, colors);
         const initialsLogoUri = generateInitialsLogo(primaryFirstName, secondaryFirstName, colors);
         
-        let link = document.querySelector("link[rel~='icon']");
-        if (!link) {
-            link = document.createElement('link');
-            link.rel = 'icon';
-            document.head.appendChild(link);
-        }
+        // Remove all previous favicon links and apply the couple's SVG icon
+        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/svg+xml';
         link.href = initialsLogoUri;
+        document.head.appendChild(link);
 
         const sealImg = document.getElementById('seal-logo-img');
         if (sealImg) {
@@ -366,7 +377,7 @@ const generateCoupleHTML = () => {
     return `
     <section class="full-page js-reveal" id="couple">
         <div class="card">
-            <div class="flower-corner flower-top-left"></div><div class="flower-corner flower-bottom-right"></div>
+            <div class="flower-corner flower-top-left"></div><div class="flower-corner flower-top-right"></div><div class="flower-corner flower-bottom-left"></div><div class="flower-corner flower-bottom-right"></div>
             <div class="garland-top"></div>
             <div class="card-inner">
                 <div class="hero">

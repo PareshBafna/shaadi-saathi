@@ -194,7 +194,56 @@ function initApp(user) {
     router();
 }
 
+function forceResetFavicon() {
+    // 1. Remove every existing icon link tag
+    document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+
+    // 2. Render default favicon to an off-screen canvas to generate a fresh Data-URI
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = `/global/icons/favicon.ico?t=${Date.now()}`;
+    
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || 32;
+        canvas.height = img.naturalHeight || 32;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const newLink = document.createElement('link');
+        newLink.rel = 'icon';
+        newLink.type = 'image/png';
+        newLink.href = canvas.toDataURL('image/png'); // Forces browser to repaint tab icon immediately
+        document.head.appendChild(newLink);
+    };
+
+    // Fallback if image fails to load
+    img.onerror = () => {
+        const fallback = document.createElement('link');
+        fallback.rel = 'icon';
+        fallback.type = 'image/x-icon';
+        fallback.href = `/global/icons/favicon.ico?nocache=${Date.now()}`;
+        document.head.appendChild(fallback);
+    };
+}
+
 async function router() {
+    const hash = window.location.hash || '#login';
+    const [route, queryString] = hash.split('?');
+    const params = new URLSearchParams(queryString || '');
+
+    // Reset document title and favicon on non-preview pages
+    if (route !== '#web-invites-preview' && route !== '#sample-web-invites-preview') {
+        document.title = "Shaadi Saathi";
+        forceResetFavicon();
+        // document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+        // const defaultFavicon = document.createElement('link');
+        // defaultFavicon.rel = 'icon';
+        // defaultFavicon.type = 'image/png';
+        // defaultFavicon.href = `/global/images/favicon.png?v=${Date.now()}`;
+        // document.head.appendChild(defaultFavicon);
+    }
+
     if (window.Swal && Swal.isVisible() && Swal.getTitle()?.textContent !== 'Session Expired') Swal.close();
     
     document.querySelectorAll('.modal-backdrop, .modal, .custom-modal, .swal2-container').forEach(el => {
@@ -203,10 +252,6 @@ async function router() {
 
     document.body.classList.remove('modal-open', 'swal2-shown');
     document.body.style.overflow = '';
-
-    const hash = window.location.hash || '#login';
-    const [route, queryString] = hash.split('?');
-    const params = new URLSearchParams(queryString || '');
 
     let activePageName = route.replace('#', '');
     if (activePageName === '' || activePageName === '/') activePageName = 'login';

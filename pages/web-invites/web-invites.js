@@ -2,7 +2,7 @@ import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
-const INVITE_BASE_URL = "/invite.html"; 
+const INVITE_BASE_URL = "/#web-invites-preview";
 
 function startOfDay(date) {
     const copy = new Date(date);
@@ -188,6 +188,7 @@ function buildGallerySection(title, invites, isArchived) {
         const dateStr = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
         
         const inviteUrl = `${INVITE_BASE_URL}?id=${w.id}`;
+        const fullShareUrl = `${window.location.origin}${inviteUrl}`;
         const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
         const t = themePalettes[inv.theme] || themePalettes.blue;
 
@@ -217,7 +218,7 @@ function buildGallerySection(title, invites, isArchived) {
                     <a href="${inviteUrl}" target="_blank" class="web-invite-card__view-btn" style="background: ${t.accent}; color: ${t.bgDark};">
                         View Invite
                     </a>
-                    <button onclick="navigator.clipboard.writeText(window.location.origin + '${inviteUrl}'); showSweetAlert('success', 'Copied!', 'Link copied to clipboard');" class="web-invite-card__copy-btn" title="Copy Link">
+                    <button onclick="navigator.clipboard.writeText('${fullShareUrl}'); showSweetAlert('success', 'Copied!', 'Link copied to clipboard');" class="web-invite-card__copy-btn" title="Copy Link">
                         <i data-lucide="link"></i>
                     </button>
                 </div>
