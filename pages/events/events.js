@@ -292,11 +292,11 @@ window.openMasterEventModal = async function(eventId = null) {
             </div>
             <div>
                 <label class="master-event-label">One Liner Quote *</label>
-                <textarea id="tplOneLiner" rows="2" required placeholder="e.g., Golden ghee, elders blessings..." class="master-event-input ${eventObj?.one_liner ? 'master-event-input--valid' : 'master-event-input--invalid'}" style="resize: vertical;"></textarea>
+                <textarea id="tplOneLiner" rows="2" required placeholder="e.g., Golden ghee, elders blessings..." class="master-event-input ${eventObj?.one_liner ? 'master-event-input--valid' : 'master-event-input--invalid'}"></textarea>
             </div>
             <div>
                 <label class="master-event-label">Description *</label>
-                <textarea id="tplDescription" rows="4" required placeholder="An auspicious start to our wedding celebrations..." class="master-event-input ${eventObj?.description ? 'master-event-input--valid' : 'master-event-input--invalid'}" style="resize: vertical;"></textarea>
+                <textarea id="tplDescription" rows="4" required placeholder="An auspicious start to our wedding celebrations..." class="master-event-input ${eventObj?.description ? 'master-event-input--valid' : 'master-event-input--invalid'}"></textarea>
             </div>
         </form>
     `;

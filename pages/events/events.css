@@ -294,7 +294,7 @@
 }
 
 /* ============================================================
-   MODAL FORM CONTROLS (MATCHED TO WEDDINGS MODAL)
+   MODAL FORM CONTROLS
    ============================================================ */
 .master-event-form {
   display: flex;
@@ -336,6 +336,7 @@
 
 textarea.master-event-input {
   min-height: 80px;
+  resize: vertical;
 }
 
 .master-event-input--valid {
@@ -346,7 +347,7 @@ textarea.master-event-input {
   border-color: #dc2626 !important;
 }
 
-/* Modal Action Buttons (Standard Weddings Palette & Sizing) */
+/* Modal Action Buttons */
 .modal-btn-cancel {
   background: #6b7280 !important;
   color: #ffffff !important;
