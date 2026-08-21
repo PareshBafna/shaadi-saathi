@@ -23,6 +23,7 @@ import { renderSampleWeddings } from '../../pages/sample-weddings/sample-wedding
 import { renderSampleWeddingDetails } from '../../pages/sample-wedding-details/sample-wedding-details.js';
 import { renderSampleWebInvites } from '../../pages/sample-web-invites-preview/sample-web-invites-preview.js';
 import { renderWebInvitesPreview } from '../../pages/web-invites-preview/web-invites-preview.js';
+import { renderProfile } from '../../pages/profile/profile.js';
 
 // --- DYNAMIC PAGE STYLESHEET LOADER ---
 function loadPageStyle(pageName) {
@@ -195,10 +196,8 @@ function initApp(user) {
 }
 
 function forceResetFavicon() {
-    // 1. Remove every existing icon link tag
     document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
 
-    // 2. Render default favicon to an off-screen canvas to generate a fresh Data-URI
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = `/global/icons/favicon.ico?t=${Date.now()}`;
@@ -213,11 +212,10 @@ function forceResetFavicon() {
         const newLink = document.createElement('link');
         newLink.rel = 'icon';
         newLink.type = 'image/png';
-        newLink.href = canvas.toDataURL('image/png'); // Forces browser to repaint tab icon immediately
+        newLink.href = canvas.toDataURL('image/png');
         document.head.appendChild(newLink);
     };
 
-    // Fallback if image fails to load
     img.onerror = () => {
         const fallback = document.createElement('link');
         fallback.rel = 'icon';
@@ -232,16 +230,9 @@ async function router() {
     const [route, queryString] = hash.split('?');
     const params = new URLSearchParams(queryString || '');
 
-    // Reset document title and favicon on non-preview pages
     if (route !== '#web-invites-preview' && route !== '#sample-web-invites-preview') {
         document.title = "Shaadi Saathi";
         forceResetFavicon();
-        // document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
-        // const defaultFavicon = document.createElement('link');
-        // defaultFavicon.rel = 'icon';
-        // defaultFavicon.type = 'image/png';
-        // defaultFavicon.href = `/global/images/favicon.png?v=${Date.now()}`;
-        // document.head.appendChild(defaultFavicon);
     }
 
     if (window.Swal && Swal.isVisible() && Swal.getTitle()?.textContent !== 'Session Expired') Swal.close();
@@ -386,7 +377,7 @@ async function router() {
     else if (route === "#profile") 
     { 
         pageTitle = "Profile"; 
-        renderFunc = renderWeddings; 
+        renderFunc = renderProfile; 
         allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
     } 
     else 
