@@ -71,7 +71,9 @@ export function renderWeddings() {
         const wrapper = document.createElement('section');
         wrapper.className = "weddings-page-wrapper";
         wrapper.innerHTML = `
-            <div class="weddings-loading-wrapper">Please log in to view weddings.</div>
+            <div class="dashboard-section">
+                <div class="weddings-loading-state">Please log in to view weddings.</div>
+            </div>
         `;
         return wrapper;
     }
@@ -142,7 +144,9 @@ async function loadWeddingsData(container) {
     const baseUserPhone = cleanedUserPhone ? cleanedUserPhone.slice(-10) : null;
 
     container.innerHTML = `
-        <div class="weddings-loading-wrapper">Loading weddings...</div>
+        <div class="dashboard-section">
+            <div class="weddings-loading-state">Loading weddings...</div>
+        </div>
     `;
     
     try {
@@ -496,11 +500,11 @@ export function openCreateWeddingModal() {
             <div class="wedding-modal-row">
                 <div class="wedding-modal-col">
                     <label class="wedding-modal-label">Start Date *</label>
-                    <input type="date" id="startDate" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--invalid" style="cursor: pointer;">
+                    <input type="date" id="startDate" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--invalid">
                 </div>
                 <div class="wedding-modal-col">
                     <label class="wedding-modal-label">End Date *</label>
-                    <input type="date" id="endDate" disabled required class="wedding-modal-input wedding-modal-input--invalid" style="cursor: pointer;">
+                    <input type="date" id="endDate" disabled required class="wedding-modal-input wedding-modal-input--invalid">
                 </div>
             </div>
 
@@ -511,7 +515,7 @@ export function openCreateWeddingModal() {
 
             <div>
                 <label class="wedding-modal-label">Family Details *</label>
-                <textarea id="familyDetails" rows="3" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--invalid" style="resize: vertical;"></textarea>
+                <textarea id="familyDetails" rows="3" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--invalid"></textarea>
             </div>
         </form>
     `;
@@ -711,11 +715,11 @@ export function openEditWeddingModal(wedding) {
             <div class="wedding-modal-row">
                 <div class="wedding-modal-col">
                     <label class="wedding-modal-label">Start Date *</label>
-                    <input type="date" id="editStartDate" value="${wedding.start_date}" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--valid" style="cursor: pointer;">
+                    <input type="date" id="editStartDate" value="${wedding.start_date}" min="${todayStr}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--valid">
                 </div>
                 <div class="wedding-modal-col">
                     <label class="wedding-modal-label">End Date *</label>
-                    <input type="date" id="editEndDate" value="${wedding.end_date}" min="${wedding.start_date || todayStr}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--valid" style="cursor: pointer;">
+                    <input type="date" id="editEndDate" value="${wedding.end_date}" min="${wedding.start_date || todayStr}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--valid">
                 </div>
             </div>
 
@@ -726,7 +730,7 @@ export function openEditWeddingModal(wedding) {
 
             <div>
                 <label class="wedding-modal-label">Family Details *</label>
-                <textarea id="editFamilyDetails" rows="3" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--valid" style="resize: vertical;">${wedding.family_details || ''}</textarea>
+                <textarea id="editFamilyDetails" rows="3" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--valid"></textarea>
             </div>
         </form>
     `;
