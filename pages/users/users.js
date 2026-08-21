@@ -471,23 +471,52 @@ window.openUserModal = async function(userOrId = null) {
             closesModal: false,
             onClick: async () => {
                 const result = await Swal.fire({
-                    title: 'Are you sure?', 
-                    text: `Do you really want to permanently delete this user?`, 
+                    title: 'Delete User?', 
+                    text: `Are you sure you want to permanently delete this user? This will also remove them from all associated weddings and guest lists.`, 
                     icon: 'question', 
                     showCancelButton: true, 
                     confirmButtonColor: '#dc2626', 
                     cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Yes, delete!'
+                    confirmButtonText: 'Yes, delete it!'
                 });
 
                 if (result.isConfirmed) {
                     try {
-                        const { error } = await supabase.from('users').delete().eq('id', user.id);
-                        if (error) throw error;
+                        // 1. Delete associated wedding_hosts entries
+                        const { error: hostErr } = await supabase.from('wedding_hosts').delete().eq('user_id', user.id);
+                        if (hostErr && hostErr.code !== '42P01') throw hostErr;
+
+                        // 2. Delete associated wedding_users entries
+                        const { error: wUserErr } = await supabase.from('wedding_users').delete().eq('user_id', user.id);
+                        if (wUserErr && wUserErr.code !== '42P01') throw wUserErr;
+
+                        // 3. Delete associated guests entries matching user phone
+                        if (user.phone) {
+                            const cleanedPhone = user.phone.replace(/[^0-9]/g, '');
+                            const basePhone = cleanedPhone.length > 10 ? cleanedPhone.slice(-10) : cleanedPhone;
+                            
+                            // Fetch all guests to check phone suffix matching
+                            const { data: allGuests } = await supabase.from('guests').select('id, phone');
+                            if (allGuests) {
+                                const matchingGuestIds = allGuests.filter(g => {
+                                    const gClean = (g.phone || '').replace(/[^0-9]/g, '');
+                                    return gClean.endsWith(basePhone);
+                                }).map(g => g.id);
+
+                                if (matchingGuestIds.length > 0) {
+                                    await supabase.from('event_guests').delete().in('guest_id', matchingGuestIds);
+                                    await supabase.from('guests').delete().in('id', matchingGuestIds);
+                                }
+                            }
+                        }
+
+                        // 4. Finally delete the user record from 'users'
+                        const { error: userDelErr } = await supabase.from('users').delete().eq('id', user.id);
+                        if (userDelErr) throw userDelErr;
                         
                         modal.close();
                         window.dispatchEvent(new Event('systemUsersUpdated')); 
-                        showSweetAlert('success', 'Deleted!', 'User has been removed.');
+                        showSweetAlert('success', 'Deleted!', 'User and all related records have been successfully removed.');
                     } catch (error) {
                         showSweetAlert('error', 'Database Error', error.message);
                     }
