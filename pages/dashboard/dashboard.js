@@ -110,7 +110,7 @@ async function loadGlobalDashboardData(section) {
 
     } catch (error) {
         console.error('[DEBUG ERROR] Failed to load dashboard data:', error);
-        section.innerHTML = `<div class="dashboard-section dashboard-section--error"><span style="color: var(--color-danger);">Failed to load data: ${error.message}</span></div>`;
+        section.innerHTML = `<div class="dashboard-section dashboard-section--error"><span class="dashboard-section__error-text">Failed to load data: ${error.message}</span></div>`;
     }
 }
 

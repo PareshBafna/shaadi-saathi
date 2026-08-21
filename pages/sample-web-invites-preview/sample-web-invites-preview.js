@@ -103,7 +103,7 @@ function setupMockData(inviteId) {
             location: ev.venue, 
             directions: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue)}`,
             nextTarget: index < rawEvents.length - 1 ? `#event-${rawEvents[index+1].id}` : "#about-us",
-            nextLabel: index < rawEvents.length - 1 ? rawEvents[index+1].name : "About Us"
+            nextLabel: index < rawEvents.length - 1 ? (rawEvents[index+1].name || 'Next Event') : "About Us"
         };
     });
 }
