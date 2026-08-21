@@ -214,7 +214,7 @@ export async function renderSampleWebInvites() {
                 <div class="envelope-flap" id="env-flap"></div>
                 <div id="seal-container">
                     <div class="wax-seal">
-                        <img id="seal-logo-img" src="${dynamicLogoUri}" alt="Seal Logo" height="150" width="130" style="opacity: 1; object-fit: contain;">
+                        <img id="seal-logo-img" src="${dynamicLogoUri}" alt="Seal Logo" height="150" width="130">
                     </div>
                     <p class="seal-label">Tap to Open</p>
                 </div>
@@ -284,8 +284,8 @@ const generateWelcomeHTML = () => {
             <div class="garland-top"></div>
             <div class="card-inner">
                 <div class="hero">
-                    <div class="tagline" style="font-size: 2.5rem; font-weight:bold; margin-bottom: 6px;">${sampleWeddingConfig.familyLastName}</div>
-                    <div class="tagline" style="font-size: 1.5rem; font-weight:bold; margin-bottom: 6px;">Wedding Invitation</div>
+                    <div class="hero-family-name">${sampleWeddingConfig.familyLastName}</div>
+                    <div class="hero-sub-title">Wedding Invitation</div>
                     <div class="hero-divider"></div>
                     
                     <img src="${initialsLogoUri}" alt="Logo" class="couple-logo" />
@@ -318,16 +318,16 @@ const generateWelcomeHTML = () => {
 const generateCoupleHTML = () => {
     const brideCard = `
         <div class="couple-card bride-card">
-            <div class="couple-role" style="font-size: 1.5rem; font-weight: bold;">Bride</div>
+            <div class="couple-role">Bride</div>
             <div class="hero-divider"></div>
             <div class="couple-name">${sampleWeddingConfig.bride.firstName}</div>
-            <p class="couple-role"><br/><br/><strong>Granddaughter of</strong></p><div class="hero-divider"></div>
-            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
+            <p class="couple-relation-heading"><br/><br/><strong>Granddaughter of</strong></p><div class="hero-divider"></div>
+            <div class="couple-family-details">
                 ${sampleWeddingConfig.bride.grandfather}<br/>
                 ${sampleWeddingConfig.bride.grandmother}
             </div>
-            <br/><p class="couple-role"><strong>Daughter of</strong></p><div class="hero-divider"></div>
-            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
+            <br/><p class="couple-relation-heading"><strong>Daughter of</strong></p><div class="hero-divider"></div>
+            <div class="couple-family-details">
                 ${sampleWeddingConfig.bride.father}<br/>
                 ${sampleWeddingConfig.bride.mother}
             </div>
@@ -336,16 +336,16 @@ const generateCoupleHTML = () => {
 
     const groomCard = `
         <div class="couple-card groom-card">
-            <div class="couple-role" style="font-size: 1.5rem; font-weight: bold;">Groom</div>
+            <div class="couple-role">Groom</div>
             <div class="hero-divider"></div>
             <div class="couple-name">${sampleWeddingConfig.groom.firstName}</div>
-            <p class="couple-role"><br/><br/><strong>Grandson of</strong></p><div class="hero-divider"></div>
-            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
+            <p class="couple-relation-heading"><br/><br/><strong>Grandson of</strong></p><div class="hero-divider"></div>
+            <div class="couple-family-details">
                 ${sampleWeddingConfig.groom.grandfather}<br/>
                 ${sampleWeddingConfig.groom.grandmother}
             </div>
-            <br/><p class="couple-role"><strong>Son of</strong></p><div class="hero-divider"></div>
-            <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
+            <br/><p class="couple-relation-heading"><strong>Son of</strong></p><div class="hero-divider"></div>
+            <div class="couple-family-details">
                 ${sampleWeddingConfig.groom.father}<br/>
                 ${sampleWeddingConfig.groom.mother}
             </div>
@@ -362,7 +362,7 @@ const generateCoupleHTML = () => {
             <div class="garland-top"></div>
             <div class="card-inner">
                 <div class="hero">
-                    <div class="tagline" style="font-size:2.4rem;font-weight:bold;">The Couple</div>
+                    <div class="section-tagline">The Couple</div>
                     <div class="hero-divider"></div>
                     <div class="couple-split">
                         ${coupleSplitContent}
@@ -383,47 +383,47 @@ const generateEventHTML = (event) => `
             
             <div class="card-inner">
                 <div class="hero">
-                    <div class="tagline" style="font-size: 2.4rem; font-weight: bold; text-transform: uppercase;">${event.label}</div>
+                    <div class="event-main-label">${event.label}</div>
                     
                     ${event.title ? `
-                        <div class="hero-divider" style="margin: 15px auto;"></div>
-                        <div class="tagline" style="font-size: 1.4rem; font-family: 'Georgia', serif; font-weight: bold; color: #ffffff !important; text-transform: uppercase; text-shadow: none !important;">${event.title}</div>
+                        <div class="hero-divider"></div>
+                        <div class="event-custom-title">${event.title}</div>
                     ` : ''}
 
                     <br/>
                     
                     ${event.quote ? `
-                        <div class="event-subtitle" style="font-style: italic; font-size: 1.1rem; padding: 0 10px; margin-top: 10px;">${event.quote}</div>
+                        <div class="event-quote-text">${event.quote}</div>
                     ` : ''}
                     
-                    <div class="hero-divider" style="margin: 20px auto;"></div>
+                    <div class="hero-divider"></div>
                     
-                    <div class="event-meta" style="margin-top: 15px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; gap: 15px;">
-                        <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-                            <div class="calendar-icon" style="min-width: 44px;"><span class="cal-month">${event.month}</span><span class="cal-day">${event.day}</span></div>
-                            <span class="event-value" style="font-size: 1.3rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important;">${event.dateText}</span>
+                    <div class="event-meta-container">
+                        <div class="event-meta-row">
+                            <div class="calendar-icon"><span class="cal-month">${event.month}</span><span class="cal-day">${event.day}</span></div>
+                            <span class="event-meta-value">${event.dateText}</span>
                         </div>
-                        <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-                            <span style="font-size: 1.4rem; min-width: 44px; text-align: center;">⏰</span>
-                            <span class="event-value" style="font-size: 1.3rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important;">${event.time}</span>
+                        <div class="event-meta-row">
+                            <span class="event-time-icon">⏰</span>
+                            <span class="event-meta-value">${event.time}</span>
                         </div>
-                        <div class="event-row" style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-                            <span style="font-size: 1.4rem; min-width: 44px; text-align: center; color: var(--color-secondary);">📍</span>
-                            <span class="event-value" style="font-size: 1.3rem; font-weight: bold; color: #ffffff !important; text-shadow: none !important; text-align: center;">${event.location}</span>
+                        <div class="event-meta-row">
+                            <span class="event-location-icon">📍</span>
+                            <span class="event-meta-location">${event.location}</span>
                         </div>
                     </div>
                     
-                    <div class="cta" style="margin-top: 20px;">
-                        <a class="btn" href="${event.directions}" target="_blank" rel="noopener noreferrer" style="padding: 10px 28px; font-size: 0.95rem; border-radius: 999px;">Get Directions</a>
+                    <div>
+                        <a class="btn btn-directions" href="${event.directions}" target="_blank" rel="noopener noreferrer">Get Directions</a>
                     </div>
                     
                     ${event.description ? `
-                        <div class="hero-divider" style="margin: 25px auto;"></div>
-                        <p class="event-text" style="font-size: 1.05rem; color: #ffffff !important; padding: 0 15px; line-height: 1.6; text-shadow: none !important;">${event.description}</p>
+                        <div class="hero-divider"></div>
+                        <p class="event-description-text">${event.description}</p>
                     ` : ''}
                 </div>
             </div>
-            <div class="hero-divider" style="margin: 20px auto;"></div>
+            <div class="hero-divider"></div>
             <div class="card-footer"><button class="btn btn-secondary" data-next="${event.nextTarget}">Next: ${event.nextLabel} ↓</button></div>
         </div>
     </section>`;
@@ -447,64 +447,64 @@ const generateAboutUsHTML = () => {
             <div class="garland-top"></div>
             <div class="card-inner">
                 <div class="hero">
-                    <div class="tagline" style="font-size:2.4rem; font-weight:bold; letter-spacing: 0.15em;">ABOUT US</div>
+                    <div class="section-tagline">ABOUT US</div>
                     <div class="hero-divider"></div>
                     
-                    <div class="event-subtitle" style="font-size: 1.1rem; line-height: 1.6; padding: 0 10px;">
+                    <div class="event-subtitle">
                         ${sampleWeddingConfig.story.replace(/\n/g, '<br/>')}
                     </div>
                     
-                    <div style="margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                        <p class="event-subtitle" style="font-size: 1.3rem; margin-bottom:12px;">Follow our journey for latest updates & gossips!</p>
+                    <div class="event-meta-container">
+                        <p class="event-follow-title">Follow our journey for latest updates & gossips!</p>
                         ${sampleWeddingConfig.instagram ? `
-                        <a href="${sampleWeddingConfig.instaLink}" target="_blank" class="btn" style="font-weight: bold; font-size: 1.25rem; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888) !important; border: none !important; padding: 12px 26px; display: flex; align-items: center; gap: 10px; color: white !important;">
+                        <a href="${sampleWeddingConfig.instaLink}" target="_blank" class="btn btn-instagram-gradient">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffffff" viewBox="0 0 16 16"><path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.282.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.478 2.478 0 0 1-.92-.598 2.48 2.48 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233 0-2.136.008-2.388.046-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334z"/></svg>
                             ${instaHandle}
                         </a>
                         ` : ''}
                     </div>
                     
-                    <div class="hero-divider" style="margin-top: 30px;"></div>
+                    <div class="hero-divider"></div>
                     
-                    <div class="rsvp" style="margin-top:20px; font-size: 1.1rem; color: #ffffff !important; text-shadow: 0 2px 5px rgba(0,0,0, 0.7);">
-                        <strong style="text-transform: uppercase !important;">With Best Compliments From:</strong>
+                    <div class="rsvp-compliments">
+                        <strong class="compliments-title">With Best Compliments From:</strong>
                         <br/><br/>
-                        <div style="text-transform: uppercase; font-weight: bold; font-size: 1.4rem; color: var(--color-secondary) !important; letter-spacing: 0.1em; text-shadow: 0 0 8px rgba(var(--theme-accent-rgb), 0.6);">
+                        <div class="compliments-family-text">
                             ${familyDetailsText}
                         </div>
                     </div>
                     
-                    <div class="hero-divider" style="height: 5px !important; margin-top: 25px;"></div>
+                    <div class="hero-divider divider-thick"></div>
                     
-                    <div class="rsvp" style="color: #ffffff !important; text-shadow: 0 2px 5px rgba(0,0,0, 0.7);">
-                        <strong style="font-size:1.1rem">Created By</strong>
+                    <div class="rsvp-creator">
+                        <strong class="creator-heading">Created By</strong>
                         <br/><br/>
-                        <div class="signature-glow" style="font-weight: bold; font-size: 2.2rem; font-family: 'Best Signature Font', sans-serif; margin-bottom: 4px; color: inherit;">
+                        <div class="signature-glow">
                             Paresh Bafna
                         </div>
-                        <div style="display: flex !important; justify-content: center !important; margin-top: 25px !important; margin-bottom: 25px !important; gap: 20px !important; align-items: center !important;">
+                        <div class="creator-social-links">
                             <a href="https://pareshbafna-portfolio.pages.dev/" target="_blank">
-                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/globe.svg" width="30" height="30" style="filter: invert(1); display: block;" alt="Portfolio">
+                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/globe.svg" width="30" height="30" class="social-icon-img" alt="Portfolio">
                             </a>
                             <a href="https://www.instagram.com/paresh_bafna_studio/" target="_blank">
-                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/instagram.svg" width="30" height="30" style="filter: invert(1); display: block;" alt="Instagram">
+                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/instagram.svg" width="30" height="30" class="social-icon-img" alt="Instagram">
                             </a>
                             <a href="https://www.instagram.com/web_invites_by_pb/" target="_blank">
-                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/instagram.svg" width="30" height="30" style="filter: invert(1); display: block;" alt="Instagram">
+                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/instagram.svg" width="30" height="30" class="social-icon-img" alt="Instagram">
                             </a>
                             <a href="https://wa.me/919791146838" target="_blank">
-                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/whatsapp.svg" width="30" height="30" style="filter: invert(1); display: block;" alt="WhatsApp">
+                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/whatsapp.svg" width="30" height="30" class="social-icon-img" alt="WhatsApp">
                             </a>
                             <a href="tel:+919791146838">
-                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/telephone-fill.svg" width="30" height="30" style="filter: invert(1); display: block;" alt="Phone">
+                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/telephone-fill.svg" width="30" height="30" class="social-icon-img" alt="Phone">
                             </a>
                             <a href="mailto:pareshbafna26@gmail.com">
-                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/envelope-fill.svg" width="30" height="30" style="filter: invert(1); display: block;" alt="Email">
+                                <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/envelope-fill.svg" width="30" height="30" class="social-icon-img" alt="Email">
                             </a>
                         </div>
                     </div>
                     
-                    <div class="hero-divider" style="margin-top: 20px;"></div>
+                    <div class="hero-divider"></div>
                 </div>
             </div>
             <div class="card-footer"><button class="btn btn-secondary" data-next="#welcome">Back to Start ↑</button></div>

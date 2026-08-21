@@ -10,6 +10,8 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden !important;
+  max-width: 100%;
 }
 
 :root {
@@ -23,7 +25,8 @@ html {
 body {
   min-height: 100vh;
   color: #e0eeff;
-  overflow-x: hidden;
+  overflow-x: hidden !important;
+  max-width: 100%;
   background-color: var(--color-bg-dark) !important;
   background-size: cover !important;
   background-position: center !important;
@@ -304,12 +307,33 @@ section.full-page.visible {
   padding: 4px 6px 4px;
 }
 
+.hero-family-name {
+  font-size: 2.2rem;
+  font-weight: bold;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  color: var(--color-secondary);
+  text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);
+}
+
+.hero-sub-title {
+  font-size: 1.35rem;
+  font-weight: bold;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  color: var(--color-secondary);
+  text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);
+}
+
 .couple-logo {
   margin: 10px auto 14px;
   max-width: 120px;
   width: 40%;
   display: block;
   mix-blend-mode: screen;
+  filter: none;
   animation: logoFloat 4s ease-in-out infinite, logoGlow 4s ease-in-out infinite;
   transform-origin: center center;
 }
@@ -321,6 +345,44 @@ section.full-page.visible {
   color: var(--color-secondary) !important;
   margin-bottom: 8px;
   text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7) !important;
+}
+
+.section-tagline {
+  font-size: 2.2rem;
+  font-weight: bold;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-secondary);
+  text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);
+}
+
+.event-main-label {
+  font-size: 2.2rem;
+  font-weight: bold;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-secondary);
+  text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);
+}
+
+.event-custom-title {
+  font-size: 1.35rem;
+  font-family: 'Georgia', serif;
+  font-weight: bold;
+  letter-spacing: 0.15em;
+  color: #ffffff !important;
+  text-transform: uppercase;
+  text-shadow: none !important;
+}
+
+.event-quote-text {
+  font-style: italic;
+  color: #ffffff !important;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  padding: 0 10px;
+  margin-top: 10px;
+  text-shadow: none !important;
 }
 
 .names {
@@ -374,6 +436,11 @@ section.full-page.visible {
   margin: 14px auto;
   background: var(--color-secondary) !important;
   box-shadow: 0 0 10px var(--color-secondary) !important;
+}
+
+.divider-thick {
+  height: 5px !important;
+  margin-top: 25px;
 }
 
 .hero-date-place {
@@ -433,17 +500,78 @@ section.full-page.visible {
 }
 
 /* Event Elements */
+.event-meta-container {
+  margin-top: 15px;
+  margin-bottom: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.event-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.event-time-icon {
+  font-size: 1.4rem;
+  min-width: 44px;
+  text-align: center;
+}
+
+.event-location-icon {
+  font-size: 1.4rem;
+  min-width: 44px;
+  text-align: center;
+  color: var(--color-secondary);
+}
+
+.event-meta-value {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+.event-meta-location {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #ffffff !important;
+  text-shadow: none !important;
+  text-align: center;
+}
+
+.event-description-text {
+  font-size: 1.05rem;
+  color: #ffffff !important;
+  padding: 0 15px;
+  line-height: 1.6;
+  text-shadow: none !important;
+}
+
 .event-subtitle {
   font-size: 1.1rem;
   color: #ffffff !important;
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.6;
+  padding: 0 10px;
+  text-shadow: none !important;
+}
+
+.event-follow-title {
+  font-size: 1.3rem;
+  margin-bottom: 12px;
+  color: #ffffff !important;
   text-shadow: none !important;
 }
 
 .calendar-icon {
   width: 44px;
   height: 44px;
+  min-width: 44px;
   border-radius: 8px;
   background: var(--color-secondary) !important;
   display: flex;
@@ -495,6 +623,24 @@ section.full-page.visible {
 
 .btn:active {
   transform: translateY(0) scale(0.98);
+}
+
+.btn-directions {
+  padding: 10px 28px;
+  font-size: 0.95rem;
+}
+
+.btn-instagram-gradient {
+  font-weight: bold;
+  font-size: 1.25rem;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888) !important;
+  border: none !important;
+  padding: 12px 26px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: white !important;
+  border-radius: 999px;
 }
 
 .btn-secondary {
@@ -603,12 +749,75 @@ section.full-page.visible {
 
 .couple-role {
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: bold;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--color-secondary) !important;
   text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7) !important;
   margin-bottom: 10px;
+}
+
+.couple-relation-heading {
+  text-align: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-secondary) !important;
+  text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7) !important;
+}
+
+.couple-family-details {
+  color: #ffffff !important;
+  line-height: 1.6;
+  font-size: 1.05rem;
+  text-transform: none;
+  letter-spacing: normal;
+  text-shadow: none !important;
+}
+
+/* Compliments & Signature Sections */
+.rsvp-compliments {
+  margin-top: 20px;
+  font-size: 1.1rem;
+  color: #ffffff !important;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+}
+
+.compliments-title {
+  text-transform: uppercase !important;
+}
+
+.compliments-family-text {
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 1.4rem;
+  color: var(--color-secondary) !important;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 8px rgba(var(--theme-accent-rgb), 0.6);
+}
+
+.rsvp-creator {
+  color: #ffffff !important;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+}
+
+.creator-heading {
+  font-size: 1.1rem;
+}
+
+.creator-social-links {
+  display: flex !important;
+  justify-content: center !important;
+  margin-top: 25px !important;
+  margin-bottom: 25px !important;
+  gap: 20px !important;
+  align-items: center !important;
+}
+
+.social-icon-img {
+  filter: invert(1);
+  display: block;
 }
 
 /* Custom Signature Font & Animations */
@@ -621,7 +830,11 @@ section.full-page.visible {
 
 .signature-glow {
   display: inline-block;
+  font-weight: bold;
+  font-size: 2.2rem;
   font-family: 'Best Signature Font', cursive, sans-serif !important;
+  margin-bottom: 4px;
+  color: inherit;
   animation: 
     blueGlow 3s ease-in-out infinite alternate, 
     softBounce 4s ease-in-out infinite;
