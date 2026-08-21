@@ -15,7 +15,9 @@ export function renderWebInvites() {
         const wrapper = document.createElement('section');
         wrapper.className = "web-invites-page-wrapper";
         wrapper.innerHTML = `
-            <div class="web-invites-loading-wrapper">Please log in to manage web invites.</div>
+            <div class="web-invites-section">
+                <div class="web-invites-loading-state">Please log in to manage web invites.</div>
+            </div>
         `;
         return wrapper;
     }
@@ -92,7 +94,9 @@ export function renderWebInvites() {
 
 async function loadInvitesData(container) {
     container.innerHTML = `
-        <div class="web-invites-loading-wrapper">Loading web invites...</div>
+        <div class="web-invites-section">
+            <div class="web-invites-loading-state">Loading web invites...</div>
+        </div>
     `;
     
     try {
@@ -109,14 +113,20 @@ async function loadInvitesData(container) {
         renderInviteGalleries(container, window.__invitesData);
     } catch (err) {
         container.innerHTML = `
-            <div class="web-invites-loading-wrapper web-invites-error-state">Failed to load invites: ${err.message}</div>
+            <div class="web-invites-section web-invites-section--error">
+                <div class="web-invites-error-state">Failed to load invites: ${err.message}</div>
+            </div>
         `;
     }
 }
 
 function renderInviteGalleries(container, invites) {
     if (!invites || invites.length === 0) {
-        container.innerHTML = `<div class="web-invites-empty-state">No web invitations found.</div>`;
+        container.innerHTML = `
+            <div class="web-invites-section">
+                <div class="web-invites-empty-state">No web invitations found.</div>
+            </div>
+        `;
         return;
     }
 
@@ -199,7 +209,7 @@ function buildGallerySection(title, invites, isArchived) {
         const t = themePalettes[inv.theme] || themePalettes.blue;
 
         const editButtonHtml = isArchived ? '' : `
-            <button class="edit-invite-btn web-invite-card__edit-btn" data-invite='${invJson}' title="Edit Invite" onmouseover="this.style.background='${t.accent}'; this.style.color='#000';" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.color='#fff';">
+            <button class="edit-invite-btn web-invite-card__edit-btn" data-invite='${invJson}' title="Edit Invite">
                 <i data-lucide="edit-2" class="web-invite-card__edit-icon"></i>
             </button>
         `;
