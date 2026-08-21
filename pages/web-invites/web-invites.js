@@ -13,8 +13,10 @@ function startOfDay(date) {
 export function renderWebInvites() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const wrapper = document.createElement('section');
-        wrapper.className = "web-invites-auth-message";
-        wrapper.textContent = "Please log in to manage web invites.";
+        wrapper.className = "web-invites-page-wrapper";
+        wrapper.innerHTML = `
+            <div class="web-invites-loading-wrapper">Please log in to manage web invites.</div>
+        `;
         return wrapper;
     }
     
@@ -89,7 +91,9 @@ export function renderWebInvites() {
 }
 
 async function loadInvitesData(container) {
-    container.innerHTML = `<div class="web-invites-loading-state">Loading web invites...</div>`;
+    container.innerHTML = `
+        <div class="web-invites-loading-wrapper">Loading web invites...</div>
+    `;
     
     try {
         const { data: invites, error } = await supabase
@@ -104,7 +108,9 @@ async function loadInvitesData(container) {
         window.__invitesData = invites || [];
         renderInviteGalleries(container, window.__invitesData);
     } catch (err) {
-        container.innerHTML = `<div class="web-invites-error-state">Failed to load invites: ${err.message}</div>`;
+        container.innerHTML = `
+            <div class="web-invites-loading-wrapper web-invites-error-state">Failed to load invites: ${err.message}</div>
+        `;
     }
 }
 

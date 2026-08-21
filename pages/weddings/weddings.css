@@ -12,13 +12,6 @@
   box-sizing: border-box;
 }
 
-.weddings-page-wrapper--message {
-  width: 100%;
-  text-align: center;
-  padding: var(--space-8);
-  color: var(--color-text-secondary);
-}
-
 .weddings-control-bar {
   display: flex;
   flex-direction: row;
@@ -104,15 +97,17 @@
    STATUS & EMPTY STATES
    ============================================================ */
 .weddings-loading-state {
+  padding: var(--space-6, 24px);
   text-align: center;
-  padding: var(--space-8);
   color: var(--color-text-secondary);
+  font-size: var(--font-size-base, 1rem);
 }
 
 .weddings-error-state {
   color: var(--color-danger, #dc2626);
   text-align: center;
-  padding: var(--space-8);
+  padding: var(--space-6, 24px);
+  font-size: var(--font-size-sm);
 }
 
 .weddings-empty-state {
@@ -147,6 +142,10 @@
   padding: var(--space-5);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
   box-sizing: border-box;
+}
+
+.dashboard-section--error {
+  border-color: var(--color-danger);
 }
 
 .dashboard-section__heading {
@@ -254,7 +253,6 @@
   gap: 6px;
 }
 
-/* Updated to allow multi-line text wrapping without horizontal scrolling */
 .dashboard-wedding-card__row {
   display: flex;
   align-items: flex-start;
@@ -334,7 +332,7 @@
 }
 
 /* ============================================================
-   MODAL FORM CONTROLS (OVERLAP-FREE SCROLLBAR BUFFER)
+   MODAL FORM CONTROLS
    ============================================================ */
 .wedding-modal-form {
   display: flex;
@@ -414,6 +412,7 @@
 
 textarea.wedding-modal-input {
   min-height: 80px;
+  resize: vertical;
 }
 
 .wedding-modal-input[type="date"],
@@ -425,6 +424,7 @@ textarea.wedding-modal-input {
   display: block !important;
   -webkit-appearance: none;
   appearance: none;
+  cursor: pointer;
 }
 
 .wedding-modal-input[type="date"]::-webkit-date-and-time-value,
@@ -519,4 +519,15 @@ textarea.wedding-modal-input {
     padding-right: 12px !important;
     max-height: 52dvh !important;
   }
+}
+
+.weddings-loading-wrapper {
+  padding: var(--space-6, 24px);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base, 1rem);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
 }

@@ -69,13 +69,15 @@ function canEditWedding(wedding) {
 export function renderWeddings() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const wrapper = document.createElement('section');
-        wrapper.className = "weddings-page-wrapper weddings-page-wrapper--message";
-        wrapper.textContent = "Please log in to view weddings.";
+        wrapper.className = "weddings-page-wrapper";
+        wrapper.innerHTML = `
+            <div class="weddings-loading-wrapper">Please log in to view weddings.</div>
+        `;
         return wrapper;
     }
 
     const wrapper = document.createElement('section');
-    wrapper.className = "weddings-page-wrapper"; 
+    wrapper.className = "weddings-page-wrapper";
 
     const controls = document.createElement('div');
     controls.className = "weddings-control-bar";
@@ -139,7 +141,9 @@ async function loadWeddingsData(container) {
     const cleanedUserPhone = userPhone ? userPhone.replace(/[^0-9]/g, '') : null;
     const baseUserPhone = cleanedUserPhone ? cleanedUserPhone.slice(-10) : null;
 
-    container.innerHTML = `<div class="weddings-loading-state">Loading weddings...</div>`;
+    container.innerHTML = `
+        <div class="weddings-loading-wrapper">Loading weddings...</div>
+    `;
     
     try {
         let accessibleWeddingIds = [];
@@ -245,7 +249,11 @@ async function loadWeddingsData(container) {
         filterAndRenderGalleries();
     } catch (error) {
         console.error('[DEBUG ERROR] Failed to load weddings directory:', error);
-        container.innerHTML = `<div class="weddings-error-state">Failed to load data: ${error.message}</div>`;
+        container.innerHTML = `
+            <div class="dashboard-section dashboard-section--error">
+                <div class="weddings-error-state">Failed to load data: ${error.message}</div>
+            </div>
+        `;
     }
 }
 
@@ -751,7 +759,7 @@ export function openEditWeddingModal(wedding) {
                         if (error) throw error;
                         
                         modal.close();
-                        window.dispatchEvent(new Event('weddingDataUpdated')); 
+                        window.dispatchEvent(new Event('weddingDataUpdated'));
                         showSweetAlert('success', 'Deleted!', 'The wedding has been removed.');
                     } catch (error) {
                         showSweetAlert('error', 'Database Error', error.message);
