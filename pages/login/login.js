@@ -131,7 +131,7 @@ export function renderLogin() {
             </div>
 
             <!-- REGISTER VIEW -->
-            <div id="register-view" style="display: none;">
+            <div id="register-view" class="login-view--hidden">
                 <div class="login-header">
                     <h1>Create Account</h1>
                     <p>Register to start using Shaadi Saathi</p>
@@ -194,8 +194,8 @@ export function renderLogin() {
     window.addEventListener('hashchange', hashChangeCleanup);
 
     btnShowRegister.addEventListener('click', () => { 
-        loginView.style.display = 'none'; 
-        registerView.style.display = 'block'; 
+        loginView.classList.add('login-view--hidden'); 
+        registerView.classList.remove('login-view--hidden'); 
         container.querySelectorAll('input').forEach(el => {
             el.classList.remove('login-input--valid');
             el.classList.remove('login-input--invalid');
@@ -203,8 +203,8 @@ export function renderLogin() {
     });
     
     btnShowLogin.addEventListener('click', () => { 
-        registerView.style.display = 'none'; 
-        loginView.style.display = 'block'; 
+        registerView.classList.add('login-view--hidden'); 
+        loginView.classList.remove('login-view--hidden'); 
         container.querySelectorAll('input').forEach(el => {
             el.classList.remove('login-input--valid');
             el.classList.remove('login-input--invalid');
