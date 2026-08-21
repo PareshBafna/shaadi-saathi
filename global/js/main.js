@@ -22,6 +22,7 @@ import { renderWebInvites } from '../../pages/web-invites/web-invites.js';
 import { renderSampleWeddings } from '../../pages/sample-weddings/sample-weddings.js';
 import { renderSampleWeddingDetails } from '../../pages/sample-wedding-details/sample-wedding-details.js';
 import { renderSampleWebInvites } from '../../pages/sample-web-invites-preview/sample-web-invites-preview.js';
+import { renderWebInvitesPreview } from '../../pages/web-invites-preview/web-invites-preview.js';
 
 // --- DYNAMIC PAGE STYLESHEET LOADER ---
 function loadPageStyle(pageName) {
@@ -30,7 +31,7 @@ function loadPageStyle(pageName) {
         existingStyle.remove();
     }
 
-    if (!pageName) return;
+    if (!pageName || pageName === 'web-invites-preview' || pageName === 'sample-web-invites-preview') return;
 
     const link = document.createElement('link');
     link.id = 'dynamic-page-style';
@@ -194,15 +195,12 @@ function initApp(user) {
 }
 
 async function router() {
-    // 1. Force close SweetAlert dialogs
     if (window.Swal && Swal.isVisible() && Swal.getTitle()?.textContent !== 'Session Expired') Swal.close();
     
-    // 2. Remove all open modal elements and backdrops
     document.querySelectorAll('.modal-backdrop, .modal, .custom-modal, .swal2-container').forEach(el => {
         el.remove();
     });
 
-    // 3. Reset body overflow/modal classes
     document.body.classList.remove('modal-open', 'swal2-shown');
     document.body.style.overflow = '';
 
@@ -210,16 +208,13 @@ async function router() {
     const [route, queryString] = hash.split('?');
     const params = new URLSearchParams(queryString || '');
 
-    // Extract active page name for dynamic stylesheet loading
     let activePageName = route.replace('#', '');
     if (activePageName === '' || activePageName === '/') activePageName = 'login';
     loadPageStyle(activePageName);
 
     const contentEl = document.getElementById("main-content");
-    if (!contentEl) return;
     
     if (route === '#login') {
-        // Prevent active sessions from getting trapped on the login page
         const activeUserId = localStorage.getItem('ss_user_id');
         if (activeUserId && window.currentUser) {
             const role = window.currentUser.role;
@@ -240,8 +235,10 @@ async function router() {
         if (bottomNavEl) bottomNavEl.style.display = 'none';
         if (headerEl) headerEl.style.display = 'none';
 
-        contentEl.innerHTML = "";
-        contentEl.appendChild(renderLogin());
+        if (contentEl) {
+            contentEl.innerHTML = "";
+            contentEl.appendChild(renderLogin());
+        }
         return;
     }
 
@@ -254,11 +251,22 @@ async function router() {
         return;
     }
 
-    if (!window.currentUser && !publicRoutes.includes(route)) {
-        checkSessionOrShowAlert();
-        contentEl.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to continue.</div>`;
+    if (route === '#web-invites-preview') {
+        const layoutEl = document.getElementById('layout');
+        if (layoutEl) layoutEl.innerHTML = "";
+        
+        const inviteId = params.get('id');
+        renderWebInvitesPreview(inviteId);
         return;
     }
+
+    if (!window.currentUser && !publicRoutes.includes(route)) {
+        checkSessionOrShowAlert();
+        if (contentEl) contentEl.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to continue.</div>`;
+        return;
+    }
+
+    if (!contentEl) return;
 
     const userRole = window.currentUser?.role || 'guest';
     
@@ -298,7 +306,7 @@ async function router() {
         pageTitle = "Events"; 
         renderFunc = renderEvents; 
         allowedRoles = ['creator']; 
-    }
+    } 
     else if (route === "#users") 
     { 
         pageTitle = "Users"; 
@@ -356,7 +364,6 @@ async function router() {
         activeId = 'sample-weddings';
     }
 
-    // Synchronize active highlights across desktop and mobile navs
     document.querySelectorAll('.sidebar__nav-link, .bottom-nav__item').forEach(link => {
         const pageId = link.getAttribute('data-page-id');
         if (pageId === activeId) {

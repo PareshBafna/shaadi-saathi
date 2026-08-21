@@ -139,7 +139,7 @@ body[data-theme="pink"] .bg-image { background: url('../images/background/pink-b
 #splash-screen {
     position: fixed;
     inset: 0;
-    background: rgba(var(--theme-bg-dark-rgb), 0.78) !important; 
+    background: #000000 !important; /* Force pure black initially to kill the blue flash */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -178,8 +178,8 @@ body[data-theme="pink"] .bg-image { background: url('../images/background/pink-b
     z-index: 3;
     border-left: 250px solid transparent;
     border-right: 250px solid transparent;
-    border-bottom: 180px solid var(--color-bg-dark) !important;
-    filter: brightness(1.35); /* Brightened slightly to show the top fold */
+    border-bottom: 180px solid #000000 !important; /* Changed from var(--color-bg-dark) */
+    filter: brightness(1.35); 
 }
 
 /* Envelope pocket (inner depth layer) */
@@ -191,9 +191,9 @@ body[data-theme="pink"] .bg-image { background: url('../images/background/pink-b
     z-index: 2;
     border-top: 175px solid transparent;
     border-bottom: 175px solid transparent;
-    border-left: 250px solid var(--color-bg-dark) !important;
-    border-right: 250px solid var(--color-bg-dark) !important;
-    filter: brightness(1.0); /* Darkest base layer */
+    border-left: 250px solid #000000 !important; /* Changed from var(--color-bg-dark) */
+    border-right: 250px solid #000000 !important; /* Changed from var(--color-bg-dark) */
+    filter: brightness(1.0); 
 }
 
 /* =========================================================
@@ -209,10 +209,10 @@ body[data-theme="pink"] .bg-image { background: url('../images/background/pink-b
     height: 0;
     border-left: 250px solid transparent;
     border-right: 250px solid transparent;
-    border-top: 200px solid var(--color-bg-dark) !important; 
+    border-top: 200px solid #000000 !important; /* Changed from var(--color-bg-dark) */
     transform-origin: top;
     transition: transform 0.8s ease;
-    filter: brightness(1.2); /* Medium brightness for the top flap */
+    filter: brightness(1.2); 
 }
 
 /* Flap opening animation */
@@ -315,12 +315,12 @@ body[data-theme="pink"] .bg-image { background: url('../images/background/pink-b
     .envelope::before {
         border-left: 160px solid transparent;
         border-right: 160px solid transparent;
-        border-bottom: 110px solid var(--color-bg-dark) !important; 
+        border-bottom: 110px solid #000000 !important; /* Changed from var(--color-bg-dark) */
     }
 
     .envelope::after {
-        border-left: 160px solid var(--color-bg-dark) !important;
-        border-right: 160px solid var(--color-bg-dark) !important;
+        border-left: 160px solid #000000 !important; /* Changed from var(--color-bg-dark) */
+        border-right: 160px solid #000000 !important; /* Changed from var(--color-bg-dark) */
         border-top: 112px solid transparent;
         border-bottom: 112px solid transparent;
     }
@@ -328,7 +328,7 @@ body[data-theme="pink"] .bg-image { background: url('../images/background/pink-b
     .envelope-flap {
         border-left: 160px solid transparent;
         border-right: 160px solid transparent;
-        border-top: 130px solid var(--color-bg-dark) !important; 
+        border-top: 130px solid #000000 !important; /* Changed from var(--color-bg-dark) */
     }
 
     .wax-seal {

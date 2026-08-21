@@ -4,17 +4,6 @@ let weddingConfig = {};
 let weddingEventsData = [];
 let isThemeReady = false; 
 
-const preloaderStyle = document.createElement('style');
-preloaderStyle.innerHTML = `
-    body:not(.theme-loaded) .bg-image,
-    body:not(.theme-loaded) .color-morph,
-    body:not(.theme-loaded) .video-overlay,
-    body:not(.theme-loaded) #particles,
-    body:not(.theme-loaded) .card { opacity: 0 !important; visibility: hidden !important; }
-    html, body { background-color: #000000 !important; }
-`;
-document.head.appendChild(preloaderStyle);
-
 let currentThemeRGB = { main: '29, 78, 216', accent: '96, 165, 250', bgDark: '15, 23, 42' };
 
 function hexToRgb(hex) {
@@ -33,69 +22,53 @@ function generateInitialsLogo(name1, name2, colors) {
     return 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><circle cx="100" cy="100" r="90" fill="none" stroke="${strokeColor}" stroke-width="4" stroke-dasharray="10 5"/><circle cx="100" cy="100" r="80" fill="none" stroke="${strokeColor}" stroke-width="1"/><text x="75" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${name1.charAt(0).toUpperCase()}</text><text x="125" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${name2.charAt(0).toUpperCase()}</text></svg>`);
 }
 
-async function initDynamicInvite() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const inviteId = urlParams.get('id');
-    
-    // Redirect paths
-    const loginRedirectUrl = `/#login`;
-    const dashboardWeddingsUrl = '/#weddings'; 
+const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
+    document.body.innerHTML = '';
+    document.body.style.setProperty('background-image', 'none', 'important');
+    document.body.style.setProperty('background-color', '#0f172a', 'important');
+    document.body.classList.add('theme-loaded'); 
 
-    // Helper to render standard SWAL errors with specific redirect buttons
-    const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
-        // 1. Completely clear the page HTML to remove hearts, petals, envelope, etc.
-        document.body.innerHTML = '';
-        
-        // 2. Force the background to be solid dark, overriding the theme's background image
-        document.body.style.setProperty('background-image', 'none', 'important');
-        document.body.style.setProperty('background-color', '#0f172a', 'important');
-        
-        // 3. Prevent preloader CSS from keeping the page invisible
-        document.body.classList.add('theme-loaded'); 
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'error',
+            title: title,
+            text: text,
+            confirmButtonText: confirmBtnText,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            confirmButtonColor: '#eab308'
+        }).then(() => {
+            window.location.hash = redirectUrl;
+        });
+    } else {
+        alert(`${title}\n\n${text}`);
+        window.location.hash = redirectUrl;
+    }
+};
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: title,
-                text: text,
-                confirmButtonText: confirmBtnText,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                confirmButtonColor: '#eab308' // Yellow button to match dashboard
-            }).then(() => {
-                window.location.href = redirectUrl;
-            });
-        } else {
-            alert(title + "\n\n" + text);
-            window.location.href = redirectUrl;
-        }
-    };
+async function initDynamicInvite(inviteId) {
+    const loginRedirectUrl = '#login';
+    const dashboardWeddingsUrl = '#weddings'; 
 
-    // 1. Check Auth (User ID missing)
     const ssUserId = localStorage.getItem('ss_user_id');
     if (!ssUserId) {
         showSwalError("Authentication Required", "Please log in to view this invitation.", "Go Back To Login", loginRedirectUrl);
         return;
     }
 
-    // 2. Validate UUID format (Wedding ID invalid)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!inviteId || (!uuidRegex.test(inviteId) && inviteId !== '00000000-0000-0000-0000-000000000000')) {
         showSwalError("Invalid Link", "The wedding link is broken or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
         return;
     }
 
-    window.history.replaceState(null, '', `/invite.html?id=${inviteId}`);
-
     try {
-        // Fetch Current User Details (User ID incorrect/not in DB)
         const { data: curUser, error: userErr } = await supabase.from('users').select('*').eq('id', ssUserId).maybeSingle();
         if (userErr || !curUser) {
             showSwalError("Authentication Required", "User session not found. Please log in again.", "Go Back To Login", loginRedirectUrl);
             return;
         }
 
-        // 3. Fetch Wedding & Trigger the Incorrect Details error if missing
         const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', inviteId).maybeSingle();
         if (wErr || !wedding) {
             showSwalError("Error", "Incorrect wedding details. Please contact Admin.", "Go Back to Weddings", dashboardWeddingsUrl);
@@ -131,6 +104,7 @@ async function initDynamicInvite() {
         currentThemeRGB.bgDark = hexToRgb(colors.bgDark);
 
         const dynamicStyle = document.createElement('style');
+        dynamicStyle.id = 'invite-dynamic-style';
         dynamicStyle.innerHTML = `
             :root { --color-primary: ${colors.main} !important; --color-secondary: ${colors.accent} !important; --color-bg-dark: ${colors.bgDark} !important; --theme-accent-rgb: ${currentThemeRGB.accent} !important; --theme-bg-dark-rgb: ${currentThemeRGB.bgDark} !important; }
             html, body { background-color: var(--color-bg-dark) !important; background-image: url('global/images/background/${selectedThemeName}-background.png') !important; background-size: cover !important; background-position: center !important; background-attachment: fixed !important; background-repeat: no-repeat !important; }
@@ -140,7 +114,6 @@ async function initDynamicInvite() {
             .time-box, .couple-card { border: 1px solid var(--color-secondary) !important; background: rgba(var(--theme-bg-dark-rgb), 0.6) !important; box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.25) !important; }
             .calendar-icon { background: var(--color-secondary) !important; box-shadow: 0 0 10px rgba(var(--theme-accent-rgb), 0.6) !important; } .calendar-icon .cal-month, .calendar-icon .cal-day { color: var(--color-bg-dark) !important; }
             
-            /* Fixed Flower Corner Positioning - Negatives to push outwards */
             .flower-corner { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), rgba(var(--theme-accent-rgb), 0.2) 50%, rgba(var(--theme-bg-dark-rgb), 0.8) 90%) !important; box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.3), 0 0 20px rgba(var(--theme-accent-rgb), 0.5) !important; }
             .flower-top-left { top: -40px !important; left: -30px !important; }
             .flower-top-right { top: -40px !important; right: -30px !important; }
@@ -155,7 +128,6 @@ async function initDynamicInvite() {
             @keyframes themeGlowPulse { 0% { box-shadow: 0 0 20px rgba(var(--theme-accent-rgb), 0.2), inset 0 0 10px rgba(var(--theme-accent-rgb), 0.1); } 100% { box-shadow: 0 0 40px rgba(var(--theme-accent-rgb), 0.5), inset 0 0 20px rgba(var(--theme-accent-rgb), 0.3); } }
             @keyframes countdownGlow { 0% { box-shadow: 0 0 8px rgba(var(--theme-accent-rgb), 0.5); } 100% { box-shadow: 0 0 16px rgba(var(--theme-accent-rgb), 0.8); } }
             
-            /* Slim Scrollbar */
             ::-webkit-scrollbar { width: 6px; height: 6px; }
             ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2) !important; border-radius: 10px; }
             ::-webkit-scrollbar-thumb { background: var(--color-secondary) !important; border-radius: 10px; }
@@ -182,7 +154,6 @@ async function initDynamicInvite() {
         if (!canViewAll) {
             const { data: guests } = await supabase.from('guests').select('*').eq('wedding_id', wedding.id);
             
-            // Safe phone matching logic
             const cleanPhone = (p) => (p || '').replace(/[^0-9]/g, '').slice(-10);
             const curUserClean = cleanPhone(curUser.phone);
             
@@ -193,7 +164,7 @@ async function initDynamicInvite() {
                     "Not Invited", 
                     "Your account is not registered on the guest list for this wedding. Please contact the host if you believe this is a mistake.",
                     "Go Back to Weddings",
-                    "/#weddings"
+                    "#weddings"
                 );
                 return;
             }
@@ -213,10 +184,13 @@ async function initDynamicInvite() {
         const dynamicLogoUri = generateDynamicLogo(primaryFirstName, secondaryFirstName, colors);
         const initialsLogoUri = generateInitialsLogo(primaryFirstName, secondaryFirstName, colors);
         
-        const link = document.createElement('link');
-        link.rel = 'icon';
+        let link = document.querySelector("link[rel~='icon']");
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+        }
         link.href = initialsLogoUri;
-        document.head.appendChild(link);
 
         const sealImg = document.getElementById('seal-logo-img');
         if (sealImg) {
@@ -248,9 +222,7 @@ async function initDynamicInvite() {
                 mother: inviteDetails.groom_mother || ""
             },
             hashtag: wedding.hashtag,
-            // Display only the end date (or start date if end isn't available)
             mainDatePlace: new Date(wedding.end_date || wedding.start_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase(),
-            // Sync countdown to the final event time
             timerTarget: filteredEvents.length > 0 ? `${filteredEvents[filteredEvents.length - 1].date}T${filteredEvents[filteredEvents.length - 1].time || '23:59:59'}` : `${wedding.end_date || wedding.start_date}T23:59:59`,
             instagram: wedding.instagram || "",
             instaLink: wedding.instagram 
@@ -286,7 +258,8 @@ async function initDynamicInvite() {
 
     } catch (err) {
         console.error("Error loading invite:", err);
-        showSwalError("Error", err?.message || "An unexpected error occurred.", "Go Back to Weddings", "/#weddings");    }
+        showSwalError("Error", err?.message || "An unexpected error occurred.", "Go Back to Weddings", "#weddings");
+    }
 }
 
 const generateWelcomeHTML = () => {
@@ -410,7 +383,6 @@ const generateCoupleHTML = () => {
     </section>`;
 };
 
-// FIX: Changed from <h2 class="event-title"> to <div class="tagline"> to inherit the exact sans-serif font
 const generateEventHTML = (event) => `
     <section class="full-page js-reveal" id="${event.id}">
         <div class="card">
@@ -602,42 +574,6 @@ function updateTimer() {
     s.textContent = Math.floor((diff % 60000) / 1000).toString().padStart(2, "0");
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    initDynamicInvite();
-    
-    const seal = document.getElementById("seal-container");
-    if (seal) {
-        seal.addEventListener("click", () => {
-            const bgMusic = document.getElementById("bgMusic");
-            if (bgMusic) { bgMusic.volume = 0.6; bgMusic.play().catch(() => {}); }
-            
-            injectAllContent();
-            seal.style.opacity = "0"; seal.style.pointerEvents = "none";
-            document.getElementById("env-flap")?.classList.add("flap-open");
-            
-            setTimeout(() => {
-                document.getElementById("splash-screen")?.classList.add("splash-open");
-                document.body.style.overflow = "auto";
-                initButtonListeners(); syncNavDots(); initNameAnimation();
-                setInterval(updateTimer, 1000); updateTimer();
-            }, 800);
-
-            setTimeout(() => {
-                document.querySelectorAll(".js-reveal, section.full-page").forEach(s => s.classList.add("visible"));
-                if (window.triggerBurst) window.triggerBurst(window.innerWidth / 2, 0, 120); 
-            }, 1200);
-        });
-    }
-});
-
-window.addEventListener("scroll", () => {
-    document.querySelectorAll(".js-reveal, section.full-page").forEach((sec) => {
-        if (sec.getBoundingClientRect().top < window.innerHeight * 0.8) sec.classList.add("visible");
-    });
-    const btt = document.querySelector(".back-to-top");
-    if (btt) btt.classList.toggle("hidden", window.scrollY <= 400);
-});
-
 function initParticles() {
     const canvas = document.getElementById("particles");
     if (!canvas) return;
@@ -705,4 +641,81 @@ function initParticles() {
     animate();
 }
 
-window.addEventListener('load', () => setTimeout(initParticles, 100));
+window.addEventListener("scroll", () => {
+    document.querySelectorAll(".js-reveal, section.full-page").forEach((sec) => {
+        if (sec.getBoundingClientRect().top < window.innerHeight * 0.8) sec.classList.add("visible");
+    });
+    const btt = document.querySelector(".back-to-top");
+    if (btt) btt.classList.toggle("hidden", window.scrollY <= 400);
+});
+
+function loadCSS(id, href) {
+    return new Promise((resolve) => {
+        if (document.getElementById(id)) {
+            resolve();
+            return;
+        }
+        const link = document.createElement('link');
+        link.id = id;
+        link.rel = 'stylesheet';
+        link.href = href;
+        link.onload = resolve;
+        document.head.appendChild(link);
+    });
+}
+
+export async function renderWebInvitesPreview(inviteId) {
+    await Promise.all([
+        loadCSS('web-invite-splash-styles', '/global/css/splash.css'),
+        loadCSS('web-invite-base-styles', '/global/css/invite.css')
+    ]);
+
+    document.body.innerHTML = `
+        <div class="bg-image"></div>
+        <canvas id="particles"></canvas>
+        <div class="nav-dots"></div>
+
+        <div id="splash-screen">
+            <div class="envelope">      
+                <div class="envelope-flap" id="env-flap"></div>
+                <div id="seal-container">
+                    <div class="wax-seal">
+                        <img id="seal-logo-img" src="" alt="Seal Logo" height="150" width="130" style="opacity: 0;">
+                    </div>
+                    <p class="seal-label">Tap to Open</p>
+                </div>
+            </div>
+        </div>
+
+        <main id="main-content-area"></main>
+        <button class="back-to-top hidden" data-target="#welcome">↑</button>
+        <audio id="bgMusic" src="global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
+    `;
+
+    initDynamicInvite(inviteId);
+    setTimeout(initParticles, 100);
+
+    const seal = document.getElementById("seal-container");
+    if (seal) {
+        seal.addEventListener("click", () => {
+            const bgMusic = document.getElementById("bgMusic");
+            if (bgMusic) { bgMusic.volume = 0.6; bgMusic.play().catch(() => {}); }
+            
+            injectAllContent();
+            seal.style.opacity = "0"; seal.style.pointerEvents = "none";
+            document.getElementById("env-flap")?.classList.add("flap-open");
+            
+            setTimeout(() => {
+                document.getElementById("splash-screen")?.classList.add("splash-open");
+                document.body.style.overflow = "auto";
+                initButtonListeners(); syncNavDots(); initNameAnimation();
+                setInterval(updateTimer, 1000); updateTimer();
+            }, 800);
+
+            setTimeout(() => {
+                document.querySelectorAll(".js-reveal, section.full-page").forEach(s => s.classList.add("visible"));
+                if (window.triggerBurst) window.triggerBurst(window.innerWidth / 2, 0, 120); 
+            }, 1200);
+        });
+    }
+}

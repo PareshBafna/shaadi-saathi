@@ -134,7 +134,7 @@ async function loadWeddingData(container, weddingId) {
         }
 
         const { data: webInvite } = await supabase.from('wedding_web_invite').select('id').eq('wedding_id', weddingId).maybeSingle();
-        const hasWebInvite = !webInvite;
+        const hasWebInvite = !!webInvite;
 
         const { data: allSysUsers, error: sysUsersErr } = await supabase.from('users').select('id, name, phone, role');
         if (sysUsersErr) throw sysUsersErr;
@@ -280,9 +280,9 @@ function buildSpecificHeader(wedding, hasWebInvite = true) {
 
     let webInviteHTML = '';
     if (hasWebInvite || wedding.id === '00000000-0000-0000-0000-000000000000') {
-        let inviteUrl = `${window.location.origin}/invite.html?id=${wedding.id}`;
+        let inviteUrl = `/#web-invites-preview?id=${wedding.id}`;
         if (wedding.id === '00000000-0000-0000-0000-000000000000') {
-            inviteUrl = `${window.location.origin}/sample-invite.html`;
+            inviteUrl = `/#sample-web-invites-preview?id=sample-upcoming`;
         }
         webInviteHTML = `
             <a href="${inviteUrl}" target="_blank" class="wedding-details-header__invite-btn">
