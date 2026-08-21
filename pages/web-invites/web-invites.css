@@ -448,3 +448,8 @@ textarea.invite-modal-input {
     max-height: 52dvh !important;
   }
 }
+
+.web-invite-card__edit-icon {
+  width: 14px;
+  height: 14px;
+}

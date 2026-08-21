@@ -194,7 +194,7 @@ function buildGallerySection(title, invites, isArchived) {
 
         const editButtonHtml = isArchived ? '' : `
             <button class="edit-invite-btn web-invite-card__edit-btn" data-invite='${invJson}' title="Edit Invite" onmouseover="this.style.background='${t.accent}'; this.style.color='#000';" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.color='#fff';">
-                <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i>
+                <i data-lucide="edit-2" class="web-invite-card__edit-icon"></i>
             </button>
         `;
 
