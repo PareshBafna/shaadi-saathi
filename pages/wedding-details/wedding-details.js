@@ -10,7 +10,6 @@ function generateInviteCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// Debounced / Single-firing broadcast helper to prevent redundant re-renders
 let broadcastTimer = null;
 function broadcastWeddingDataUpdated() {
     if (broadcastTimer) return;
@@ -24,16 +23,12 @@ function broadcastWeddingDataUpdated() {
     }, 150);
 }
 
-// Normalize phone numbers to catch variations like +919791146838 vs 9791146838 (compares last 10 digits)
 function normalizePhone(phone) {
     if (!phone) return '';
     const digits = phone.replace(/[^0-9]/g, '');
     return digits.length > 10 ? digits.slice(-10) : digits;
 }
 
-// ==========================================
-// DYNAMIC SCRIPT LOADER (ENSURES XLSX NEVER FAILS)
-// ==========================================
 function ensureXLSXLoaded() {
     return new Promise((resolve, reject) => {
         if (typeof XLSX !== 'undefined') {
@@ -62,11 +57,19 @@ export function renderWeddingDetails(weddingId) {
     wrapper.className = "wedding-details-wrapper"; 
     
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
-        wrapper.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to view wedding details.</div>`;
+        wrapper.innerHTML = `
+            <div class="wedding-details-section">
+                <div class="wedding-details-loading-state">Please log in to view wedding details.</div>
+            </div>
+        `;
         return wrapper;
     }
 
-    wrapper.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Loading wedding details...</div>`;
+    wrapper.innerHTML = `
+        <div class="wedding-details-section">
+            <div class="wedding-details-loading-state">Loading wedding details...</div>
+        </div>
+    `;
 
     loadWeddingData(wrapper, weddingId);
 
@@ -231,7 +234,7 @@ async function loadWeddingData(container, weddingId) {
 }
 
 // ==========================================
-// 1. HEADER SECTION (INSTAGRAM FIRST, INVITE SECOND)
+// 1. HEADER SECTION
 // ==========================================
 function buildSpecificHeader(wedding, hasWebInvite = true) {
     const header = document.createElement("div");
@@ -247,7 +250,7 @@ function buildSpecificHeader(wedding, hasWebInvite = true) {
     let hashtagHTML = '';
     if (wedding.hashtag) {
         const formattedHashtag = wedding.hashtag.startsWith('#') ? wedding.hashtag : `#${wedding.hashtag}`;
-        hashtagHTML = `<div style="margin-top: 4px;"><span class="wedding-details-header__hashtag">${formattedHashtag}</span></div>`;
+        hashtagHTML = `<div class="wedding-details-header__hashtag-wrap"><span class="wedding-details-header__hashtag">${formattedHashtag}</span></div>`;
     }
 
     leftSide.innerHTML = `
@@ -286,7 +289,7 @@ function buildSpecificHeader(wedding, hasWebInvite = true) {
         }
         webInviteHTML = `
             <a href="${inviteUrl}" target="_blank" class="wedding-details-header__invite-btn">
-                <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Wedding Invitation
+                <i data-lucide="external-link"></i> Wedding Invitation
             </a>`;
     }
 
@@ -318,7 +321,7 @@ function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0, hosts = [
 
         if (wedding.family_name) {
             topCardsHTML += `
-            <div class="wedding-details-stat-card" style="flex: 1; min-width: 250px;">
+            <div class="wedding-details-stat-card wedding-details-stat-card--flex1">
                 <div>
                     <p class="wedding-details-stat-card__subtitle">Family Name</p>
                     <p class="wedding-details-stat-card__title wedding-details-stat-card__title--md">${wedding.family_name}</p>
@@ -331,10 +334,10 @@ function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0, hosts = [
 
         if (wedding.family_details) {
             topCardsHTML += `
-            <div class="wedding-details-stat-card" style="flex: 2; min-width: 300px;">
+            <div class="wedding-details-stat-card wedding-details-stat-card--flex2">
                 <div>
                     <p class="wedding-details-stat-card__subtitle">Family Details</p>
-                    <p class="wedding-details-stat-card__title wedding-details-stat-card__title--md" style="line-height: 1.4;">${formatWithNewlines(wedding.family_details)}</p>
+                    <p class="wedding-details-stat-card__title wedding-details-stat-card__title--md wedding-details-stat-card__title--details">${formatWithNewlines(wedding.family_details)}</p>
                 </div>
                 <div class="wedding-details-stat-card__icon-badge">
                     <i data-lucide="users"></i>
@@ -360,12 +363,12 @@ function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0, hosts = [
             <div class="wedding-details-host-row">
                 <span class="wedding-details-host-row__text">${host.name} - ${host.phone}</span>
                 <a href="tel:${cleanNum}" class="wedding-details-host-row__call-btn" title="Call ${host.name}">
-                    <i data-lucide="phone" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="phone"></i>
                 </a>
             </div>`;
         }).join('');
     } else {
-        hostRowsHTML = `<div style="margin-top: var(--space-3); padding-top: var(--space-3); color: var(--color-text-secondary); font-size: var(--font-size-sm); font-style: italic;">No wedding hosts added yet.</div>`;
+        hostRowsHTML = `<div class="wedding-details-host-empty">No wedding hosts added yet.</div>`;
     }
 
     bottomCardsHTML += `
@@ -449,7 +452,7 @@ function buildEventItinerarySection(wedding, events, canConfig) {
 
     function renderEventsView() {
         if (!events || events.length === 0) {
-            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No events scheduled yet.</div>`;
+            content.innerHTML = `<div class="wedding-details-empty-state">No events scheduled yet.</div>`;
             return;
         }
         
@@ -468,45 +471,45 @@ function buildEventItinerarySection(wedding, events, canConfig) {
             return groups;
         }, {});
 
-        let htmlContent = `<div style="display: flex; flex-direction: column; position: relative; padding-left: 12px; margin-top: 12px;">`;
-        htmlContent += `<div style="position: absolute; left: 16px; top: 12px; bottom: 20px; width: 2px; background: var(--color-border);"></div>`;
+        let htmlContent = `<div class="wedding-details-timeline-wrap">`;
+        htmlContent += `<div class="wedding-details-timeline-line"></div>`;
         
         Object.entries(groupedEvents).forEach(([dateLabel, dayEvents], groupIdx) => {
             htmlContent += `
-                <div style="position: relative; margin-top: ${groupIdx === 0 ? '0' : '24px'}; margin-bottom: 16px; display: flex; align-items: center;">
-                    <div style="position: absolute; left: -1.5px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary); border: 2px solid var(--color-white); z-index: 2;"></div>
-                    <h3 style="font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-primary); margin: 0 0 0 24px;">
+                <div class="wedding-details-timeline-day ${groupIdx > 0 ? 'wedding-details-timeline-day--subsequent' : ''}">
+                    <div class="wedding-details-timeline-dot"></div>
+                    <h3 class="wedding-details-timeline-day-title">
                         ${dateLabel}
                     </h3>
                 </div>
             `;
             
             dayEvents.forEach(ev => {
-                const editIcon = canConfig ? `<button class="edit-event-btn" data-id="${ev.id}" style="background:none; border:none; padding:4px; cursor:pointer; margin-left:auto; color: var(--color-text-muted);" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'"><i data-lucide="edit-2" style="width: 14px; height: 14px; color: currentColor;"></i></button>` : '';
+                const editIcon = canConfig ? `<button class="edit-event-btn timeline-event-card__edit-btn" data-id="${ev.id}"><i data-lucide="edit-2" class="wedding-details-edit-icon"></i></button>` : '';
                 
                 const venueHTML = ev.venue_map_link 
-                    ? `<a href="${ev.venue_map_link}" target="_blank" style="line-height: 1.4; color: var(--color-primary); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; transition: color 0.2s;" onmouseover="this.style.color='var(--color-text-primary)'" onmouseout="this.style.color='var(--color-primary)'">${ev.venue}</a>`
-                    : `<span style="line-height: 1.4;">${ev.venue}</span>`;
+                    ? `<a href="${ev.venue_map_link}" target="_blank" class="timeline-event-card__venue-link">${ev.venue}</a>`
+                    : `<span class="timeline-event-card__venue-text">${ev.venue}</span>`;
 
                 const eventHeading = ev.event_name || 'Untitled Event';
 
                 htmlContent += `
                     <div class="timeline-event-card">
-                        <div style="position: absolute; left: -24px; top: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); border: 2px solid var(--color-white); z-index: 2;"></div>
+                        <div class="timeline-event-card__dot"></div>
                         
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div style="display: flex; align-items: baseline; gap: 8px;">
-                                <h4 style="margin: 0; font-size: 1.05rem; font-weight: var(--font-weight-bold); color: var(--color-text-primary);">${eventHeading}</h4>
+                        <div class="timeline-event-card__header">
+                            <div class="timeline-event-card__title-group">
+                                <h4 class="timeline-event-card__title">${eventHeading}</h4>
                             </div>
                             ${editIcon}
                         </div>
                         
-                        <div style="display: flex; gap: 16px; color: var(--color-text-secondary); font-size: var(--font-size-sm); flex-wrap: wrap;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${formatTime(ev.time)}
+                        <div class="timeline-event-card__meta">
+                            <div class="timeline-event-card__meta-item">
+                                <i data-lucide="clock"></i> ${formatTime(ev.time)}
                             </div>
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> ${venueHTML}
+                            <div class="timeline-event-card__meta-item">
+                                <i data-lucide="map-pin"></i> ${venueHTML}
                             </div>
                         </div>
                     </div>
@@ -657,13 +660,13 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
         const paginatedHosts = sortedHosts.slice(startIndex, startIndex + itemsPerPage);
 
         if (!hosts || hosts.length === 0) {
-            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No wedding hosts assigned yet.</div>`;
+            content.innerHTML = `<div class="wedding-details-empty-state">No wedding hosts assigned yet.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
 
         if (paginatedHosts.length === 0) {
-            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No hosts match your search.</div>`;
+            content.innerHTML = `<div class="wedding-details-empty-state">No hosts match your search.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
@@ -684,21 +687,21 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
             const canEditThisHost = canConfig && (isCreator || host.user_id !== curUserId);
             
             const actionBtn = canEditThisHost ? `
-                <button class="edit-host-btn" data-id="${host.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
-                    <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
+                <button class="edit-host-btn wedding-details-icon-btn" data-id="${host.id}" title="Edit">
+                    <i data-lucide="edit-2" class="wedding-details-edit-icon"></i>
                 </button>
             ` : `<div></div>`;
 
             listHTML += `
             <div class="wedding-details-table-row-wrap">
-                <div class="hosts-table-grid" style="transition: background 0.2s ease;" onmouseover="this.style.background='var(--color-border)';" onmouseout="this.style.background='transparent';">
+                <div class="hosts-table-grid">
                     ${actionBtn}
                     <div class="wedding-details-col-sno">${globalIndex}</div>
                     <div class="guest-name-cell">
                         <h4 class="guest-name-text">${host.name || '-'}</h4>
                     </div>
                     <div class="guest-phone-cell">
-                        <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> <span>${host.phone || '-'}</span>
+                        <i data-lucide="phone"></i> <span>${host.phone || '-'}</span>
                     </div>
                 </div>
             </div>`;
@@ -707,18 +710,18 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
         listHTML += `
                 </div>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border);">
-                <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+            <div class="wedding-details-pagination-bar">
+                <div class="wedding-details-pagination-info">
                     Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, sortedHosts.length)} of ${sortedHosts.length} hosts
                 </div>
         `;
 
         if (totalPages > 1) {
             listHTML += `
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <button class="host-pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === 1 ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
-                    <span style="font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-medium); padding: 0 8px;">Page ${currentPage} of ${totalPages}</span>
-                    <button class="host-pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === totalPages ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                <div class="wedding-details-pagination-controls">
+                    <button class="host-pagination-btn wedding-details-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
+                    <span class="wedding-details-page-indicator">Page ${currentPage} of ${totalPages}</span>
+                    <button class="host-pagination-btn wedding-details-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
                 </div>
             `;
         } else {
@@ -823,13 +826,13 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
         const paginatedUsers = sortedUsers.slice(startIndex, startIndex + itemsPerPage);
 
         if (!wUsers || wUsers.length === 0) {
-            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No wedding users assigned yet.</div>`;
+            content.innerHTML = `<div class="wedding-details-empty-state">No wedding users assigned yet.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
 
         if (paginatedUsers.length === 0) {
-            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No users match your search.</div>`;
+            content.innerHTML = `<div class="wedding-details-empty-state">No users match your search.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
@@ -849,21 +852,21 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
             const globalIndex = startIndex + index + 1;
             
             const actionBtn = canConfig ? `
-                <button class="edit-wedding-user-btn" data-id="${u.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'" title="Edit">
-                    <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
+                <button class="edit-wedding-user-btn wedding-details-icon-btn" data-id="${u.id}" title="Edit">
+                    <i data-lucide="edit-2" class="wedding-details-edit-icon"></i>
                 </button>
             ` : `<div></div>`;
 
             listHTML += `
             <div class="wedding-details-table-row-wrap">
-                <div class="users-table-grid" style="transition: background 0.2s ease;" onmouseover="this.style.background='var(--color-border)';" onmouseout="this.style.background='transparent';">
+                <div class="users-table-grid">
                     ${actionBtn}
                     <div class="wedding-details-col-sno">${globalIndex}</div>
                     <div class="guest-name-cell">
                         <h4 class="guest-name-text">${u.name || '-'}</h4>
                     </div>
                     <div class="guest-phone-cell">
-                        <i data-lucide="phone" style="width: 14px; height: 14px; flex-shrink: 0;"></i> <span>${u.phone || '-'}</span>
+                        <i data-lucide="phone"></i> <span>${u.phone || '-'}</span>
                     </div>
                 </div>
             </div>`;
@@ -872,18 +875,18 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
         listHTML += `
                 </div>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border);">
-                <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+            <div class="wedding-details-pagination-bar">
+                <div class="wedding-details-pagination-info">
                     Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, sortedUsers.length)} of ${sortedUsers.length} users
                 </div>
         `;
 
         if (totalPages > 1) {
             listHTML += `
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <button class="wedding-user-pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === 1 ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
-                    <span style="font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-medium); padding: 0 8px;">Page ${currentPage} of ${totalPages}</span>
-                    <button class="wedding-user-pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === totalPages ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                <div class="wedding-details-pagination-controls">
+                    <button class="wedding-user-pagination-btn wedding-details-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
+                    <span class="wedding-details-page-indicator">Page ${currentPage} of ${totalPages}</span>
+                    <button class="wedding-user-pagination-btn wedding-details-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
                 </div>
             `;
         } else {
@@ -946,44 +949,15 @@ function layoutDetailsModalFooter(isEditModal = false) {
 
     if (cancelBtn) {
         cancelBtn.classList.add('modal-btn-cancel');
-        cancelBtn.style.order = '1';
-        cancelBtn.style.flexShrink = '0';
-        cancelBtn.style.marginRight = isEditModal ? '0' : '0';
     }
 
     if (closeBtn) {
         closeBtn.classList.remove('modal-btn-cancel');
         closeBtn.classList.add('wedding-action-btn-primary');
-        closeBtn.style.order = '3';
-        closeBtn.style.flexShrink = '0';
-        closeBtn.style.marginLeft = 'auto';
-        closeBtn.style.whiteSpace = 'nowrap';
     }
 
     if (deleteBtn) {
         deleteBtn.classList.add('modal-btn-delete');
-        deleteBtn.style.order = '2';
-        deleteBtn.style.flexShrink = '0';
-        deleteBtn.style.margin = '0 auto';
-    }
-
-    if (primaryBtn) {
-        primaryBtn.style.order = '3';
-        primaryBtn.style.flexShrink = '0';
-        primaryBtn.style.marginLeft = isEditModal ? '0' : 'auto';
-        primaryBtn.style.whiteSpace = 'nowrap';
-    }
-
-    const container = (cancelBtn || closeBtn || primaryBtn)?.parentElement;
-    if (container) {
-        container.style.display = 'flex';
-        container.style.flexDirection = 'row';
-        container.style.flexWrap = 'nowrap';
-        container.style.width = '100%';
-        container.style.justifyContent = 'space-between';
-        container.style.alignItems = 'center';
-        container.style.gap = '8px';
-        container.style.boxSizing = 'border-box';
     }
 }
 
@@ -1246,7 +1220,7 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
 };
 
 // ==========================================
-// 6. GUEST LIST SECTION (CONFIG: 7 COLS / READONLY: 5 COLS)
+// 6. GUEST LIST SECTION
 // ==========================================
 function buildGuestListSection(wedding, guests, events, canConfig) {
     window.__currentEvents = events || [];
@@ -1303,13 +1277,13 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
         const paginatedGuests = sortedGuests.slice(startIndex, startIndex + itemsPerPage);
 
         if (!guests || guests.length === 0) {
-            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No guests added yet.</div>`;
+            content.innerHTML = `<div class="wedding-details-empty-state">No guests added yet.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
 
         if (paginatedGuests.length === 0) {
-            content.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">No guests match your search.</div>`;
+            content.innerHTML = `<div class="wedding-details-empty-state">No guests match your search.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
@@ -1325,8 +1299,8 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
                         <div>S.No</div>
                         <div>Name</div>
                         <div>Phone Number</div>
-                        <div style="text-align: center;">Events</div>
-                        ${canConfig ? '<div style="text-align: center;">WA</div>' : ''}
+                        <div class="guest-events-count">Events</div>
+                        ${canConfig ? '<div class="guest-events-count">WA</div>' : ''}
                     </div>
         `;
 
@@ -1334,8 +1308,8 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
             const globalIndex = startIndex + index + 1;
             const guestEvents = events ? events.filter(e => guest.invited_events?.includes(e.id)) : [];
             const eventsTags = guestEvents.length > 0 
-                ? guestEvents.map(e => `<span style="background: var(--color-border); padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; color: var(--color-text-primary); font-weight: var(--font-weight-medium); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="calendar" style="width:12px; height:12px;"></i> ${e.event_name || e.title}</span>`).join('')
-                : `<span style="color: var(--color-text-muted); font-size: 0.8rem; font-style: italic;">No events assigned</span>`;
+                ? guestEvents.map(e => `<span class="wedding-details-guest-event-tag"><i data-lucide="calendar"></i> ${e.event_name || e.title}</span>`).join('')
+                : `<span class="guest-child-row__empty">No events assigned</span>`;
 
             const cleanPhone = guest.phone ? guest.phone.replace(/[^0-9+]/g, '') : '';
             const hasInvitedEvents = guest.invited_events && guest.invited_events.length > 0;
@@ -1361,30 +1335,30 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
                 const encodedMessage = encodeURIComponent(waMessage);
 
                 waCellContent = `
-                    <a href="https://wa.me/${cleanPhone}?text=${encodedMessage}" target="_blank" onclick="event.stopPropagation();" style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; background:#25D366; color:white; border-radius:50%; text-decoration:none; transition:opacity 0.2s; margin: 0 auto;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'" title="WhatsApp">
+                    <a href="https://wa.me/${cleanPhone}?text=${encodedMessage}" target="_blank" onclick="event.stopPropagation();" class="guest-wa-btn" title="WhatsApp">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                         </svg>
                     </a>
                 `;
             } else if (!guest.phone) {
-                waCellContent = `<div style="text-align: center; color: var(--color-danger); font-size: 0.65rem; font-weight: var(--font-weight-medium); line-height: 1.2;">No Phone</div>`;
+                waCellContent = `<div class="guest-wa-badge--error">No Phone</div>`;
             } else {
-                waCellContent = `<div style="text-align: center; color: var(--color-danger); font-size: 0.65rem; font-weight: var(--font-weight-medium); line-height: 1.2;">No Events</div>`;
+                waCellContent = `<div class="guest-wa-badge--error">No Events</div>`;
             }
 
             const editCol = canConfig ? `
-                <button class="edit-guest-btn" data-id="${guest.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'">
-                    <i data-lucide="edit-2" style="width: 16px; height: 16px;"></i>
+                <button class="edit-guest-btn wedding-details-icon-btn" data-id="${guest.id}" title="Edit">
+                    <i data-lucide="edit-2" class="wedding-details-edit-icon"></i>
                 </button>
             ` : '';
                 
             return `
             <div class="wedding-details-table-row-wrap">
-                <div class="${gridClass}" style="transition: background 0.2s ease;" onmouseover="this.style.background='var(--color-border)';" onmouseout="this.style.background='transparent';">
+                <div class="${gridClass}">
                     
-                    <button class="toggle-events-btn" data-target="child-${guest.id}" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--color-primary)'" onmouseout="this.style.color='var(--color-text-muted)'">
-                        <i data-lucide="chevron-right" style="width: 18px; height: 18px; transition: transform 0.2s;"></i>
+                    <button class="toggle-events-btn wedding-details-icon-btn" data-target="child-${guest.id}">
+                        <i data-lucide="chevron-right"></i>
                     </button>
 
                     ${editCol}
@@ -1396,19 +1370,19 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
                     </div>
                     
                     <div class="guest-phone-cell">
-                        <i data-lucide="phone" style="width: 13px; height: 13px; flex-shrink: 0;"></i> <span>${guest.phone || '-'}</span>
+                        <i data-lucide="phone"></i> <span>${guest.phone || '-'}</span>
                     </div>
                     
-                    <div style="display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); font-size: var(--font-size-sm); min-width: 0; font-weight: var(--font-weight-medium);">
+                    <div class="guest-events-count">
                         ${guest.invited_events?.length || 0}
                     </div>
 
                     ${canConfig ? `<div>${waCellContent}</div>` : ''}
                 </div>
 
-                <div id="child-${guest.id}" style="display: none; padding: var(--space-4) var(--space-4) var(--space-4) ${canConfig ? '74px' : '42px'}; background: var(--color-white); border-top: 1px dashed var(--color-border);">
-                    <div style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: var(--font-weight-semibold);">Events Invited To:</div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <div id="child-${guest.id}" class="guest-child-row ${canConfig ? 'guest-child-row--config' : 'guest-child-row--readonly'}">
+                    <div class="guest-child-row__title">Events Invited To:</div>
+                    <div class="guest-child-row__tags">
                         ${eventsTags}
                     </div>
                 </div>
@@ -1418,18 +1392,18 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
         listHTML += `
                 </div>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border);">
-                <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+            <div class="wedding-details-pagination-bar">
+                <div class="wedding-details-pagination-info">
                     Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, sortedGuests.length)} of ${sortedGuests.length} guests
                 </div>
         `;
 
         if (totalPages > 1) {
             listHTML += `
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <button class="pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === 1 ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
-                    <span style="font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-medium); padding: 0 8px;">Page ${currentPage} of ${totalPages}</span>
-                    <button class="pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'}; opacity: ${currentPage === totalPages ? '0.5' : '1'}; color: var(--color-text-primary); display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                <div class="wedding-details-pagination-controls">
+                    <button class="pagination-btn wedding-details-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
+                    <span class="wedding-details-page-indicator">Page ${currentPage} of ${totalPages}</span>
+                    <button class="pagination-btn wedding-details-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
                 </div>
             `;
         } else {
@@ -1455,14 +1429,14 @@ function buildGuestListSection(wedding, guests, events, canConfig) {
                     e.stopPropagation();
                     const targetId = btn.getAttribute('data-target');
                     const childRow = document.getElementById(targetId);
-                    const icon = btn.querySelector('i');
+                    const icon = btn.querySelector('i, svg');
                     
-                    if (childRow.style.display === 'none') {
+                    if (childRow.style.display === 'none' || !childRow.style.display) {
                         childRow.style.display = 'block';
-                        icon.style.transform = 'rotate(90deg)';
+                        if (icon) icon.style.transform = 'rotate(90deg)';
                     } else {
                         childRow.style.display = 'none';
-                        icon.style.transform = 'rotate(0deg)';
+                        if (icon) icon.style.transform = 'rotate(0deg)';
                     }
                 });
             });
@@ -1521,7 +1495,7 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
 
     const formHTML = `
         <form id="createEventForm" novalidate class="wedding-details-modal-form">
-            <div style="margin-bottom: 4px;">
+            <div>
                 <label class="wedding-modal-label">Apply Template (Optional)</label>
                 <select id="eventTemplateSelect" class="wedding-modal-input">
                     ${templateOptions}
@@ -1546,7 +1520,7 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
 
             <div>
                 <label class="wedding-modal-label">Description *</label>
-                <textarea id="eventDescription" rows="3" required placeholder="An auspicious start to our wedding celebrations..." class="wedding-modal-input wedding-modal-input--invalid" style="resize: vertical;"></textarea>
+                <textarea id="eventDescription" rows="3" required placeholder="An auspicious start to our wedding celebrations..." class="wedding-modal-input wedding-modal-input--invalid"></textarea>
             </div>
             
             <div class="wedding-modal-row">
@@ -1556,11 +1530,11 @@ window.openEventModal = async function(weddingId, minDate, maxDate) {
                         onclick="try{this.showPicker()}catch(e){}" 
                         onkeydown="if(event.key !== 'Tab' && event.key !== 'Shift') event.preventDefault();" 
                         onpaste="return false;" 
-                        required class="wedding-modal-input wedding-modal-input--invalid" style="cursor:pointer;">
+                        required class="wedding-modal-input wedding-modal-input--invalid">
                 </div>
                 <div class="wedding-modal-col">
                     <label class="wedding-modal-label">Time *</label>
-                    <input type="time" id="eventTime" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--invalid" style="cursor:pointer;">
+                    <input type="time" id="eventTime" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--invalid">
                 </div>
             </div>
 
@@ -1736,7 +1710,7 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
 
     const formHTML = `
         <form id="editEventForm" novalidate class="wedding-details-modal-form">
-            <div style="margin-bottom: 4px;">
+            <div>
                 <label class="wedding-modal-label">Apply Template (Optional Overwrite)</label>
                 <select id="editTemplateSelect" class="wedding-modal-input">
                     ${templateOptions}
@@ -1761,7 +1735,7 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
 
             <div>
                 <label class="wedding-modal-label">Description *</label>
-                <textarea id="editEventDescription" rows="3" required class="wedding-modal-input wedding-modal-input--valid" style="resize: vertical;">${ev.description || ''}</textarea>
+                <textarea id="editEventDescription" rows="3" required class="wedding-modal-input wedding-modal-input--valid"></textarea>
             </div>
             
             <div class="wedding-modal-row">
@@ -1771,11 +1745,11 @@ window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId)
                         onclick="try{this.showPicker()}catch(e){}" 
                         onkeydown="if(event.key !== 'Tab' && event.key !== 'Shift') event.preventDefault();" 
                         onpaste="return false;" 
-                        required class="wedding-modal-input wedding-modal-input--valid" style="cursor:pointer;">
+                        required class="wedding-modal-input wedding-modal-input--valid">
                 </div>
                 <div class="wedding-modal-col">
                     <label class="wedding-modal-label">Time *</label>
-                    <input type="time" id="editEventTime" value="${timeValue}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--valid" style="cursor:pointer;">
+                    <input type="time" id="editEventTime" value="${timeValue}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--valid">
                 </div>
             </div>
 
@@ -1970,11 +1944,11 @@ window.openGuestModal = function(weddingId, events = []) {
     });
     
     const eventCheckboxes = sortedModalEvents.length > 0 ? sortedModalEvents.map(ev => `
-        <label style="display: flex; align-items: center; gap: 8px; font-size: var(--font-size-sm); color: var(--color-text-primary); cursor: pointer;">
-            <input type="checkbox" name="guest_events" value="${ev.id}" style="accent-color: var(--color-primary); cursor: pointer;">
+        <label class="wedding-modal-checkbox-label">
+            <input type="checkbox" name="guest_events" value="${ev.id}">
             ${ev.event_name || ev.title} (${new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
         </label>
-    `).join('') : `<div style="color: var(--color-text-muted); font-size: var(--font-size-xs);">No events available yet.</div>`;
+    `).join('') : `<div class="wedding-details-host-empty">No events available yet.</div>`;
 
     const formHTML = `
         <form id="createGuestForm" novalidate class="wedding-details-modal-form">
@@ -1986,9 +1960,9 @@ window.openGuestModal = function(weddingId, events = []) {
                 <label class="wedding-modal-label">Phone Number *</label>
                 <input type="text" id="guestPhone" required class="wedding-modal-input wedding-modal-input--invalid">
             </div>
-            <div style="margin-top: var(--space-2);">
-                <label class="wedding-modal-label" style="margin-bottom:8px;">Invite to Events</label>
-                <div style="display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; border: 1px solid var(--color-border); padding: var(--space-3); border-radius: var(--radius-sm); background: var(--color-bg);">
+            <div class="wedding-details-header__hashtag-wrap">
+                <label class="wedding-modal-label">Invite to Events</label>
+                <div class="wedding-modal-checkbox-box">
                     ${eventCheckboxes}
                 </div>
             </div>
@@ -2137,11 +2111,11 @@ window.openEditGuestModal = async function(weddingId, guestId) {
     });
     
     const eventCheckboxes = sortedModalEvents.length > 0 ? sortedModalEvents.map(ev => `
-        <label style="display: flex; align-items: center; gap: 8px; font-size: var(--font-size-sm); color: var(--color-text-primary); cursor: pointer;">
-            <input type="checkbox" name="guest_events" value="${ev.id}" ${invitedList.includes(ev.id) ? 'checked' : ''} style="accent-color: var(--color-primary); cursor: pointer;">
+        <label class="wedding-modal-checkbox-label">
+            <input type="checkbox" name="guest_events" value="${ev.id}" ${invitedList.includes(ev.id) ? 'checked' : ''}>
             ${ev.event_name || ev.title} (${new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
         </label>
-    `).join('') : `<div style="color: var(--color-text-muted); font-size: var(--font-size-xs);">No events available yet.</div>`;
+    `).join('') : `<div class="wedding-details-host-empty">No events available yet.</div>`;
 
     const formHTML = `
         <form id="editGuestForm" novalidate class="wedding-details-modal-form">
@@ -2153,9 +2127,9 @@ window.openEditGuestModal = async function(weddingId, guestId) {
                 <label class="wedding-modal-label">Phone Number *</label>
                 <input type="text" id="editGuestPhone" value="${guest.phone || ''}" required class="wedding-modal-input wedding-modal-input--valid">
             </div>
-            <div style="margin-top: var(--space-2);">
-                <label class="wedding-modal-label" style="margin-bottom:8px;">Invite to Events</label>
-                <div style="display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; border: 1px solid var(--color-border); padding: var(--space-3); border-radius: var(--radius-sm); background: var(--color-bg);">
+            <div class="wedding-details-header__hashtag-wrap">
+                <label class="wedding-modal-label">Invite to Events</label>
+                <div class="wedding-modal-checkbox-box">
                     ${eventCheckboxes}
                 </div>
             </div>
@@ -2303,16 +2277,16 @@ window.openEditGuestModal = async function(weddingId, guestId) {
 // ==========================================
 window.openImportModal = function(weddingId) {
     const dialogHTML = `
-        <div style="display: flex; flex-direction: column; gap: 14px; padding: 6px 2px 10px 2px;">
-            <p style="margin: 0; color: var(--color-text-secondary); font-size: var(--font-size-sm); line-height: 1.4;">
-                Upload an Excel file (<code style="color: var(--color-primary);">.xlsx, .xls</code>) to batch add or update your guest list, or download our ready-made sample template.
+        <div class="wedding-import-modal-wrap">
+            <p class="wedding-import-modal-desc">
+                Upload an Excel file (<code>.xlsx, .xls</code>) to batch add or update your guest list, or download our ready-made sample template.
             </p>
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
-                <button id="modalDownloadSampleBtn" class="wedding-action-btn-primary" style="padding: 10px 14px; font-size: var(--font-size-sm); font-weight: 600; width: 100%; justify-content: center;">
-                    <i data-lucide="download" style="width: 16px; height: 16px;"></i> Download Sample Excel (.xlsx)
+            <div class="wedding-import-modal-buttons">
+                <button id="modalDownloadSampleBtn" class="wedding-action-btn-primary wedding-import-modal-btn">
+                    <i data-lucide="download"></i> Download Sample Excel (.xlsx)
                 </button>
-                <button id="modalSelectFileBtn" class="wedding-action-btn-primary" style="padding: 10px 14px; font-size: var(--font-size-sm); font-weight: 600; width: 100%; justify-content: center;">
-                    <i data-lucide="upload" style="width: 16px; height: 16px;"></i> Select Excel File to Import
+                <button id="modalSelectFileBtn" class="wedding-action-btn-primary wedding-import-modal-btn">
+                    <i data-lucide="upload"></i> Select Excel File to Import
                 </button>
             </div>
         </div>
@@ -2530,4 +2504,4 @@ window.triggerCSVImport = function(weddingId) {
         }
     };
     input.click();
-};
+};  
