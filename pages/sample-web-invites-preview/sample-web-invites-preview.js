@@ -5,10 +5,6 @@ let currentThemeColors = { main: '#1d4ed8', bgDark: '#0f172a', bgLight: '#eff6ff
 let sampleWeddingConfig = {};
 let sampleEventsData = [];
 
-// ==========================================
-// DYNAMIC MOCK DATA GENERATOR
-// ==========================================
-
 function formatWeddingDateRange(startIso, endIso) {
     if (!startIso || !endIso) return "Dates TBD";
     const start = new Date(startIso);
@@ -103,7 +99,7 @@ function setupMockData(inviteId) {
             month: evDate.toLocaleString('en-US', { month: 'short' }).toUpperCase(), 
             day: evDate.getDate().toString(),
             dateText: evDate.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-            time: evDate.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit' }),
+            time: evDate.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit' }) + " onwards",
             location: ev.venue, 
             directions: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue)}`,
             nextTarget: index < rawEvents.length - 1 ? `#event-${rawEvents[index+1].id}` : "#about-us",
@@ -127,6 +123,21 @@ function generateDynamicLogo(name1, name2, colors) {
     return 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><circle cx="100" cy="100" r="90" fill="none" stroke="${strokeColor}" stroke-width="2"/><circle cx="100" cy="100" r="82" fill="none" stroke="${strokeColor}" stroke-width="1" stroke-dasharray="4 4"/><text x="100" y="85" font-family="'Lucida Handwriting', cursive, serif" font-size="28" fill="#ffffff" text-anchor="middle">${name1.split(' ')[0]}</text><text x="100" y="115" font-family="sans-serif" font-size="20" fill="${strokeColor}" text-anchor="middle" font-style="italic">&amp;</text><text x="100" y="145" font-family="'Lucida Handwriting', cursive, serif" font-size="28" fill="#ffffff" text-anchor="middle">${name2.split(' ')[0]}</text></svg>`);
 }
 
+function loadCSS(id, href) {
+    return new Promise((resolve) => {
+        if (document.getElementById(id)) {
+            resolve();
+            return;
+        }
+        const link = document.createElement('link');
+        link.id = id;
+        link.rel = 'stylesheet';
+        link.href = href;
+        link.onload = resolve;
+        document.head.appendChild(link);
+    });
+}
+
 export async function renderSampleWebInvites() {
     let hashSplit = window.location.hash.split('?');
     let inviteId = 'sample-inprogress';
@@ -136,22 +147,6 @@ export async function renderSampleWebInvites() {
     }
 
     setupMockData(inviteId);
-
-    const loadCSS = (id, href) => {
-        return new Promise((resolve) => {
-            if (document.getElementById(id)) {
-                resolve();
-                return;
-            }
-            const link = document.createElement('link');
-            link.id = id;
-            link.rel = 'stylesheet';
-            link.href = href;
-            link.onload = resolve;
-            link.onerror = resolve; 
-            document.head.appendChild(link);
-        });
-    };
 
     await Promise.all([
         loadCSS('web-invite-splash-styles', '/global/css/splash.css'),
@@ -176,28 +171,16 @@ export async function renderSampleWebInvites() {
     const dynamicStyle = document.getElementById('invite-dynamic-style') || document.createElement('style');
     dynamicStyle.id = 'invite-dynamic-style';
     dynamicStyle.innerHTML = `
-        :root { --color-primary: ${currentThemeColors.main} !important; --color-secondary: ${currentThemeColors.accent} !important; --color-bg-dark: ${currentThemeColors.bgDark} !important; --theme-accent-rgb: ${currentThemeRGB.accent} !important; --theme-bg-dark-rgb: ${currentThemeRGB.bgDark} !important; }
-        html, body { background-color: var(--color-bg-dark) !important; background-image: url('global/images/background/${selectedThemeName}-background.png') !important; background-size: cover !important; background-position: center !important; background-attachment: fixed !important; background-repeat: no-repeat !important; }
-        .video-overlay, .color-morph, #splash-screen { background: rgba(var(--theme-bg-dark-rgb), 0.75) !important; }
-        .card { background: linear-gradient(145deg, rgba(var(--theme-bg-dark-rgb), 0.95), #000000) !important; border: 1px solid var(--color-secondary) !important; animation: card-pop 0.9s ease-out, themeGlowPulse 4s ease-in-out 0.8s infinite alternate !important; }
-        .hero-divider, .event-divider, .garland-top { background: var(--color-secondary) !important; box-shadow: 0 0 10px var(--color-secondary) !important; border-top-color: var(--color-secondary) !important; }
-        .time-box, .couple-card { border: 1px solid var(--color-secondary) !important; background: rgba(var(--theme-bg-dark-rgb), 0.6) !important; box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.25) !important; }
-        .calendar-icon { background: var(--color-secondary) !important; box-shadow: 0 0 10px rgba(var(--theme-accent-rgb), 0.6) !important; } .calendar-icon .cal-month, .calendar-icon .cal-day { color: var(--color-bg-dark) !important; }
-        
-        .flower-corner { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), rgba(var(--theme-accent-rgb), 0.2) 50%, rgba(var(--theme-bg-dark-rgb), 0.8) 90%) !important; box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.3), 0 0 20px rgba(var(--theme-accent-rgb), 0.5) !important; }
-
-        .btn { background: radial-gradient(circle at 30% 30%, #ffffff, var(--color-secondary)) !important; border: 1px solid rgba(255, 255, 255, 0.4) !important; color: var(--color-bg-dark) !important; box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.9), 0 0 30px rgba(var(--theme-accent-rgb), 0.8) !important; }
-        .btn-secondary { background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), var(--color-secondary)) !important; border: 1px solid rgba(255, 255, 255, 0.6) !important; color: var(--color-bg-dark) !important; box-shadow: 0 0 12px rgba(var(--theme-accent-rgb), 0.85), 0 0 24px rgba(var(--theme-accent-rgb), 0.7) !important; } .btn-secondary:hover { color: #ffffff !important; background: rgba(var(--theme-bg-dark-rgb), 0.8) !important; border: 1px solid var(--color-secondary) !important; box-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 35px var(--color-secondary) !important; }
-        .envelope::before { border-bottom-color: var(--color-bg-dark) !important; filter: brightness(1.35) !important; } .envelope::after { border-left-color: var(--color-bg-dark) !important; border-right-color: var(--color-bg-dark) !important; filter: brightness(1.0) !important; } .envelope-flap { border-top-color: var(--color-bg-dark) !important; filter: brightness(1.2) !important; }
-        .wax-seal { background: var(--color-primary) !important; border-color: var(--color-secondary) !important; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(var(--theme-accent-rgb), 0.8) !important; }
-        .nav-dots { background: rgba(var(--theme-bg-dark-rgb), 0.35) !important; border-color: rgba(var(--theme-accent-rgb), 0.2) !important; } .nav-dot { border-color: var(--color-secondary) !important; background: rgba(var(--theme-bg-dark-rgb), 0.4) !important; } .nav-dot.active { background: var(--color-secondary) !important; box-shadow: 0 0 10px var(--color-secondary) !important; border-color: #ffffff !important; }
-        @keyframes themeGlowPulse { 0% { box-shadow: 0 0 20px rgba(var(--theme-accent-rgb), 0.2), inset 0 0 10px rgba(var(--theme-accent-rgb), 0.1); } 100% { box-shadow: 0 0 40px rgba(var(--theme-accent-rgb), 0.5), inset 0 0 20px rgba(var(--theme-accent-rgb), 0.3); } }
-        @keyframes countdownGlow { 0% { box-shadow: 0 0 8px rgba(var(--theme-accent-rgb), 0.5); } 100% { box-shadow: 0 0 16px rgba(var(--theme-accent-rgb), 0.8); } }
-        
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2) !important; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: var(--color-secondary) !important; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--color-primary) !important; }
+        :root {
+            --color-primary: ${currentThemeColors.main};
+            --color-secondary: ${currentThemeColors.accent};
+            --color-bg-dark: ${currentThemeColors.bgDark};
+            --theme-accent-rgb: ${currentThemeRGB.accent};
+            --theme-bg-dark-rgb: ${currentThemeRGB.bgDark};
+        }
+        body {
+            background-image: url('global/images/background/${selectedThemeName}-background.png');
+        }
     `;
     document.head.appendChild(dynamicStyle);
     
@@ -224,7 +207,7 @@ export async function renderSampleWebInvites() {
     document.body.innerHTML = `
         <div class="bg-image"></div>
         <canvas id="particles"></canvas>
-        <div class="nav-dots" id="nav-dots"></div>
+        <div class="nav-dots"></div>
 
         <div id="splash-screen">
             <div class="envelope">      
@@ -239,7 +222,6 @@ export async function renderSampleWebInvites() {
         </div>
 
         <main id="main-content-area"></main>
-        
         <button class="back-to-top hidden" data-target="#welcome">↑</button>
         <audio id="bgMusic" src="global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
     `;
@@ -256,10 +238,9 @@ export async function renderSampleWebInvites() {
             document.getElementById("env-flap")?.classList.add("flap-open");
             
             setTimeout(() => {
-                const splash = document.getElementById("splash-screen");
-                if (splash) splash.classList.add("splash-open");
-                
-                document.body.style.overflow = "auto";
+                document.getElementById("splash-screen")?.classList.add("splash-open");
+                document.body.style.overflowX = "hidden";
+                document.body.style.overflowY = "auto";
                 initButtonListeners(); syncNavDots(); initNameAnimation();
                 setInterval(updateTimer, 1000); updateTimer();
             }, 800);
@@ -278,12 +259,23 @@ const generateWelcomeHTML = () => {
     const primaryLettersArray = isBridePrimary ? sampleWeddingConfig.bride.letters : sampleWeddingConfig.groom.letters;
     const secondaryLettersArray = isBridePrimary ? sampleWeddingConfig.groom.letters : sampleWeddingConfig.bride.letters;
 
-    const p1 = primaryLettersArray.map(l => `<span class="letter">${l}</span>`).join('');
-    const p2 = secondaryLettersArray.map(l => `<span class="letter">${l}</span>`).join('');
+    const primaryLetters = primaryLettersArray.map(l => `<span class="letter">${l}</span>`).join('');
+    const secondaryLetters = secondaryLettersArray.map(l => `<span class="letter">${l}</span>`).join('');
 
     const primaryFirstName = isBridePrimary ? sampleWeddingConfig.bride.firstName : sampleWeddingConfig.groom.firstName;
     const secondaryFirstName = isBridePrimary ? sampleWeddingConfig.groom.firstName : sampleWeddingConfig.bride.firstName;
-    const initialsLogoUri = generateInitialsLogo(primaryFirstName, secondaryFirstName, currentThemeColors);
+    
+    const themePalettes = {
+        blue:   { accent: '#60a5fa' }, green:  { accent: '#34d399' }, maroon: { accent: '#fb7185' },
+        gold:   { accent: '#fbbf24' }, peach:  { accent: '#fb7185' }, violet: { accent: '#a78bfa' },
+        purple: { accent: '#c084fc' }, red:    { accent: '#f87171' }, pink:   { accent: '#f472b6' }
+    };
+    
+    let rawThemeName = document.body.getAttribute('data-theme') || 'blue';
+    const legacyThemeMap = { 'emerald': 'green', 'burgundy': 'maroon', 'rose': 'peach' };
+    const currentTheme = legacyThemeMap[rawThemeName] || rawThemeName;
+
+    const initialsLogoUri = generateInitialsLogo(primaryFirstName, secondaryFirstName, themePalettes[currentTheme]);
 
     return `
     <section class="full-page js-reveal" id="welcome">
@@ -292,33 +284,33 @@ const generateWelcomeHTML = () => {
             <div class="garland-top"></div>
             <div class="card-inner">
                 <div class="hero">
-                    <div class="tagline" style="font-size: 2.5rem; font-weight:bold; margin-bottom: 6px; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">${sampleWeddingConfig.familyLastName}</div>
-                    <div class="tagline" style="font-size: 1.5rem; font-weight:bold; margin-bottom: 6px; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">Wedding Invitation</div>
+                    <div class="tagline" style="font-size: 2.5rem; font-weight:bold; margin-bottom: 6px;">${sampleWeddingConfig.familyLastName}</div>
+                    <div class="tagline" style="font-size: 1.5rem; font-weight:bold; margin-bottom: 6px;">Wedding Invitation</div>
                     <div class="hero-divider"></div>
                     
-                    <img src="${initialsLogoUri}" alt="Logo" class="couple-logo" style="filter: none;" />
+                    <img src="${initialsLogoUri}" alt="Logo" class="couple-logo" />
                     
-                    <h1 class="names" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">
-                        <span class="word word-left">${p1}</span>
-                        <span class="amp" style="color: var(--color-secondary) !important; text-shadow: 0 0 12px rgba(var(--theme-accent-rgb), 0.5) !important;">&amp;</span>
-                        <span class="word word-right">${p2}</span>
+                    <h1 class="names">
+                        <span class="word word-left">${primaryLetters}</span>
+                        <span class="amp">&amp;</span>
+                        <span class="word word-right">${secondaryLetters}</span>
                     </h1>
                     
-                    ${sampleWeddingConfig.hashtag ? `<div class="hashtag-line-last" style="color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">${sampleWeddingConfig.hashtag}</div>` : ''}
+                    ${sampleWeddingConfig.hashtag ? `<div class="hashtag-line-last">${sampleWeddingConfig.hashtag}</div>` : ''}
                     
                     <div class="hero-divider"></div>
-                    <div class="hero-date-place" style="color: #ffffff !important; text-shadow: 0 2px 5px rgba(0,0,0,0.8) !important; letter-spacing: 0.15em; font-size: 1.05rem;">${sampleWeddingConfig.mainDatePlace}</div>
+                    <div class="hero-date-place">${sampleWeddingConfig.mainDatePlace}</div>
                     <div class="countdown" id="countdown">
-                        <div class="time-box"><div class="time-value" id="days">0</div><div class="time-label" style="color: var(--color-secondary);">Days</div></div>
-                        <div class="time-box"><div class="time-value" id="hours">00</div><div class="time-label" style="color: var(--color-secondary);">Hours</div></div>
-                        <div class="time-box"><div class="time-value" id="minutes">00</div><div class="time-label" style="color: var(--color-secondary);">Minutes</div></div>
-                        <div class="time-box"><div class="time-value" id="seconds">00</div><div class="time-label" style="color: var(--color-secondary);">Seconds</div></div>
+                        <div class="time-box"><div class="time-value" id="days">0</div><div class="time-label">Days</div></div>
+                        <div class="time-box"><div class="time-value" id="hours">00</div><div class="time-label">Hours</div></div>
+                        <div class="time-box"><div class="time-value" id="minutes">00</div><div class="time-label">Minutes</div></div>
+                        <div class="time-box"><div class="time-value" id="seconds">00</div><div class="time-label">Seconds</div></div>
                     </div>
                     <div class="hero-divider"></div>
-                    <p class="scroll-hint tagline" style="color: #ffffff !important; font-size: 0.8rem; text-transform: none; font-weight: normal; text-shadow: 0 2px 5px rgba(0,0,0,0.8) !important;">Scroll or use the dots to explore each celebration.</p>
+                    <p class="scroll-hint tagline">Scroll or use the dots to explore each celebration.</p>
                 </div>
             </div>
-            <div class="card-footer" style="text-align: center;"><button class="btn btn-secondary" data-next="#couple">Next: The Couple ↓</button></div>
+            <div class="card-footer"><button class="btn btn-secondary" data-next="#couple">Next: The Couple ↓</button></div>
         </div>
     </section>`;
 };
@@ -326,40 +318,40 @@ const generateWelcomeHTML = () => {
 const generateCoupleHTML = () => {
     const brideCard = `
         <div class="couple-card bride-card">
-            <div class="couple-role" style="font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">Bride</div>
+            <div class="couple-role" style="font-size: 1.5rem; font-weight: bold;">Bride</div>
             <div class="hero-divider"></div>
-            <div class="couple-name" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${sampleWeddingConfig.bride.firstName}</div>
-            <p class="couple-role" style="color: var(--color-secondary);"><br/><br/><strong>Granddaughter of</strong></p><div class="hero-divider"></div>
+            <div class="couple-name">${sampleWeddingConfig.bride.firstName}</div>
+            <p class="couple-role"><br/><br/><strong>Granddaughter of</strong></p><div class="hero-divider"></div>
             <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
                 ${sampleWeddingConfig.bride.grandfather}<br/>
                 ${sampleWeddingConfig.bride.grandmother}
             </div>
-            <br/><p class="couple-role" style="color: var(--color-secondary);"><strong>Daughter of</strong></p><div class="hero-divider"></div>
+            <br/><p class="couple-role"><strong>Daughter of</strong></p><div class="hero-divider"></div>
             <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
                 ${sampleWeddingConfig.bride.father}<br/>
                 ${sampleWeddingConfig.bride.mother}
             </div>
         </div>
     `;
-    
+
     const groomCard = `
         <div class="couple-card groom-card">
-            <div class="couple-role" style="font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">Groom</div>
+            <div class="couple-role" style="font-size: 1.5rem; font-weight: bold;">Groom</div>
             <div class="hero-divider"></div>
-            <div class="couple-name" style="color: #ffffff !important; text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;">${sampleWeddingConfig.groom.firstName}</div>
-            <p class="couple-role" style="color: var(--color-secondary);"><br/><br/><strong>Grandson of</strong></p><div class="hero-divider"></div>
+            <div class="couple-name">${sampleWeddingConfig.groom.firstName}</div>
+            <p class="couple-role"><br/><br/><strong>Grandson of</strong></p><div class="hero-divider"></div>
             <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
                 ${sampleWeddingConfig.groom.grandfather}<br/>
                 ${sampleWeddingConfig.groom.grandmother}
             </div>
-            <br/><p class="couple-role" style="color: var(--color-secondary);"><strong>Son of</strong></p><div class="hero-divider"></div>
+            <br/><p class="couple-role"><strong>Son of</strong></p><div class="hero-divider"></div>
             <div class="tagline" style="color: #ffffff !important; line-height: 1.6; font-size: 1.05rem; text-transform: none; letter-spacing: normal; text-shadow: none !important;">
                 ${sampleWeddingConfig.groom.father}<br/>
                 ${sampleWeddingConfig.groom.mother}
             </div>
         </div>
     `;
-    
+
     const isBridePrimary = sampleWeddingConfig.primarySide === 'bride';
     const coupleSplitContent = isBridePrimary ? (brideCard + groomCard) : (groomCard + brideCard);
 
@@ -370,7 +362,7 @@ const generateCoupleHTML = () => {
             <div class="garland-top"></div>
             <div class="card-inner">
                 <div class="hero">
-                    <div class="tagline" style="font-size:2.4rem;font-weight:bold; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">The Couple</div>
+                    <div class="tagline" style="font-size:2.4rem;font-weight:bold;">The Couple</div>
                     <div class="hero-divider"></div>
                     <div class="couple-split">
                         ${coupleSplitContent}
@@ -378,7 +370,7 @@ const generateCoupleHTML = () => {
                 </div>
             </div>
             <div class="hero-divider"></div>
-            <div class="card-footer" style="text-align: center;"><button class="btn btn-secondary" data-next="${sampleEventsData.length > 0 ? '#' + sampleEventsData[0].id : '#about-us'}">Next: ${sampleEventsData.length > 0 ? sampleEventsData[0].label : 'About Us'} ↓</button></div>
+            <div class="card-footer"><button class="btn btn-secondary" data-next="${sampleEventsData.length > 0 ? '#' + sampleEventsData[0].id : '#about-us'}">Next: ${sampleEventsData.length > 0 ? sampleEventsData[0].label : 'About Us'} ↓</button></div>
         </div>
     </section>`;
 };
@@ -391,7 +383,7 @@ const generateEventHTML = (event) => `
             
             <div class="card-inner">
                 <div class="hero">
-                    <div class="tagline" style="font-size: 2.4rem; font-weight: bold; text-transform: uppercase; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">${event.label}</div>
+                    <div class="tagline" style="font-size: 2.4rem; font-weight: bold; text-transform: uppercase;">${event.label}</div>
                     
                     ${event.title ? `
                         <div class="hero-divider" style="margin: 15px auto;"></div>
@@ -401,7 +393,7 @@ const generateEventHTML = (event) => `
                     <br/>
                     
                     ${event.quote ? `
-                        <div class="event-subtitle" style="font-style: italic; color: #ffffff !important; font-size: 1.1rem; line-height: 1.5; padding: 0 10px; margin-top: 10px; text-shadow: none !important;">${event.quote}</div>
+                        <div class="event-subtitle" style="font-style: italic; font-size: 1.1rem; padding: 0 10px; margin-top: 10px;">${event.quote}</div>
                     ` : ''}
                     
                     <div class="hero-divider" style="margin: 20px auto;"></div>
@@ -432,14 +424,20 @@ const generateEventHTML = (event) => `
                 </div>
             </div>
             <div class="hero-divider" style="margin: 20px auto;"></div>
-            <div class="card-footer" style="text-align: center; margin-top: 20px;"><button class="btn btn-secondary" data-next="${event.nextTarget}">Next: ${event.nextLabel} ↓</button></div>
+            <div class="card-footer"><button class="btn btn-secondary" data-next="${event.nextTarget}">Next: ${event.nextLabel} ↓</button></div>
         </div>
     </section>`;
 
 const generateAboutUsHTML = () => {
-    const famText = sampleWeddingConfig.familyDetails ? sampleWeddingConfig.familyDetails.toUpperCase() : "OUR FAMILY";
+    const familyDetailsText = sampleWeddingConfig.familyDetails ? sampleWeddingConfig.familyDetails.toUpperCase() : "OUR FAMILY";
+
     let instaHandle = sampleWeddingConfig.instagram || "";
-    try { if(instaHandle.includes('instagram.com/')) { const urlParts = instaHandle.split('instagram.com/'); instaHandle = urlParts[urlParts.length - 1].replace(/\//g, ''); } } catch(e) {}
+    try {
+        if(instaHandle.includes('instagram.com/')) {
+            const urlParts = instaHandle.split('instagram.com/');
+            instaHandle = urlParts[urlParts.length - 1].replace(/\//g, '');
+        }
+    } catch(e) {}
     instaHandle = instaHandle.replace('@', '').trim();
 
     return `
@@ -449,17 +447,17 @@ const generateAboutUsHTML = () => {
             <div class="garland-top"></div>
             <div class="card-inner">
                 <div class="hero">
-                    <div class="tagline" style="font-size:2.4rem; font-weight:bold; letter-spacing: 0.15em; color: var(--color-secondary); text-shadow: 0 2px 5px rgba(var(--theme-accent-rgb), 0.7);">ABOUT US</div>
+                    <div class="tagline" style="font-size:2.4rem; font-weight:bold; letter-spacing: 0.15em;">ABOUT US</div>
                     <div class="hero-divider"></div>
                     
-                    <div class="event-subtitle" style="font-size: 1.1rem; line-height: 1.6; color: #ffffff !important; padding: 0 10px; text-shadow: none !important;">
+                    <div class="event-subtitle" style="font-size: 1.1rem; line-height: 1.6; padding: 0 10px;">
                         ${sampleWeddingConfig.story.replace(/\n/g, '<br/>')}
                     </div>
                     
                     <div style="margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                        <p class="event-subtitle" style="font-size: 1.3rem; margin-bottom:12px; color: #ffffff !important; text-shadow: none !important;">Follow our journey for latest updates & gossips!</p>
+                        <p class="event-subtitle" style="font-size: 1.3rem; margin-bottom:12px;">Follow our journey for latest updates & gossips!</p>
                         ${sampleWeddingConfig.instagram ? `
-                        <a href="${sampleWeddingConfig.instaLink}" target="_blank" class="btn" style="font-weight: bold; font-size: 1.25rem; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888) !important; border: none !important; padding: 12px 26px; display: flex; align-items: center; gap: 10px; color: white !important; border-radius: 999px;">
+                        <a href="${sampleWeddingConfig.instaLink}" target="_blank" class="btn" style="font-weight: bold; font-size: 1.25rem; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888) !important; border: none !important; padding: 12px 26px; display: flex; align-items: center; gap: 10px; color: white !important;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffffff" viewBox="0 0 16 16"><path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.282.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.478 2.478 0 0 1-.92-.598 2.48 2.48 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233 0-2.136.008-2.388.046-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334z"/></svg>
                             ${instaHandle}
                         </a>
@@ -469,13 +467,10 @@ const generateAboutUsHTML = () => {
                     <div class="hero-divider" style="margin-top: 30px;"></div>
                     
                     <div class="rsvp" style="margin-top:20px; font-size: 1.1rem; color: #ffffff !important; text-shadow: 0 2px 5px rgba(0,0,0, 0.7);">
-                        <strong style="text-transform: uppercase !important;">
-                            With Best Compliments From:
-                        </strong>
-                        <br/>
-                        <br/>
+                        <strong style="text-transform: uppercase !important;">With Best Compliments From:</strong>
+                        <br/><br/>
                         <div style="text-transform: uppercase; font-weight: bold; font-size: 1.4rem; color: var(--color-secondary) !important; letter-spacing: 0.1em; text-shadow: 0 0 8px rgba(var(--theme-accent-rgb), 0.6);">
-                            ${famText}
+                            ${familyDetailsText}
                         </div>
                     </div>
                     
@@ -483,8 +478,7 @@ const generateAboutUsHTML = () => {
                     
                     <div class="rsvp" style="color: #ffffff !important; text-shadow: 0 2px 5px rgba(0,0,0, 0.7);">
                         <strong style="font-size:1.1rem">Created By</strong>
-                        <br/>
-                        <br/>
+                        <br/><br/>
                         <div class="signature-glow" style="font-weight: bold; font-size: 2.2rem; font-family: 'Best Signature Font', sans-serif; margin-bottom: 4px; color: inherit;">
                             Paresh Bafna
                         </div>
@@ -513,7 +507,7 @@ const generateAboutUsHTML = () => {
                     <div class="hero-divider" style="margin-top: 20px;"></div>
                 </div>
             </div>
-            <div class="card-footer" style="text-align: center; margin-top: 20px;"><button class="btn btn-secondary" data-next="#welcome">Back to Start ↑</button></div>
+            <div class="card-footer"><button class="btn btn-secondary" data-next="#welcome">Back to Start ↑</button></div>
         </div>
     </section>`;
 };
@@ -522,7 +516,7 @@ const generateDotHTML = (id, label) => `<div class="nav-dot" data-target="#${id}
 
 const injectAllContent = () => {
     const main = document.getElementById('main-content-area');
-    const nav = document.getElementById('nav-dots');
+    const nav = document.querySelector('.nav-dots');
     if (main) main.innerHTML = generateWelcomeHTML() + generateCoupleHTML() + sampleEventsData.map(e => generateEventHTML(e)).join('') + generateAboutUsHTML();
     if (nav) nav.innerHTML = generateDotHTML('welcome', 'Welcome') + generateDotHTML('couple', 'The Couple') + sampleEventsData.map(e => generateDotHTML(e.id, e.label)).join('') + generateDotHTML('about-us', 'About Us');
 };
@@ -552,7 +546,7 @@ function initButtonListeners() {
     document.querySelectorAll("[data-next], .nav-dot, .back-to-top").forEach(btn => {
         btn.addEventListener("click", (e) => {
             e.preventDefault();
-            setTimeout(() => { document.querySelector(btn.getAttribute("data-next") || btn.getAttribute("data-target"))?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 100);
+            setTimeout(() => { document.querySelector(btn.getAttribute("data-next") || btn.getAttribute("data-target") || btn.getAttribute("href"))?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 100);
         });
     });
 }
@@ -571,14 +565,6 @@ function updateTimer() {
 function initParticles() {
     const canvas = document.getElementById("particles");
     if (!canvas) return;
-    
-    canvas.style.position = 'fixed';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100vw';
-    canvas.style.height = '100vh';
-    canvas.style.zIndex = '9999';
-    canvas.style.pointerEvents = 'none';
 
     const ctx = canvas.getContext("2d");
     let particles = [];
@@ -634,3 +620,11 @@ function initParticles() {
     };
     animate();
 }
+
+window.addEventListener("scroll", () => {
+    document.querySelectorAll(".js-reveal, section.full-page").forEach((sec) => {
+        if (sec.getBoundingClientRect().top < window.innerHeight * 0.8) sec.classList.add("visible");
+    });
+    const btt = document.querySelector(".back-to-top");
+    if (btt) btt.classList.toggle("hidden", window.scrollY <= 400);
+});
