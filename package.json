@@ -2,10 +2,6 @@
   "name": "shaadi-saathi",
   "version": "1.0.0",
   "scripts": {
-    "build": "npx rollup global/js/main.js --file dist/bundle.js --format es && npx javascript-obfuscator dist/bundle.js --output dist/main.min.js --compact true --self-defending true"
-  },
-  "devDependencies": {
-    "javascript-obfuscator": "^4.1.0",
-    "rollup": "^4.18.0"
+    "build": "npx -y rollup global/js/main.js --file dist/bundle.js --format es && npx -y javascript-obfuscator dist/bundle.js --output dist/main.min.js --compact true --self-defending true"
   }
 }
