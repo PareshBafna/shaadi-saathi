@@ -1,27 +1,69 @@
 // Step OUT of global/js and into database/js
 import { supabase } from '../../database/js/api.js';
 
-// Step OUT of global/js and into global/components
-import { validateSession, getWhatsAppVerificationLink, logoutUser } from '../components/js/auth.js';
-import { createSidebar } from '../components/js/sidebar.js';
-import { createHeader } from '../components/js/header.js';
+// Components & Alerts
+import { validateSession, logoutUser } from '../../pages/login/login.js';
+import { createSidebar, createBottomNav } from './sidebar.js';
+import { createHeader } from './header.js';
+import { showSweetAlert } from './sweet-alert-message.js';
 
-// Step OUT of global/js, OUT of global, and into pages/js
-import { renderLogin } from '../../pages/js/login.js';
-import { renderDashboard } from '../../pages/js/dashboard.js';
-import { renderWeddings } from '../../pages/js/weddings.js';
-import { renderWeddingDetails } from '../../pages/js/wedding-details.js';
-import { renderCalendar } from '../../pages/js/calendar.js';
-import { renderUsers } from '../../pages/js/users.js';
-import { renderHosts } from '../../pages/js/hosts.js';
-import { renderSampleWedding } from '../../pages/js/sample-wedding.js';
-import { renderWebInvites } from '../../web-invites/js/web-invites.js';
+// ==========================================
+// REFACTORED PAGES (New Architecture)
+// ==========================================
+import { renderLogin } from '../../pages/login/login.js';
+import { renderDashboard } from '../../pages/dashboard/dashboard.js';
+import { renderCalendar } from '../../pages/calendar/calendar.js';
+import { renderWeddings } from '../../pages/weddings/weddings.js';
+import { renderWeddingDetails } from '../../pages/wedding-details/wedding-details.js';
+import { renderEvents } from '../../pages/events/events.js'; 
+import { renderUsers } from '../../pages/users/users.js';
+import { renderHosts } from '../../pages/hosts/hosts.js';
+import { renderWebInvites } from '../../pages/web-invites/web-invites.js';
+import { renderSampleWeddings } from '../../pages/sample-weddings/sample-weddings.js';
+import { renderSampleWeddingDetails } from '../../pages/sample-wedding-details/sample-wedding-details.js';
+import { renderSampleWebInvites } from '../../pages/sample-web-invites-preview/sample-web-invites-preview.js';
+import { renderWebInvitesPreview } from '../../pages/web-invites-preview/web-invites-preview.js';
+import { renderProfile } from '../../pages/profile/profile.js';
 
-// Import the new Sample Web Invites function
-import { renderSampleWebInvites } from '../../web-invites/js/sample-web-invites.js';
+// --- DYNAMIC PAGE STYLESHEET LOADER ---
+function loadPageStyle(pageName) {
+    const existingStyle = document.getElementById('dynamic-page-style');
+    if (existingStyle) {
+        existingStyle.remove();
+    }
+
+    if (!pageName || pageName === 'web-invites-preview' || pageName === 'sample-web-invites-preview') return;
+
+    const link = document.createElement('link');
+    link.id = 'dynamic-page-style';
+    link.rel = 'stylesheet';
+    link.href = `/pages/${pageName}/${pageName}.css`;
+    document.head.appendChild(link);
+}
+
+// --- WHATSAPP ADMIN SUPPORT CONFIG ---
+const ADMIN_WHATSAPP_NUMBER = "919791146838";
+
+function getWhatsAppVerificationLink(verificationCode, name) {
+    const message = `Hi Shaadi Saathi, please verify my account.\n\nName: ${name || 'User'}\nCode: ${verificationCode || 'N/A'}`;
+    return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+// --- CENTRALIZED SESSION VALIDATION HELPER ---
+export function checkSessionOrShowAlert() {
+    const userId = localStorage.getItem('ss_user_id');
+    if (!userId || !window.currentUser) {
+        showSweetAlert('error', 'Session Expired', 'Please log in to continue', null, 'Go To Login Page', () => {
+            window.location.hash = '#login';
+        });
+        return false;
+    }
+    return true;
+}
+window.checkSessionOrShowAlert = checkSessionOrShowAlert;
 
 // --- NEW PUBLIC ROUTING WHITELIST ---
-const publicRoutes = ['#login', '#/', '#sample-web-invites'];
+const publicRoutes = ['#login', '#/', '#sample-web-invites-preview'];
 
 document.addEventListener("DOMContentLoaded", async () => {
     document.body.style.opacity = '0.5';
@@ -33,12 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Bypass strict authentication popups for public routes
     if (!user && !publicRoutes.includes(route)) {
-        Swal.fire({
-            title: 'Authentication Required',
-            text: 'No logged in user details found. Please re-login.',
-            icon: 'warning', allowOutsideClick: false, allowEscapeKey: false, showCancelButton: false,
-            confirmButtonText: 'Login', confirmButtonColor: '#0f172a'
-        }).then(() => { window.location.hash = '#login'; });
+        checkSessionOrShowAlert();
         initApp(null);
         return;
     }
@@ -99,10 +136,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function initApp(user) {
-    // Determine Default active link for Sidebar
     let activeId = window.location.hash.replace('#', '').split('?')[0];
     
-    // Always render structural DOM elements
     const layout = document.getElementById("layout");
     let mainContent = document.getElementById("main-content");
     let rightWrapper = document.getElementById("right-wrapper");
@@ -112,30 +147,22 @@ function initApp(user) {
         rightWrapper = document.createElement("div");
         rightWrapper.id = "right-wrapper";
         
-        rightWrapper.style.display = "flex";
-        rightWrapper.style.flexDirection = "column";
-        rightWrapper.style.flexGrow = "1";
-        rightWrapper.style.minWidth = "0";
-        rightWrapper.style.height = "100vh";
-        
         mainContent.parentNode.insertBefore(rightWrapper, mainContent);
         
         if (!headerContainer) {
             headerContainer = document.createElement("div");
             headerContainer.id = "header-container";
         }
-        
+
         rightWrapper.appendChild(headerContainer);
         rightWrapper.appendChild(mainContent);
-        
-        mainContent.style.flexGrow = "1";
-        mainContent.style.overflowY = "auto";
     }
 
-    // Attach Sidebar only if user exists
     if (user) {
         if (activeId === 'wedding-details') {
             activeId = 'weddings';
+        } else if (activeId === 'sample-wedding-details') {
+            activeId = 'sample-weddings';
         }
         
         const sidebar = createSidebar({ 
@@ -146,13 +173,21 @@ function initApp(user) {
             },
             onLogout: logoutUser 
         });
+
+        const bottomNav = createBottomNav({
+            role: user.role,
+            activeItemId: activeId || 'calendar',
+            onNavigate: (pageId) => {
+                window.location.hash = `#${pageId}`;
+            }
+        });
         
         if (layout && !document.querySelector('.sidebar')) {
             layout.prepend(sidebar);
+            layout.appendChild(bottomNav);
         }
     }
     
-    // Only attach listener once
     if (!window.__routerAttached) {
         window.addEventListener("hashchange", router);
         window.__routerAttached = true;
@@ -160,140 +195,231 @@ function initApp(user) {
     router();
 }
 
-async function router() {
-    // 1. Force close any lingering popups from previous invalid routes
-    if (window.Swal && Swal.isVisible()) {
-        Swal.close();
-    }
+function forceResetFavicon() {
+    document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = `/global/icons/favicon.ico?t=${Date.now()}`;
     
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || 32;
+        canvas.height = img.naturalHeight || 32;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const newLink = document.createElement('link');
+        newLink.rel = 'icon';
+        newLink.type = 'image/png';
+        newLink.href = canvas.toDataURL('image/png');
+        document.head.appendChild(newLink);
+    };
+
+    img.onerror = () => {
+        const fallback = document.createElement('link');
+        fallback.rel = 'icon';
+        fallback.type = 'image/x-icon';
+        fallback.href = `/global/icons/favicon.ico?nocache=${Date.now()}`;
+        document.head.appendChild(fallback);
+    };
+}
+
+async function router() {
     const hash = window.location.hash || '#login';
     const [route, queryString] = hash.split('?');
     const params = new URLSearchParams(queryString || '');
 
-    const contentEl = document.getElementById("main-content");
-    if (!contentEl) return;
+    if (route !== '#web-invites-preview' && route !== '#sample-web-invites-preview') {
+        document.title = "Shaadi Saathi";
+        forceResetFavicon();
+    }
+
+    if (window.Swal && Swal.isVisible() && Swal.getTitle()?.textContent !== 'Session Expired') Swal.close();
     
-    // ---- PUBLIC VIEWS ----
+    document.querySelectorAll('.modal-backdrop, .modal, .custom-modal, .swal2-container').forEach(el => {
+        el.remove();
+    });
+
+    document.body.classList.remove('modal-open', 'swal2-shown');
+    document.body.style.overflow = '';
+
+    let activePageName = route.replace('#', '');
+    if (activePageName === '' || activePageName === '/') activePageName = 'login';
+    loadPageStyle(activePageName);
+
+    const contentEl = document.getElementById("main-content");
+    
     if (route === '#login') {
+        const activeUserId = localStorage.getItem('ss_user_id');
+        if (activeUserId && window.currentUser) {
+            const role = window.currentUser.role;
+            if (role === 'creator') {
+                window.location.hash = '#dashboard';
+            } else if (role === 'host' || role === 'wedding_user') {
+                window.location.hash = '#weddings';
+            } else {
+                window.location.hash = '#calendar';
+            }
+            return;
+        }
+
         const sidebarEl = document.querySelector('.sidebar');
+        const bottomNavEl = document.querySelector('.bottom-nav');
         const headerEl = document.getElementById('header-container');
         if (sidebarEl) sidebarEl.style.display = 'none';
+        if (bottomNavEl) bottomNavEl.style.display = 'none';
         if (headerEl) headerEl.style.display = 'none';
 
-        contentEl.innerHTML = "";
-        contentEl.style.marginLeft = '0';
-        contentEl.style.padding = '0';
-        contentEl.appendChild(renderLogin());
+        if (contentEl) {
+            contentEl.innerHTML = "";
+            contentEl.appendChild(renderLogin());
+        }
         return;
     }
 
-    if (route === '#sample-web-invites') {
-        // Completely bypass the standard layout for the full-screen invite
+    if (route === '#sample-web-invites-preview') {
         const layoutEl = document.getElementById('layout');
-        if (layoutEl) layoutEl.innerHTML = ""; // Wipe the dashboard layout
+        if (layoutEl) layoutEl.innerHTML = ""; 
         
         document.body.innerHTML = "";
-        document.body.style.margin = "0";
-        document.body.style.padding = "0";
-        document.body.style.overflow = "hidden"; // The invite handles its own scrolling
-        
         renderSampleWebInvites();
         return;
     }
 
-    // ---- PROTECTED VIEWS ----
-    if (!window.currentUser) {
-        window.location.hash = '#login';
+    if (route === '#web-invites-preview') {
+        const layoutEl = document.getElementById('layout');
+        if (layoutEl) layoutEl.innerHTML = "";
+        
+        const inviteId = params.get('id');
+        renderWebInvitesPreview(inviteId);
         return;
     }
 
-    const userRole = window.currentUser.role;
+    if (!window.currentUser && !publicRoutes.includes(route)) {
+        checkSessionOrShowAlert();
+        if (contentEl) contentEl.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to continue.</div>`;
+        return;
+    }
+
+    if (!contentEl) return;
+
+    const userRole = window.currentUser?.role || 'guest';
     
     let pageTitle = "";
     let renderFunc = null;
     let pageArgs = null;
     let allowedRoles = []; 
 
-    // Route Definitions
-    if (route === "#dashboard") {
+    if (route === "#dashboard") 
+    { 
         pageTitle = "Dashboard"; 
-        renderFunc = renderDashboard;
+        renderFunc = renderDashboard; 
         allowedRoles = ['creator']; 
-    } else if (route === "#weddings") {
+    } 
+    else if (route === "#calendar") 
+    {
+        pageTitle = "Event Calendar"; 
+        renderFunc = renderCalendar; 
+        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+    }
+    else if (route === "#weddings") 
+    { 
         pageTitle = "Weddings"; 
-        renderFunc = renderWeddings;
-        allowedRoles = ['creator', 'host', 'wedding_user', 'guest'];
-    } else if (route === "#wedding-details") {
+        renderFunc = renderWeddings; 
+        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+    } 
+    else if (route === "#wedding-details") 
+    {
         pageArgs = params.get('id');
-        if (!pageArgs) {
-            showAccessRestricted();
-            return; // Instantly halt if no ID is present
-        }
+        if (!pageArgs) { showAccessRestricted(); return; }
         pageTitle = "Wedding Details"; 
         renderFunc = renderWeddingDetails; 
         allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
-    } else if (route === "#calendar") {
-        pageTitle = "Event Calendar";
-        renderFunc = renderCalendar;
-        allowedRoles = ['creator', 'host', 'wedding_user', 'guest'];
-    }  else if (route === "#users") {
-        pageTitle = "Users";
-        renderFunc = renderUsers;
+    } 
+    else if (route === "#events") 
+    { 
+        pageTitle = "Events"; 
+        renderFunc = renderEvents; 
         allowedRoles = ['creator']; 
-    } else if (route === "#hosts") {
-        pageTitle = "Hosts";
-        renderFunc = renderHosts;
-        allowedRoles = ['creator'];
-    } else if (route === "#sample-wedding" || route === "#sample") {
-        pageTitle = "Sample Wedding";
-        renderFunc = renderSampleWedding; // Map to the new function
-        allowedRoles = ['creator', 'host', 'wedding_user', 'guest'];
-    } else if (route === "#web-invites") {
-        pageTitle = "Web Invites";
-        renderFunc = renderWebInvites;
-        allowedRoles = ['creator'];
-    } else if (route === "#profile") {
-        pageTitle = "Profile";
-        renderFunc = renderWeddings;
-        allowedRoles = ['creator', 'host', 'wedding_user', 'guest'];
-    } else {
-        // Route Not Found
-        showAccessRestricted();
-        return;
+    } 
+    else if (route === "#users") 
+    { 
+        pageTitle = "Users"; 
+        renderFunc = renderUsers; 
+        allowedRoles = ['creator']; 
+    } 
+    else if (route === "#hosts") 
+    { 
+        pageTitle = "Hosts"; 
+        renderFunc = renderHosts; 
+        allowedRoles = ['creator']; 
+    } 
+    else if (route === "#sample-weddings") 
+    { 
+        pageTitle = "Sample Wedding"; 
+        renderFunc = renderSampleWeddings; 
+        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+    }
+    else if (route === "#sample-wedding-details") 
+    { 
+        pageArgs = params.get('id');
+        pageTitle = "Sample Wedding Details"; 
+        renderFunc = renderSampleWeddingDetails; 
+        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+    }
+    else if (route === "#web-invites") 
+    { 
+        pageTitle = "Web Invites"; 
+        renderFunc = renderWebInvites; 
+        allowedRoles = ['creator']; 
+    } 
+    else if (route === "#profile") 
+    { 
+        pageTitle = "Profile"; 
+        renderFunc = renderProfile; 
+        allowedRoles = ['creator', 'host', 'wedding_user', 'guest']; 
+    } 
+    else 
+    { 
+        showAccessRestricted(); 
+        return; 
     }
 
-    // Evaluate Access
     if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
         showAccessRestricted();
         return; 
     }
 
-    // Render Page
     contentEl.innerHTML = "";
     
     let activeId = route.replace('#', '');
     if (activeId === 'wedding-details') {
         activeId = 'weddings';
+    } else if (activeId === 'sample-wedding-details') {
+        activeId = 'sample-weddings';
     }
 
-    document.querySelectorAll('.sidebar__nav-link').forEach(link => {
+    document.querySelectorAll('.sidebar__nav-link, .bottom-nav__item').forEach(link => {
         const pageId = link.getAttribute('data-page-id');
         if (pageId === activeId) {
             link.classList.add('sidebar__nav-link--active');
+            link.classList.add('bottom-nav__item--active');
             link.setAttribute('aria-current', 'page');
         } else {
             link.classList.remove('sidebar__nav-link--active');
+            link.classList.remove('bottom-nav__item--active');
             link.removeAttribute('aria-current');
         }
     });
 
     const sidebarEl = document.querySelector('.sidebar');
+    const bottomNavEl = document.querySelector('.bottom-nav');
     const headerEl = document.getElementById('header-container');
-    if (sidebarEl) sidebarEl.style.display = '';
-    if (headerEl) headerEl.style.display = '';
     
-    contentEl.style.marginLeft = '';
-    contentEl.style.padding = '';
+    if (sidebarEl) sidebarEl.style.display = '';
+    if (bottomNavEl) bottomNavEl.style.display = ''; 
+    if (headerEl) headerEl.style.display = '';
 
     updateHeader(pageTitle);
 
@@ -340,7 +466,6 @@ function updateHeader(title) {
     const headerContainer = document.getElementById("header-container");
     if (!headerContainer) return;
 
-    // Clean up role text formatting for the header display
     let displayRole = window.currentUser.role;
     if (displayRole === 'host') displayRole = 'HOST';
     else if (displayRole === 'wedding_user') displayRole = 'USER';
@@ -355,8 +480,7 @@ function updateHeader(title) {
         user: displayUser,
         isVerified: window.currentUser.is_verified,
         verifyLink: window.currentUser.is_verified ? "" : getWhatsAppVerificationLink(window.currentUser.verification_code, window.currentUser.name),
-        notificationCount: 2,
-        onMobileMenuClick: () => document.querySelector(".sidebar")?.classList.toggle("sidebar--open")
+        notificationCount: 2
     });
 
     if (oldHeader) oldHeader.replaceWith(newHeader);
