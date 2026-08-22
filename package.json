@@ -2,6 +2,6 @@
   "name": "shaadi-saathi",
   "version": "1.0.0",
   "scripts": {
-    "build": "npx -y rollup global/js/main.js --file dist/main.bundle.js --format es && npx -y javascript-obfuscator dist/main.bundle.js --output dist/global/js/main.js --compact true --self-defending true && npx -y javascript-obfuscator global/js/security.js --output dist/global/js/security.js --compact true --self-defending true && cp index.html dist/ && cp -r global/css dist/global/ && cp -r global/icons dist/global/ && cp -r global/logos dist/global/ && rm dist/main.bundle.js"
+    "build": "mkdir -p dist/global/js dist/global/css dist/global/icons dist/global/logos dist/pages && npx -y rollup global/js/main.js --file dist/bundle.js --format es && npx -y javascript-obfuscator dist/bundle.js --output dist/global/js/main.js --compact true --self-defending true && npx -y javascript-obfuscator global/js/security.js --output dist/global/js/security.js --compact true --self-defending true && cp index.html dist/ && cp -r global/css/. dist/global/css/ 2>/dev/null || true && cp -r global/icons/. dist/global/icons/ 2>/dev/null || true && cp -r global/logos/. dist/global/logos/ 2>/dev/null || true && cp -r pages dist/ 2>/dev/null || true && find dist/pages -type f -name '*.js' -delete && rm -f dist/bundle.js"
   }
 }
