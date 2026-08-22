@@ -2,6 +2,6 @@
   "name": "shaadi-saathi",
   "version": "1.0.0",
   "scripts": {
-    "build": "rm -rf dist && cp -r . dist && rm -rf dist/node_modules dist/.git && npx -y javascript-obfuscator dist --output dist --compact true --self-defending true --string-array-threshold 1"
+    "build": "rm -rf dist && mkdir dist && cp -r global pages index.html dist/ && cp _headers _redirects manifest.json dist/ 2>/dev/null || true && npx -y javascript-obfuscator dist --output dist --compact true --self-defending true --string-array-threshold 1"
   }
 }
