@@ -2,6 +2,6 @@
   "name": "shaadi-saathi",
   "version": "1.0.0",
   "scripts": {
-    "build": "rm -rf dist && mkdir dist && cp -r global pages index.html dist/ && cp _headers _redirects manifest.json dist/ 2>/dev/null || true && npx -y javascript-obfuscator dist --output dist --compact true --self-defending true --string-array-threshold 1"
+    "build": "rm -rf dist && mkdir -p dist/database dist/global/js dist/global/css dist/global/icons dist/global/logos dist/pages && npx -y rollup global/js/main.js --file dist/bundle.js --format es && npx -y javascript-obfuscator dist/bundle.js --output dist/global/js/main.js --compact true --self-defending true && npx -y javascript-obfuscator global/js/security.js --output dist/global/js/security.js --compact true --self-defending true && cp index.html dist/ && cp -r global/css/. dist/global/css/ 2>/dev/null || true && cp -r global/icons/. dist/global/icons/ 2>/dev/null || true && cp -r global/logos/. dist/global/logos/ 2>/dev/null || true && cp -r database/. dist/database/ 2>/dev/null || true && cp -r pages/. dist/pages/ 2>/dev/null || true && find dist/database dist/pages -type f -name '*.js' -delete && cp _headers _redirects manifest.json dist/ 2>/dev/null || true && rm -f dist/bundle.js"
   }
 }
