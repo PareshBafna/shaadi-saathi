@@ -33,12 +33,17 @@ export async function router() {
     document.body.classList.remove('modal-open', 'swal2-shown');
     document.body.style.overflow = '';
 
-    let activePageName = route.replace('#', '');
-    if (activePageName === '' || activePageName === '/') activePageName = 'login';
-    loadPageStyle(activePageName);
-
     const contentEl = document.getElementById("main-content");
     
+    // Hide content temporarily to avoid unstyled flash
+    if (contentEl) contentEl.style.visibility = 'hidden';
+
+    let activePageName = route.replace('#', '');
+    if (activePageName === '' || activePageName === '/') activePageName = 'login';
+    
+    // Wait for the stylesheet to be completely ready
+    await loadPageStyle(activePageName);
+
     if (route === '#login') {
         const activeUserId = localStorage.getItem('ss_user_id');
         if (activeUserId && window.currentUser) {
@@ -54,6 +59,7 @@ export async function router() {
         if (contentEl) {
             contentEl.innerHTML = "";
             contentEl.appendChild(renderLogin());
+            contentEl.style.visibility = 'visible';
         }
         return;
     }
@@ -73,7 +79,10 @@ export async function router() {
 
     if (!window.currentUser && !publicRoutes.includes(route)) {
         checkSessionOrShowAlert();
-        if (contentEl) contentEl.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to continue.</div>`;
+        if (contentEl) {
+            contentEl.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to continue.</div>`;
+            contentEl.style.visibility = 'visible';
+        }
         return;
     }
 
@@ -83,7 +92,6 @@ export async function router() {
     let pageTitle = "";
     let renderFunc = null;
     let pageArgs = null;
-    let allowedRoles = []; 
 
     const routeConfig = {
         '#dashboard': { title: 'Dashboard', fn: renderDashboard, roles: ['creator'] },
@@ -142,7 +150,10 @@ export async function router() {
         contentEl.appendChild(pageNode instanceof Promise ? await pageNode : pageNode);
     }
 
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    if (window.lucide) window.lucide.createIcons();
+
+    // Reveal the styled page content
+    contentEl.style.visibility = 'visible';
 }
 
 function showAccessRestricted() {

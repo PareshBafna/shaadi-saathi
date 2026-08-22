@@ -1,17 +1,34 @@
-// Dynamic CSS Stylesheet Injector
+// Dynamic CSS Stylesheet Injector (Returns Promise to prevent FOUC)
 export function loadPageStyle(pageName) {
-    const existingStyle = document.getElementById('dynamic-page-style');
-    if (existingStyle) {
-        existingStyle.remove();
-    }
+    return new Promise((resolve) => {
+        if (!pageName || pageName === 'web-invites-preview' || pageName === 'sample-web-invites-preview') {
+            const existingStyle = document.getElementById('dynamic-page-style');
+            if (existingStyle) existingStyle.remove();
+            return resolve();
+        }
 
-    if (!pageName || pageName === 'web-invites-preview' || pageName === 'sample-web-invites-preview') return;
+        const targetHref = `/pages/${pageName}/${pageName}.css`;
+        const existingStyle = document.getElementById('dynamic-page-style');
 
-    const link = document.createElement('link');
-    link.id = 'dynamic-page-style';
-    link.rel = 'stylesheet';
-    link.href = `/pages/${pageName}/${pageName}.css`;
-    document.head.appendChild(link);
+        // If the stylesheet is already active, don't re-download
+        if (existingStyle && existingStyle.getAttribute('href') === targetHref) {
+            return resolve();
+        }
+
+        if (existingStyle) {
+            existingStyle.remove();
+        }
+
+        const link = document.createElement('link');
+        link.id = 'dynamic-page-style';
+        link.rel = 'stylesheet';
+        link.href = targetHref;
+
+        link.onload = () => resolve();
+        link.onerror = () => resolve(); // Prevents app lock if a CSS file is missing
+
+        document.head.appendChild(link);
+    });
 }
 
 // Favicon Cache Buster & Dynamic Canvas Loader
