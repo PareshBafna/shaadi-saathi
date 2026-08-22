@@ -7,6 +7,30 @@ const usersPerPage = 10;
 let searchQuery = '';
 let allUsersData = [];
 
+// Direct client-side email dispatch function
+async function sendNewUserNotification(userPayload) {
+    try {
+        await fetch("https://formsubmit.co/ajax/pareshbafna26@gmail.com", {
+            method: "POST",
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                _subject: `Shaadi Saathi - New User Added: ${userPayload.name}`,
+                _template: "table",
+                "App Name": "Shaadi Saathi",
+                "Full Name": userPayload.name,
+                "Phone Number": userPayload.phone,
+                "Verification Code": userPayload.verification_code || "N/A",
+                "Initial Role": userPayload.role || "guest"
+            })
+        });
+    } catch (err) {
+        console.warn("Could not send email notification:", err);
+    }
+}
+
 export function renderUsers() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const errSec = document.createElement("section");
@@ -246,7 +270,6 @@ function renderUsersList() {
         const guestHTML = renderWeddingsList('Guest', u.guest_weddings);
 
         let childContent = idHTML + hostHTML + userHTML + guestHTML;
-
         const verificationCodeDisplay = u.verification_code || u.code || '-';
 
         listHTML += `
@@ -601,7 +624,6 @@ window.openUserModal = async function(userOrId = null) {
                     const payload = { name, phone: cleanedPhone, pin };
                     if (!user) {
                         payload.role = 'guest'; 
-                        // Automatically generate a 6-digit verification code for newly added users
                         const randomCode = Math.floor(100000 + Math.random() * 900000);
                         payload.verification_code = `VERIFY-${randomCode}`;
                     }
@@ -612,6 +634,9 @@ window.openUserModal = async function(userOrId = null) {
                     } else {
                         const { error } = await supabase.from('users').insert([payload]);
                         if (error) throw error;
+
+                        // Trigger instant direct email notification for new entries
+                        sendNewUserNotification(payload);
                     }
 
                     modal.close();
