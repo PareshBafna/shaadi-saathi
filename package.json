@@ -2,6 +2,6 @@
   "name": "shaadi-saathi",
   "version": "1.0.0",
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && cp -r global pages database index.html dist/ && cp _headers _redirects manifest.json dist/ 2>/dev/null || true && npx -y esbuild dist/global/js/*.js dist/pages/**/*.js dist/database/**/*.js --outdir=dist --minify --allow-overwrite"
+    "build": "rm -rf dist && mkdir -p dist && cp -r global pages database index.html dist/ && cp _headers _redirects manifest.json dist/ 2>/dev/null || true && npx -y javascript-obfuscator dist --output dist --compact true --self-defending false --split-strings false --rename-globals false --identifier-names-generator hexadecimal"
   }
 }
