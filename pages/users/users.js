@@ -164,7 +164,8 @@ function renderUsersList() {
         const query = searchQuery.toLowerCase();
         const nameMatch = (u.name || '').toLowerCase().includes(query);
         const phoneMatch = (u.phone || '').toLowerCase().includes(query);
-        return nameMatch || phoneMatch;
+        const codeMatch = (u.verification_code || u.code || '').toLowerCase().includes(query);
+        return nameMatch || phoneMatch || codeMatch;
     });
 
     filteredUsers.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
@@ -190,6 +191,7 @@ function renderUsersList() {
                     <div>Name</div>
                     <div>Phone Number</div>
                     <div>PIN</div>
+                    <div>Verification Code</div>
                     <div>User Role</div>
                     <div>Wedding Role</div>
                     <div>Verification</div>
@@ -245,6 +247,8 @@ function renderUsersList() {
 
         let childContent = idHTML + hostHTML + userHTML + guestHTML;
 
+        const verificationCodeDisplay = u.verification_code || u.code || '-';
+
         listHTML += `
         <div class="users-table-row-wrapper">
             <div class="users-table-row">
@@ -262,6 +266,12 @@ function renderUsersList() {
                 <div>
                     <span class="users-pin-col" data-pin="${u.pin || '------'}" data-hidden="true" title="Click to reveal PIN">
                         ••••••
+                    </span>
+                </div>
+
+                <div>
+                    <span class="users-code-col" title="${verificationCodeDisplay}">
+                        ${verificationCodeDisplay}
                     </span>
                 </div>
 
@@ -373,13 +383,26 @@ function renderUsersList() {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const userId = btn.getAttribute('data-id');
-                try {
-                    const { error } = await supabase.from('users').update({ is_verified: true }).eq('id', userId);
-                    if (error) throw error;
-                    showSweetAlert('success', 'Verified!', 'User has been successfully verified.');
-                    loadUsersData();
-                } catch (error) {
-                    showSweetAlert('error', 'Verification Failed', error.message);
+
+                const result = await Swal.fire({
+                    title: 'Verify User?',
+                    text: 'Are you sure you want to verify this user?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: 'var(--color-primary, #facc15)',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, verify!'
+                });
+
+                if (result.isConfirmed) {
+                    try {
+                        const { error } = await supabase.from('users').update({ is_verified: true }).eq('id', userId);
+                        if (error) throw error;
+                        showSweetAlert('success', 'Verified!', 'User has been successfully verified.');
+                        loadUsersData();
+                    } catch (error) {
+                        showSweetAlert('error', 'Verification Failed', error.message);
+                    }
                 }
             });
         });
@@ -482,20 +505,16 @@ window.openUserModal = async function(userOrId = null) {
 
                 if (result.isConfirmed) {
                     try {
-                        // 1. Delete associated wedding_hosts entries
                         const { error: hostErr } = await supabase.from('wedding_hosts').delete().eq('user_id', user.id);
                         if (hostErr && hostErr.code !== '42P01') throw hostErr;
 
-                        // 2. Delete associated wedding_users entries
                         const { error: wUserErr } = await supabase.from('wedding_users').delete().eq('user_id', user.id);
                         if (wUserErr && wUserErr.code !== '42P01') throw wUserErr;
 
-                        // 3. Delete associated guests entries matching user phone
                         if (user.phone) {
                             const cleanedPhone = user.phone.replace(/[^0-9]/g, '');
                             const basePhone = cleanedPhone.length > 10 ? cleanedPhone.slice(-10) : cleanedPhone;
                             
-                            // Fetch all guests to check phone suffix matching
                             const { data: allGuests } = await supabase.from('guests').select('id, phone');
                             if (allGuests) {
                                 const matchingGuestIds = allGuests.filter(g => {
@@ -510,7 +529,6 @@ window.openUserModal = async function(userOrId = null) {
                             }
                         }
 
-                        // 4. Finally delete the user record from 'users'
                         const { error: userDelErr } = await supabase.from('users').delete().eq('id', user.id);
                         if (userDelErr) throw userDelErr;
                         
@@ -583,6 +601,9 @@ window.openUserModal = async function(userOrId = null) {
                     const payload = { name, phone: cleanedPhone, pin };
                     if (!user) {
                         payload.role = 'guest'; 
+                        // Automatically generate a 6-digit verification code for newly added users
+                        const randomCode = Math.floor(100000 + Math.random() * 900000);
+                        payload.verification_code = `VERIFY-${randomCode}`;
                     }
 
                     if (user) {

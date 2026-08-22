@@ -2,7 +2,7 @@
    USERS PAGE CONTAINER & CONTROL BAR
    ============================================================ */
 :root {
-  --users-grid-template: 32px 32px minmax(140px, 1.4fr) 135px 80px 95px 120px 105px 95px 40px;
+  --users-grid-template: 32px 32px minmax(130px, 1.3fr) 130px 75px 125px 85px 95px 110px 95px 40px;
 }
 
 .users-page-wrapper {
@@ -149,7 +149,7 @@
 }
 
 .users-table-inner {
-  min-width: 960px;
+  min-width: 1060px;
   padding-right: 16px;
   box-sizing: border-box;
 }
@@ -275,6 +275,20 @@
 
 .users-pin-col:hover {
   opacity: 0.85;
+}
+
+.users-code-col {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--color-text-primary);
+  background: var(--color-border);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  max-width: 100%;
 }
 
 .users-role-col {
@@ -535,7 +549,7 @@
    ============================================================ */
 @media (max-width: 768px) {
   :root {
-    --users-grid-template: 32px 32px minmax(130px, 1.3fr) 130px 80px 90px 115px 100px 95px 48px;
+    --users-grid-template: 32px 32px minmax(120px, 1.2fr) 120px 75px 115px 85px 90px 105px 95px 44px;
   }
 
   .users-card-container {
