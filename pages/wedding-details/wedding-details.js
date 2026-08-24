@@ -139,6 +139,9 @@ async function loadWeddingData(container, weddingId) {
         const { data: webInvite } = await supabase.from('wedding_web_invite').select('id').eq('wedding_id', weddingId).maybeSingle();
         const hasWebInvite = !!webInvite;
 
+        const { data: variantsData } = await supabase.from('invite_variants').select('*').eq('wedding_id', weddingId).order('created_at', { ascending: false });
+        const variants = variantsData || [];
+
         const { data: allSysUsers, error: sysUsersErr } = await supabase.from('users').select('id, name, phone, role');
         if (sysUsersErr) throw sysUsersErr;
 
@@ -167,6 +170,7 @@ async function loadWeddingData(container, weddingId) {
 
         const canConfig = (isCreator || isHost) && !isArchived; 
         const canViewAll = isCreator || isHost || isWeddingUser; 
+        const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
 
         window.__weddingContext = {
             weddingId,
@@ -179,7 +183,7 @@ async function loadWeddingData(container, weddingId) {
 
         let eventsQuery = supabase.from('wedding_events').select('*').eq('wedding_id', weddingId);
         const { data: guests, error: guestsError } = await supabase.from('guests').select('*').eq('wedding_id', weddingId);
-        if (guestsError) throw guestsError;
+        if (guestsError && !isWebInviteOnly) throw guestsError;
 
         const { data: eventGuests } = await supabase.from('event_guests').select('*');
 
@@ -211,14 +215,14 @@ async function loadWeddingData(container, weddingId) {
         const displayEventCount = canViewAll ? (allEvents?.length || 0) : filteredEvents.length;
 
         container.innerHTML = "";
-        container.appendChild(buildSpecificHeader(wedding, hasWebInvite));
+        container.appendChild(buildSpecificHeader(wedding, hasWebInvite, variants));
         
-        const statsSection = buildSpecificStats(wedding, displayEventCount, guests?.length || 0, hosts, canViewAll);
+        const statsSection = buildSpecificStats(wedding, displayEventCount, guests?.length || 0, hosts, canViewAll && !isWebInviteOnly, isWebInviteOnly);
         if (statsSection) container.appendChild(statsSection);
         
         container.appendChild(buildEventItinerarySection(wedding, filteredEvents, canConfig));
 
-        if (canViewAll) {
+        if (canViewAll && !isWebInviteOnly) {
             container.appendChild(buildHostListSection(wedding, hosts, canConfig, isCreator, curUser.id));
             container.appendChild(buildWeddingUserListSection(wedding, wUsers, canConfig));
             const guestSection = buildGuestListSection(wedding, guests, allEvents, canConfig);
@@ -236,7 +240,7 @@ async function loadWeddingData(container, weddingId) {
 // ==========================================
 // 1. HEADER SECTION
 // ==========================================
-function buildSpecificHeader(wedding, hasWebInvite = true) {
+function buildSpecificHeader(wedding, hasWebInvite = true, variants = []) {
     const header = document.createElement("div");
     header.className = "wedding-details-header";
     
@@ -283,12 +287,21 @@ function buildSpecificHeader(wedding, hasWebInvite = true) {
 
     let webInviteHTML = '';
     if (hasWebInvite || wedding.id === '00000000-0000-0000-0000-000000000000') {
+        const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+        const firstVariant = (variants && variants.length > 0) ? variants[0] : null;
+
         let inviteUrl = `/#web-invites-preview?id=${wedding.id}`;
+        
+        if (isWebInviteOnly) {
+            inviteUrl = firstVariant ? `/#web-invites-public-preview?variant_id=${firstVariant.id}` : `javascript:void(0);`;
+        }
+
         if (wedding.id === '00000000-0000-0000-0000-000000000000') {
             inviteUrl = `/#sample-web-invites-preview?id=sample-upcoming`;
         }
+
         webInviteHTML = `
-            <a href="${inviteUrl}" target="_blank" class="wedding-details-header__invite-btn">
+            <a href="${inviteUrl}" ${isWebInviteOnly && !firstVariant ? `onclick="showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Web Invites tab to view this invitation.'); return false;"` : 'target="_blank"'} class="wedding-details-header__invite-btn">
                 <i data-lucide="external-link"></i> Wedding Invitation
             </a>`;
     }
@@ -307,7 +320,7 @@ function buildSpecificHeader(wedding, hasWebInvite = true) {
 // ==========================================
 // 2. STATS SECTION 
 // ==========================================
-function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0, hosts = [], canViewAll) {
+function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0, hosts = [], canViewAll = true, isWebInviteOnly = false) {
     const formatWithNewlines = (text) => text ? text.replace(/[,;]\s*/g, '<br>') : '';
 
     const container = document.createElement("div");
@@ -355,29 +368,31 @@ function buildSpecificStats(wedding, eventsCount = 0, guestsCount = 0, hosts = [
     let bottomCardsHTML = '';
     let hostRowsHTML = '';
 
-    if (hosts && hosts.length > 0) {
-        const sortedHosts = [...hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
-        hostRowsHTML = sortedHosts.map(host => {
-            const cleanNum = host.phone ? host.phone.replace(/[^0-9+]/g, '') : '';
-            return `
-            <div class="wedding-details-host-row">
-                <span class="wedding-details-host-row__text">${host.name} - ${host.phone}</span>
-                <a href="tel:${cleanNum}" class="wedding-details-host-row__call-btn" title="Call ${host.name}">
-                    <i data-lucide="phone"></i>
-                </a>
-            </div>`;
-        }).join('');
-    } else {
-        hostRowsHTML = `<div class="wedding-details-host-empty">No wedding hosts added yet.</div>`;
+    if (!isWebInviteOnly) {
+        if (hosts && hosts.length > 0) {
+            const sortedHosts = [...hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+            hostRowsHTML = sortedHosts.map(host => {
+                const cleanNum = host.phone ? host.phone.replace(/[^0-9+]/g, '') : '';
+                return `
+                <div class="wedding-details-host-row">
+                    <span class="wedding-details-host-row__text">${host.name} - ${host.phone}</span>
+                    <a href="tel:${cleanNum}" class="wedding-details-host-row__call-btn" title="Call ${host.name}">
+                        <i data-lucide="phone"></i>
+                    </a>
+                </div>`;
+            }).join('');
+        } else {
+            hostRowsHTML = `<div class="wedding-details-host-empty">No wedding hosts added yet.</div>`;
+        }
+
+        bottomCardsHTML += `
+        <div class="wedding-details-stat-card wedding-details-stat-card--column">
+            <p class="wedding-details-stat-card__subtitle">Wedding Host Details</p>
+            ${hostRowsHTML}
+        </div>`;
     }
 
-    bottomCardsHTML += `
-    <div class="wedding-details-stat-card wedding-details-stat-card--column">
-        <p class="wedding-details-stat-card__subtitle">Wedding Host Details</p>
-        ${hostRowsHTML}
-    </div>`;
-
-    if (canViewAll) {
+    if (canViewAll && !isWebInviteOnly) {
         bottomCardsHTML += `
         <div class="wedding-details-stat-card">
             <div>
@@ -945,7 +960,6 @@ function layoutDetailsModalFooter(isEditModal = false) {
     const cancelBtn = allBtns.find(b => b.textContent.trim() === 'Cancel');
     const closeBtn = allBtns.find(b => b.textContent.trim() === 'Close');
     const deleteBtn = allBtns.find(b => b.textContent.trim() === 'Delete');
-    const primaryBtn = allBtns.find(b => ['Add', 'Edit', 'Update'].includes(b.textContent.trim()));
 
     if (cancelBtn) {
         cancelBtn.classList.add('modal-btn-cancel');
@@ -2504,4 +2518,4 @@ window.triggerCSVImport = function(weddingId) {
         }
     };
     input.click();
-};  
+};

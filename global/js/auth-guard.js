@@ -2,7 +2,13 @@ import { supabase } from '../../database/js/api.js';
 import { showSweetAlert } from './sweet-alert-message.js';
 
 export const ADMIN_WHATSAPP_NUMBER = "919791146838";
-export const publicRoutes = ['#login', '#/', '#sample-web-invites-preview'];
+export const publicRoutes = [
+    '#login', 
+    '#/', 
+    '#sample-web-invites-preview', 
+    '#web-invites-preview', 
+    '#web-invites-public-preview' // Public bypass
+];
 
 export function getWhatsAppVerificationLink(verificationCode, name) {
     const message = `Hi Shaadi Saathi, please verify my account.\n\nName: ${name || 'User'}\nCode: ${verificationCode || 'N/A'}`;

@@ -3,6 +3,7 @@ import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
 const INVITE_BASE_URL = "/#web-invites-preview";
+const PUBLIC_INVITE_BASE_URL = "/#web-invites-public-preview";
 
 function startOfDay(date) {
     const copy = new Date(date);
@@ -104,12 +105,18 @@ async function loadInvitesData(container) {
             .from('wedding_web_invite')
             .select(`
                 *,
-                weddings ( id, bride_name, groom_name, start_date, end_date, hashtag, primary_side )
+                weddings ( id, bride_name, groom_name, start_date, end_date, hashtag, primary_side, invitation_type )
             `);
             
         if (error) throw error;
 
-        window.__invitesData = invites || [];
+        const { data: variantsData } = await supabase.from('invite_variants').select('*');
+
+        window.__invitesData = (invites || []).map(inv => {
+            const vars = (variantsData || []).filter(v => v.wedding_id === inv.wedding_id);
+            return { ...inv, variants: vars };
+        });
+
         renderInviteGalleries(container, window.__invitesData);
     } catch (err) {
         container.innerHTML = `
@@ -176,6 +183,15 @@ function renderInviteGalleries(container, invites) {
         });
     });
 
+    container.querySelectorAll('.manage-variants-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const weddingId = btn.getAttribute('data-wedding-id');
+            const weddingTitle = btn.getAttribute('data-wedding-title');
+            openVariantsModal(weddingId, weddingTitle);
+        });
+    });
+
     if (window.lucide) window.lucide.createIcons();
 }
 
@@ -203,15 +219,39 @@ function buildGallerySection(title, invites, isArchived) {
         const targetDate = w.end_date || w.start_date;
         const dateStr = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
         
-        const inviteUrl = `${INVITE_BASE_URL}?id=${w.id}`;
-        const fullShareUrl = `${window.location.origin}${inviteUrl}`;
+        const isWebInviteOnly = w.invitation_type === 'web_invite_only';
+        const defaultVariant = (inv.variants && inv.variants.length > 0) ? inv.variants[0] : null;
+
+        let inviteUrl = `${INVITE_BASE_URL}?id=${w.id}`;
+        if (isWebInviteOnly) {
+            inviteUrl = defaultVariant ? `${PUBLIC_INVITE_BASE_URL}?variant_id=${defaultVariant.id}` : `javascript:void(0);`;
+        }
+
+        const fullShareUrl = defaultVariant ? `${window.location.origin}${PUBLIC_INVITE_BASE_URL}?variant_id=${defaultVariant.id}` : `${window.location.origin}${INVITE_BASE_URL}?id=${w.id}`;
         const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
         const t = themePalettes[inv.theme] || themePalettes.blue;
 
         const editButtonHtml = isArchived ? '' : `
-            <button class="edit-invite-btn web-invite-card__edit-btn" data-invite='${invJson}' title="Edit Invite">
+            <button class="web-invite-card__edit-btn edit-invite-btn" data-invite='${invJson}' title="Edit Invite" type="button">
                 <i data-lucide="edit-2" class="web-invite-card__edit-icon"></i>
             </button>
+        `;
+
+        const variantsBtnHtml = isWebInviteOnly ? `
+            <button class="manage-variants-btn web-invite-card__copy-btn" data-wedding-id="${w.id}" data-wedding-title="${displayNames}" title="Manage Invite Variants" type="button">
+                <i data-lucide="layers"></i>
+            </button>
+        ` : '';
+
+        // For Web Invite Only cards, clicking View Invite will open the variants modal
+        const viewInviteAction = isWebInviteOnly ? `
+            <button class="manage-variants-btn web-invite-card__view-btn" data-wedding-id="${w.id}" data-wedding-title="${displayNames}" style="background: ${t.accent}; color: ${t.bgDark}; border: none; cursor: pointer;" type="button">
+                View Links
+            </button>
+        ` : `
+            <a href="${inviteUrl}" target="_blank" class="web-invite-card__view-btn" style="background: ${t.accent}; color: ${t.bgDark};">
+                View Invite
+            </a>
         `;
 
         return `
@@ -226,17 +266,16 @@ function buildGallerySection(title, invites, isArchived) {
                 <h3 class="web-invite-card__names">${displayNames}</h3>
                 
                 <p class="web-invite-card__meta">
-                    <span class="web-invite-card__hashtag" style="color: ${t.accent};">${w.hashtag || ''}</span><br/>
+                    ${w.hashtag ? `<span class="web-invite-card__hashtag" style="color: ${t.accent};">${w.hashtag}</span><br/>` : ''}
                     <span class="web-invite-card__date">${dateStr}</span>
                 </p>
                 
                 <div class="web-invite-card__actions">
-                    <a href="${inviteUrl}" target="_blank" class="web-invite-card__view-btn" style="background: ${t.accent}; color: ${t.bgDark};">
-                        View Invite
-                    </a>
-                    <button onclick="navigator.clipboard.writeText('${fullShareUrl}'); showSweetAlert('success', 'Copied!', 'Link copied to clipboard');" class="web-invite-card__copy-btn" title="Copy Link">
+                    ${viewInviteAction}
+                    <button onclick="navigator.clipboard.writeText('${fullShareUrl}'); showSweetAlert('success', 'Copied!', 'Link copied to clipboard');" class="web-invite-card__copy-btn" title="Copy Link" type="button">
                         <i data-lucide="link"></i>
                     </button>
+                    ${variantsBtnHtml}
                 </div>
             </div>
         </div>
@@ -251,6 +290,166 @@ function buildGallerySection(title, invites, isArchived) {
             </div>
         </div>
     `;
+}
+
+export async function openVariantsModal(weddingId, weddingTitle) {
+    const { data: events } = await supabase
+        .from('wedding_events')
+        .select('*')
+        .eq('wedding_id', weddingId)
+        .order('date', { ascending: true });
+
+    const eventCheckboxes = (events || []).map(ev => `
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--color-text-primary, #ffffff); cursor: pointer; margin-bottom: 6px;">
+            <input type="checkbox" name="variant_event" value="${ev.id}" style="accent-color: var(--color-primary, #facc15);">
+            <span>${ev.event_name || ev.title} (${new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})</span>
+        </label>
+    `).join('') || `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.85rem;">No events added to this wedding yet.</div>`;
+
+    const contentHTML = `
+        <div style="display: flex; flex-direction: column; gap: 16px; font-family: inherit;">
+            <div>
+                <h4 style="margin: 0 0 4px 0; font-size: 0.95rem; color: var(--color-primary, #facc15);">Create New Variant</h4>
+                <p style="margin: 0 0 10px 0; font-size: 0.8rem; color: var(--color-text-muted, #94a3b8);">Create a custom link for specific events (e.g. "Reception Only").</p>
+                <div style="margin-bottom: 8px;">
+                    <label class="invite-modal-label">Variant Name *</label>
+                    <input type="text" id="newVariantName" placeholder="e.g., Reception Only, Close Family" class="invite-modal-input">
+                </div>
+                <div>
+                    <label class="invite-modal-label">Include Events *</label>
+                    <div style="max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; border: 1px solid var(--color-border, rgba(255,255,255,0.1));">
+                        ${eventCheckboxes}
+                    </div>
+                </div>
+                <button id="saveVariantBtn" style="margin-top: 10px; width: 100%; height: 36px; background: var(--color-primary, #facc15); color: #000; font-weight: 600; border: none; border-radius: 6px; cursor: pointer;" type="button">
+                    + Create Variant Link
+                </button>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--color-border, rgba(255,255,255,0.1)); margin: 4px 0;" />
+
+            <div>
+                <h4 style="margin: 0 0 8px 0; font-size: 0.95rem; color: var(--color-text-primary, #ffffff);">Existing Link Variants</h4>
+                <div id="variantsListContainer">
+                    <div style="color: var(--color-text-muted, #94a3b8); font-size: 0.85rem; text-align: center; padding: 12px 0;">Loading variants...</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const modal = openModal({
+        title: `Invite Variants - ${weddingTitle}`,
+        content: contentHTML,
+        actions: [
+            { label: "Cancel", variant: "ghost" }
+        ]
+    });
+
+    async function refreshVariantsList() {
+        const container = document.getElementById('variantsListContainer');
+        if (!container) return;
+
+        const { data: variants } = await supabase
+            .from('invite_variants')
+            .select('*')
+            .eq('wedding_id', weddingId)
+            .order('created_at', { ascending: false });
+
+        if (!variants || variants.length === 0) {
+            container.innerHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.85rem; text-align: center; padding: 12px 0;">No link variants created yet.</div>`;
+            return;
+        }
+
+        container.innerHTML = variants.map(v => {
+            const variantUrl = `${window.location.origin}${PUBLIC_INVITE_BASE_URL}?variant_id=${v.id}`;
+            const count = v.selected_event_ids?.length || 0;
+            return `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-text-primary, #ffffff);">${v.variant_name}</div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-muted, #94a3b8);">${count} event(s) included</div>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <a href="${variantUrl}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 5px 8px; border-radius: 4px; text-decoration: none;" title="Open Link">
+                            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+                        </a>
+                        <button class="copy-variant-btn" data-url="${variantUrl}" style="background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 5px 8px; border-radius: 4px; cursor: pointer;" title="Copy Link" type="button">
+                            <i data-lucide="link" style="width: 14px; height: 14px;"></i>
+                        </button>
+                        <button class="delete-variant-btn" data-id="${v.id}" style="background: transparent; border: 1px solid rgba(239,68,68,0.3); color: #ef4444; padding: 5px 8px; border-radius: 4px; cursor: pointer;" title="Delete Variant" type="button">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        if (window.lucide) window.lucide.createIcons();
+
+        container.querySelectorAll('.copy-variant-btn').forEach(b => {
+            b.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const url = b.getAttribute('data-url');
+                navigator.clipboard.writeText(url);
+                showSweetAlert('success', 'Copied!', 'Variant link copied to clipboard.');
+            });
+        });
+
+        container.querySelectorAll('.delete-variant-btn').forEach(b => {
+            b.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = b.getAttribute('data-id');
+                const { error } = await supabase.from('invite_variants').delete().eq('id', id);
+                if (error) {
+                    showSweetAlert('error', 'Error', error.message);
+                } else {
+                    refreshVariantsList();
+                    window.dispatchEvent(new Event('invitesDataUpdated'));
+                }
+            });
+        });
+    }
+
+    setTimeout(() => {
+        layoutInviteModalFooter(false);
+        refreshVariantsList();
+
+        const saveBtn = document.getElementById('saveVariantBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async () => {
+                const nameInput = document.getElementById('newVariantName');
+                const variantName = nameInput.value.trim();
+                const selected = Array.from(document.querySelectorAll('input[name="variant_event"]:checked')).map(cb => cb.value);
+
+                if (!variantName) {
+                    showSweetAlert('error', 'Missing Information', 'Please provide a variant name.');
+                    return;
+                }
+                if (selected.length === 0) {
+                    showSweetAlert('error', 'Missing Events', 'Please select at least one event.');
+                    return;
+                }
+
+                try {
+                    const { error } = await supabase.from('invite_variants').insert([{
+                        wedding_id: weddingId,
+                        variant_name: variantName,
+                        selected_event_ids: selected
+                    }]);
+                    if (error) throw error;
+
+                    nameInput.value = '';
+                    document.querySelectorAll('input[name="variant_event"]').forEach(cb => cb.checked = false);
+
+                    await refreshVariantsList();
+                    window.dispatchEvent(new Event('invitesDataUpdated'));
+                    showSweetAlert('success', 'Created!', 'Variant link created successfully.');
+                } catch (err) {
+                    showSweetAlert('error', 'Database Error', err.message);
+                }
+            });
+        }
+    }, 50);
 }
 
 function layoutInviteModalFooter(isEditModal = false) {

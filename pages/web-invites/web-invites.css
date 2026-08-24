@@ -167,6 +167,7 @@
 
 /* Web Invite Card */
 .web-invite-card {
+  position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
   display: flex;
@@ -189,21 +190,30 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Edit Button Position & Shape */
 .web-invite-card__edit-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-fast, 0.2s ease);
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transition: all var(--transition-fast, 0.2s ease) !important;
+  z-index: 3 !important;
+}
+
+.web-invite-card__edit-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: scale(1.05);
 }
 
 .web-invite-card__edit-icon {
@@ -392,11 +402,11 @@ textarea.invite-modal-input {
   color: #ffffff !important;
   border: 1px solid #6b7280 !important;
   padding: 0.45rem 1.15rem !important;
-  border-radius: var(--radius-sm) !important;
-  font-weight: var(--font-weight-medium) !important;
+  border-radius: var(--radius-sm, 4px) !important;
+  font-weight: var(--font-weight-medium, 500) !important;
   cursor: pointer !important;
   white-space: nowrap !important;
-  transition: opacity var(--transition-fast) !important;
+  transition: opacity var(--transition-fast, 0.15s ease) !important;
 }
 
 .modal-btn-cancel:hover {
@@ -408,11 +418,11 @@ textarea.invite-modal-input {
   color: #ffffff !important;
   border: 1px solid #dc2626 !important;
   padding: 0.45rem 1.15rem !important;
-  border-radius: var(--radius-sm) !important;
-  font-weight: var(--font-weight-semibold) !important;
+  border-radius: var(--radius-sm, 4px) !important;
+  font-weight: var(--font-weight-semibold, 600) !important;
   cursor: pointer !important;
   white-space: nowrap !important;
-  transition: opacity var(--transition-fast) !important;
+  transition: opacity var(--transition-fast, 0.15s ease) !important;
 }
 
 .modal-btn-delete:hover {

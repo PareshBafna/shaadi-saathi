@@ -191,11 +191,13 @@ async function loadWeddingsData(container) {
         let hostsQuery = supabase.from('wedding_hosts').select('*');
         let wUsersQuery = supabase.from('wedding_users').select('*');
         let webInvitesQuery = supabase.from('wedding_web_invite').select('wedding_id');
+        let variantsQuery = supabase.from('invite_variants').select('*');
         
         if (!isCreator) {
             hostsQuery = hostsQuery.in('wedding_id', accessibleWeddingIds);
             wUsersQuery = wUsersQuery.in('wedding_id', accessibleWeddingIds);
             webInvitesQuery = webInvitesQuery.in('wedding_id', accessibleWeddingIds);
+            variantsQuery = variantsQuery.in('wedding_id', accessibleWeddingIds);
         }
 
         const { data: hostsData, error: hostsError } = await hostsQuery;
@@ -205,6 +207,7 @@ async function loadWeddingsData(container) {
         if (wUsersError && wUsersError.code !== '42P01') throw wUsersError;
 
         const { data: webInvitesData } = await webInvitesQuery;
+        const { data: variantsData } = await variantsQuery;
         
         let accessibleWeddings = [];
 
@@ -217,6 +220,7 @@ async function loadWeddingsData(container) {
 
             wedding.wedding_users = wUsersData ? wUsersData.filter(u => u.wedding_id === wedding.id) : [];
             wedding.has_web_invite = (wedding.id === '00000000-0000-0000-0000-000000000000') || (webInvitesData ? webInvitesData.some(w => w.wedding_id === wedding.id) : false);
+            wedding.variants = variantsData ? variantsData.filter(v => v.wedding_id === wedding.id) : [];
 
             let eventsQuery = supabase.from('wedding_events').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
             
@@ -343,36 +347,52 @@ function buildGallerySection(title, weddings) {
             ? `${wedding.groom_name} & ${wedding.bride_name}` 
             : `${wedding.bride_name} & ${wedding.groom_name}`;
 
+        const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+
         let hostsHTML = '';
-        if (wedding.hosts && wedding.hosts.length > 0) {
-            const sortedHosts = [...wedding.hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
-            const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
-            
-            hostsHTML = `
-            <div class="dashboard-wedding-card__row">
-                <i data-lucide="phone"></i> <span>${inlineHosts}</span>
-            </div>`;
-        } else {
-            hostsHTML = `
-            <div class="dashboard-wedding-card__row dashboard-wedding-card__row--empty">
-                <i data-lucide="phone"></i> <span>No wedding hosts added</span>
-            </div>`;
+        if (!isWebInviteOnly) {
+            if (wedding.hosts && wedding.hosts.length > 0) {
+                const sortedHosts = [...wedding.hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+                const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
+                
+                hostsHTML = `
+                <div class="dashboard-wedding-card__row">
+                    <i data-lucide="phone"></i> <span>${inlineHosts}</span>
+                </div>`;
+            } else {
+                hostsHTML = `
+                <div class="dashboard-wedding-card__row dashboard-wedding-card__row--empty">
+                    <i data-lucide="phone"></i> <span>No wedding hosts added</span>
+                </div>`;
+            }
         }
 
         let webInviteHTML = '';
         if (wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000') {
+            const firstVariant = (wedding.variants && wedding.variants.length > 0) ? wedding.variants[0] : null;
             let inviteUrl = `/#web-invites-preview?id=${wedding.id}`;
+            
+            if (isWebInviteOnly) {
+                inviteUrl = firstVariant ? `/#web-invites-public-preview?variant_id=${firstVariant.id}` : `javascript:void(0);`;
+            }
+
             if (wedding.id === '00000000-0000-0000-0000-000000000000') {
                 inviteUrl = `/#sample-web-invites-preview?id=sample-upcoming`;
             }
 
             webInviteHTML = `
             <div class="dashboard-wedding-card__invite-wrap">
-                <a href="${inviteUrl}" target="_blank" onclick="event.stopPropagation();" class="dashboard-wedding-card__invite-btn">
+                <a href="${inviteUrl}" ${isWebInviteOnly && !firstVariant ? `onclick="event.stopPropagation(); alert('Please create at least one variant in the Web Invites tab.'); return false;"` : 'target="_blank"'} onclick="event.stopPropagation();" class="dashboard-wedding-card__invite-btn">
                     <i data-lucide="external-link"></i> Wedding Invitation
                 </a>
             </div>`;
         }
+
+        const webInviteOnlyIcon = isWebInviteOnly ? `
+            <div class="dashboard-wedding-card__icon-badge" title="Web Invite Only">
+                <i data-lucide="mail"></i>
+            </div>
+        ` : '';
 
         return `
         <div class="dashboard-wedding-card" data-wedding-id="${wedding.id}">
@@ -386,6 +406,10 @@ function buildGallerySection(title, weddings) {
                         <p class="dashboard-wedding-card__dates"><i data-lucide="calendar"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
                     </div>
                 </div>
+                <div class="dashboard-wedding-card__header-actions">
+                    ${editBtnHTML}
+                    ${webInviteOnlyIcon}
+                </div>
             </div>
 
             <div class="dashboard-wedding-card__details">
@@ -395,8 +419,6 @@ function buildGallerySection(title, weddings) {
                 <div class="dashboard-wedding-card__row"><i data-lucide="calendar-days"></i> <span>${wedding.events_count || 0} Events</span></div>
                 ${webInviteHTML}
             </div>
-
-            ${editBtnHTML}
         </div>
         `;
     }).join('');
@@ -463,14 +485,32 @@ export function openCreateWeddingModal() {
 
     const formHTML = `
         <form id="createWeddingForm" novalidate class="wedding-modal-form">
-            <div>
+            <!-- Row 1: Primary Side -->
+            <div style="margin-bottom: 16px;">
                 <label class="wedding-modal-label">Primary Side</label>
-                <div class="wedding-modal-radios">
-                    <label class="wedding-modal-radio-label">
-                        <input type="radio" name="primarySide" value="bride" checked> Bride's Side
+                <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px;">
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="primarySide" value="bride" checked style="accent-color: var(--color-primary, #facc15);">
+                        <span>Bride's Side</span>
                     </label>
-                    <label class="wedding-modal-radio-label">
-                        <input type="radio" name="primarySide" value="groom"> Groom's Side
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="primarySide" value="groom" style="accent-color: var(--color-primary, #facc15);">
+                        <span>Groom's Side</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Row 2: Invitation Type -->
+            <div style="margin-bottom: 18px;">
+                <label class="wedding-modal-label">Invitation Type</label>
+                <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px;">
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="invitationType" value="full" checked style="accent-color: var(--color-primary, #facc15);">
+                        <span>Full Wedding</span>
+                    </label>
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="invitationType" value="web_invite_only" style="accent-color: var(--color-primary, #facc15);">
+                        <span>Web Invite Only</span>
                     </label>
                 </div>
             </div>
@@ -524,7 +564,7 @@ export function openCreateWeddingModal() {
         title: "Add New Wedding",
         content: formHTML,
         actions: [
-            { label: "Cancel", variant: "ghost" },
+            { label: "Cancel", variant: "secondary" },
             { 
                 label: "Add", 
                 variant: "primary", 
@@ -582,6 +622,7 @@ export function openCreateWeddingModal() {
                     }
 
                     const primarySide = document.querySelector('input[name="primarySide"]:checked').value;
+                    const invitationType = document.querySelector('input[name="invitationType"]:checked').value;
                     const brideName = document.getElementById('brideName').value.trim();
                     const groomName = document.getElementById('groomName').value.trim();
                     const familyName = document.getElementById('familyName').value.trim();
@@ -593,6 +634,7 @@ export function openCreateWeddingModal() {
                     try {
                         const { error } = await supabase.from('weddings').insert([{ 
                             primary_side: primarySide,
+                            invitation_type: invitationType,
                             bride_name: brideName,
                             groom_name: groomName, 
                             start_date: startDate,
@@ -675,19 +717,29 @@ export function openEditWeddingModal(wedding) {
     }
 
     const todayStr = getLocalTodayString();
+    const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
 
     const formHTML = `
         <form id="editWeddingForm" novalidate class="wedding-modal-form">
-            <div>
+            <!-- Row 1: Primary Side -->
+            <div style="margin-bottom: 16px;">
                 <label class="wedding-modal-label">Primary Side</label>
-                <div class="wedding-modal-radios">
-                    <label class="wedding-modal-radio-label">
-                        <input type="radio" name="editPrimarySide" value="bride" ${wedding.primary_side !== 'groom' ? 'checked' : ''}> Bride's Side
+                <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px;">
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="editPrimarySide" value="bride" ${wedding.primary_side !== 'groom' ? 'checked' : ''} style="accent-color: var(--color-primary, #facc15);">
+                        <span>Bride's Side</span>
                     </label>
-                    <label class="wedding-modal-radio-label">
-                        <input type="radio" name="editPrimarySide" value="groom" ${wedding.primary_side === 'groom' ? 'checked' : ''}> Groom's Side
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="editPrimarySide" value="groom" ${wedding.primary_side === 'groom' ? 'checked' : ''} style="accent-color: var(--color-primary, #facc15);">
+                        <span>Groom's Side</span>
                     </label>
                 </div>
+            </div>
+
+            <!-- Row 2: Invitation Type (Read-Only) -->
+            <div style="margin-bottom: 18px;">
+                <label class="wedding-modal-label">Invitation Type</label>
+                <input type="text" value="${isWebInviteOnly ? 'Web Invite Only' : 'Full Wedding'}" disabled class="wedding-modal-input" style="opacity: 0.6; cursor: not-allowed; margin-top: 6px;">
             </div>
 
             <div class="wedding-modal-row">
@@ -730,7 +782,7 @@ export function openEditWeddingModal(wedding) {
 
             <div>
                 <label class="wedding-modal-label">Family Details *</label>
-                <textarea id="editFamilyDetails" rows="3" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--valid"></textarea>
+                <textarea id="editFamilyDetails" rows="3" required placeholder="e.g., The Bafna & Sharma Families" class="wedding-modal-input wedding-modal-input--valid">${wedding.family_details || ''}</textarea>
             </div>
         </form>
     `;
@@ -738,7 +790,7 @@ export function openEditWeddingModal(wedding) {
     const modalActions = [];
 
     // 1. Cancel on Left
-    modalActions.push({ label: "Cancel", variant: "ghost" });
+    modalActions.push({ label: "Cancel", variant: "secondary" });
 
     // 2. Delete in Center (if creator)
     if (userRole === 'creator') {
