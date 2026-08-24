@@ -23,7 +23,6 @@ export function createHeader(options = {}) {
   if (!isVerified) {
     const userName = user.name || 'User';
     
-    // Extract existing verification code or fallback to id
     let userCode = user.id || localStorage.getItem('ss_user_id') || 'N/A';
     if (verifyLink && verifyLink.includes('VERIFY-')) {
       const match = decodeURIComponent(verifyLink).match(/VERIFY-[A-Za-z0-9]+/);

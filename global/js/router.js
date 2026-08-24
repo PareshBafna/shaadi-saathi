@@ -15,6 +15,7 @@ import { renderSampleWeddings } from '../../pages/sample-weddings/sample-wedding
 import { renderSampleWeddingDetails } from '../../pages/sample-wedding-details/sample-wedding-details.js';
 import { renderSampleWebInvites } from '../../pages/sample-web-invites-preview/sample-web-invites-preview.js';
 import { renderWebInvitesPreview } from '../../pages/web-invites-preview/web-invites-preview.js';
+import { renderWebInvitesPublicPreview } from '../../pages/web-invites-public-preview/web-invites-public-preview.js';
 import { renderProfile } from '../../pages/profile/profile.js';
 
 export async function router() {
@@ -22,7 +23,7 @@ export async function router() {
     const [route, queryString] = hash.split('?');
     const params = new URLSearchParams(queryString || '');
 
-    if (route !== '#web-invites-preview' && route !== '#sample-web-invites-preview') {
+    if (route !== '#web-invites-preview' && route !== '#sample-web-invites-preview' && route !== '#web-invites-public-preview') {
         document.title = "Shaadi Saathi";
         forceResetFavicon();
     }
@@ -33,12 +34,14 @@ export async function router() {
     document.body.classList.remove('modal-open', 'swal2-shown');
     document.body.style.overflow = '';
 
+    const contentEl = document.getElementById("main-content");
+    if (contentEl) contentEl.style.visibility = 'hidden';
+
     let activePageName = route.replace('#', '');
     if (activePageName === '' || activePageName === '/') activePageName = 'login';
-    loadPageStyle(activePageName);
-
-    const contentEl = document.getElementById("main-content");
     
+    await loadPageStyle(activePageName);
+
     if (route === '#login') {
         const activeUserId = localStorage.getItem('ss_user_id');
         if (activeUserId && window.currentUser) {
@@ -54,6 +57,7 @@ export async function router() {
         if (contentEl) {
             contentEl.innerHTML = "";
             contentEl.appendChild(renderLogin());
+            contentEl.style.visibility = 'visible';
         }
         return;
     }
@@ -71,9 +75,21 @@ export async function router() {
         return;
     }
 
+    // Direct standalone public route
+    if (route === '#web-invites-public-preview') {
+        document.getElementById('layout')?.replaceChildren();
+        document.body.innerHTML = "";
+        const previewElement = await renderWebInvitesPublicPreview();
+        document.body.appendChild(previewElement);
+        return;
+    }
+
     if (!window.currentUser && !publicRoutes.includes(route)) {
         checkSessionOrShowAlert();
-        if (contentEl) contentEl.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to continue.</div>`;
+        if (contentEl) {
+            contentEl.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to continue.</div>`;
+            contentEl.style.visibility = 'visible';
+        }
         return;
     }
 
@@ -83,7 +99,6 @@ export async function router() {
     let pageTitle = "";
     let renderFunc = null;
     let pageArgs = null;
-    let allowedRoles = []; 
 
     const routeConfig = {
         '#dashboard': { title: 'Dashboard', fn: renderDashboard, roles: ['creator'] },
@@ -95,7 +110,7 @@ export async function router() {
         '#hosts': { title: 'Hosts', fn: renderHosts, roles: ['creator'] },
         '#sample-weddings': { title: 'Sample Wedding', fn: renderSampleWeddings, roles: ['creator', 'host', 'wedding_user', 'guest'] },
         '#sample-wedding-details': { title: 'Sample Wedding Details', fn: renderSampleWeddingDetails, roles: ['creator', 'host', 'wedding_user', 'guest'], requiresParam: 'id' },
-        '#web-invites': { title: 'Web Invites', fn: renderWebInvites, roles: ['creator'] },
+        '#web-invites': { title: 'Web Invites', fn: renderWebInvites, roles: ['creator', 'host'] },
         '#profile': { title: 'Profile', fn: renderProfile, roles: ['creator', 'host', 'wedding_user', 'guest'] }
     };
 
@@ -142,7 +157,9 @@ export async function router() {
         contentEl.appendChild(pageNode instanceof Promise ? await pageNode : pageNode);
     }
 
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    if (window.lucide) window.lucide.createIcons();
+
+    contentEl.style.visibility = 'visible';
 }
 
 function showAccessRestricted() {

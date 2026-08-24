@@ -198,12 +198,26 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border: none;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .dashboard-wedding-card__icon-badge i,
 .dashboard-wedding-card__icon-badge svg {
   width: 16px;
   height: 16px;
+}
+
+.dashboard-wedding-card__web-badge {
+  cursor: pointer;
+  transition: background var(--transition-fast, 0.15s ease), transform var(--transition-fast, 0.15s ease);
+}
+
+.dashboard-wedding-card__web-badge:hover {
+  background: var(--color-primary);
+  color: var(--color-text-on-accent, #000000);
+  transform: scale(1.05);
 }
 
 .dashboard-wedding-card__names {
@@ -294,4 +308,23 @@
   text-align: center;
   color: var(--color-text-secondary);
   font-size: var(--font-size-base, 1rem);
+}
+
+/* ============================================================
+   MODAL CANCEL BUTTON (MATCHING ALL PAGES)
+   ============================================================ */
+.modal-btn-cancel {
+  background: #6b7280 !important;
+  color: #ffffff !important;
+  border: 1px solid #6b7280 !important;
+  padding: 0.45rem 1.15rem !important;
+  border-radius: var(--radius-sm, 4px) !important;
+  font-weight: var(--font-weight-medium, 500) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: opacity var(--transition-fast, 0.15s ease) !important;
+}
+
+.modal-btn-cancel:hover {
+  opacity: 0.85 !important;
 }
