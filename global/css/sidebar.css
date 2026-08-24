@@ -80,7 +80,7 @@
   border-radius: var(--radius-md, 8px);
   color: var(--color-text-secondary, #c4a480);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 600; /* Bold text for desktop links */
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   overflow: hidden;
   cursor: pointer;
@@ -207,6 +207,7 @@
     display: none;
   }
 
+  /* Creator role with scrollable horizontal list */
   .bottom-nav--scrollable {
     justify-content: flex-start !important;
     gap: 0 !important;
@@ -246,6 +247,12 @@
     padding: 5px 1px !important;
   }
 
+  .bottom-nav__item--whatsapp {
+    color: #25d366 !important;
+    border-color: rgba(37, 211, 102, 0.3) !important;
+    justify-content: center;
+  }
+
   .bottom-nav__item i,
   .bottom-nav__item svg {
     width: 20px;
@@ -257,9 +264,16 @@
     transition: color 0.15s ease, stroke 0.15s ease;
   }
 
+  .bottom-nav__item--whatsapp svg {
+    width: 24px !important;
+    height: 24px !important;
+    fill: #25d366 !important;
+    stroke: none !important;
+  }
+
   .bottom-nav__label {
     font-size: 0.60rem;
-    font-weight: 600;
+    font-weight: 600; /* Bold label text for mobile bottom nav */
     white-space: nowrap;
     text-align: center;
     width: 100%;

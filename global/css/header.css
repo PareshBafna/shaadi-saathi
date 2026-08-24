@@ -54,7 +54,7 @@
   flex-shrink: 0;
 }
 
-/* Center Section: Create Wedding (Desktop) */
+/* Center Section: Create Wedding */
 .global-header__center {
   display: flex;
   align-items: center;
@@ -91,38 +91,13 @@
   flex-shrink: 0;
 }
 
-/* Right Section: Profile & Mobile WhatsApp */
+/* Right Section: Profile Component */
 .global-header__right {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-3, 12px);
+  gap: var(--space-4, 16px);
   flex: 1;
-}
-
-/* Mobile-only WhatsApp button (hidden by default on desktop) */
-.header__whatsapp-mobile-btn {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background-color: #25d366;
-  color: #ffffff !important;
-  border-radius: 50%;
-  text-decoration: none;
-  flex-shrink: 0;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-.header__whatsapp-mobile-btn svg {
-  width: 18px;
-  height: 18px;
-  fill: #ffffff;
-}
-
-.header__whatsapp-mobile-btn:active {
-  transform: scale(0.92);
 }
 
 .global-header__profile {
@@ -176,10 +151,6 @@
 
   .global-header__center {
     display: none !important;
-  }
-
-  .header__whatsapp-mobile-btn {
-    display: inline-flex;
   }
 
   .global-header__verify-btn {
