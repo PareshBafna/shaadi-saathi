@@ -101,23 +101,27 @@ export function renderWeddingDetails(weddingId) {
 async function loadWeddingData(container, weddingId) {
     const dashboardWeddingsUrl = '#weddings';
     
-    const showSwalError = (title, text) => {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: title,
-                text: text,
-                confirmButtonText: "Go Back to Weddings",
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                confirmButtonColor: 'var(--color-primary)'
-            }).then(() => {
-                window.location.hash = dashboardWeddingsUrl;
+    const showSwalError = async (title, text) => {
+        if (typeof Swal === 'undefined') {
+            await new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+                script.onload = resolve;
+                document.head.appendChild(script);
             });
-        } else {
-            alert(title + "\n\n" + text);
-            window.location.hash = dashboardWeddingsUrl;
         }
+
+        Swal.fire({
+            icon: 'error',
+            title: title,
+            text: text,
+            confirmButtonText: "Go Back to Weddings",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            confirmButtonColor: 'var(--color-primary)'
+        }).then(() => {
+            window.location.hash = dashboardWeddingsUrl;
+        });
     };
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

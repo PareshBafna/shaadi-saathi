@@ -383,7 +383,7 @@ function buildGallerySection(title, weddings) {
 
             webInviteHTML = `
             <div class="dashboard-wedding-card__invite-wrap">
-                <a href="${inviteUrl}" ${isWebInviteOnly && !firstVariant ? `onclick="event.stopPropagation(); alert('Please create at least one variant in the Web Invites tab.'); return false;"` : 'target="_blank"'} onclick="event.stopPropagation();" class="dashboard-wedding-card__invite-btn">
+                <a href="${inviteUrl}" ${isWebInviteOnly && !firstVariant ? `onclick="event.stopPropagation(); showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Web Invites tab.'); return false;"` : 'target="_blank"'} onclick="event.stopPropagation();" class="dashboard-wedding-card__invite-btn">
                     <i data-lucide="external-link"></i> Wedding Invitation
                 </a>
             </div>`;
