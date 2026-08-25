@@ -2,7 +2,7 @@ import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
-const INVITE_BASE_URL = "/web-invites-preview";
+const INVITE_BASE_URL = "/web-invites-preview-functions";
 const PUBLIC_INVITE_BASE_URL = "/#web-invites-public-preview";
 
 function startOfDay(date) {

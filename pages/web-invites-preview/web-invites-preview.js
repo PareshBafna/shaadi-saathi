@@ -236,7 +236,7 @@ async function initDynamicInvite(inviteId) {
         const hashtagSuffix = wedding.hashtag ? ` - ${wedding.hashtag.replace(/^#/, '').trim()}` : '';
         const dynamicTitle = `${familyPrefix}Invitation - ${primaryFirstName} Weds ${secondaryFirstName}${hashtagSuffix}`;
         const dynamicDesc = `You are cordially invited to celebrate the wedding of ${primaryFirstName} & ${secondaryFirstName}. Join us on our special day!`;
-        const dynamicThumbnail = inviteDetails.thumbnail_url || dynamicLogoUri;
+        const dynamicThumbnail = inviteDetails.thumbnail_url || initialsLogoUri;
 
         updateSocialMetaTags(dynamicTitle, dynamicDesc, dynamicThumbnail);
 

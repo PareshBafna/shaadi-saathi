@@ -290,7 +290,7 @@ function buildSpecificHeader(wedding, hasWebInvite = true, variants = []) {
         const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
         const firstVariant = (variants && variants.length > 0) ? variants[0] : null;
 
-        let inviteUrl = `/web-invites-preview?id=${wedding.id}`;
+        let inviteUrl = `/web-invites-preview-functions?id=${wedding.id}`;
         
         if (isWebInviteOnly) {
             inviteUrl = firstVariant ? `/#web-invites-public-preview?variant_id=${firstVariant.id}` : `javascript:void(0);`;

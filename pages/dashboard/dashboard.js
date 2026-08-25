@@ -208,7 +208,7 @@ function buildWeddingListSection(title, weddingsList) {
 
         let webInviteHTML = '';
         if (!isWebInviteOnly && wedding.has_web_invite) {
-            const inviteUrl = `/web-invites-preview?id=${wedding.id}`;
+            const inviteUrl = `/web-invites-preview-functions?id=${wedding.id}`;
             webInviteHTML = `
             <div class="dashboard-wedding-card__invite-wrap">
                 <a href="${inviteUrl}" target="_blank" class="dashboard-wedding-card__invite-btn" onclick="event.stopPropagation();">
