@@ -29,6 +29,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
             window.location.hash = '#login';
         }
+    } else if (route === '#web-invites-preview') {
+        // Allow standalone invite preview without forcing dashboard redirect
+        initApp(user);
+        return;
     }
 
     initApp(user);

@@ -1,4 +1,5 @@
 import { formatWeddingDateRange } from '../sample-weddings/sample-weddings.js';
+import { getSampleWebInvitePreviewUrl } from '../../global/js/env-config.js';
 
 // ==========================================
 // SAMPLE WEDDING MOCK DATA GENERATOR
@@ -176,7 +177,7 @@ function buildMockHeader(wedding) {
     const rightSide = document.createElement("div");
     rightSide.className = "sample-details-header__right";
 
-    const inviteUrl = `#sample-web-invites-preview?id=${wedding.id}`;
+    const inviteUrl = getSampleWebInvitePreviewUrl(wedding.id);
 
     let instagramHTML = '';
     if (wedding.instagram) {

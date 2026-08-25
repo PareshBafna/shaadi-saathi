@@ -1,0 +1,14 @@
+# Credentials & Secrets (Never committed to Git)
+**/credentials.js
+credentials.js
+
+# Build Output & Dependencies
+dist/
+node_modules/
+package-lock.json
+
+# Local env files
+.dev.vars
+.dev.vars.*
+.env
+.env.*

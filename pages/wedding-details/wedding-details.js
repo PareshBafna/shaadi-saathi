@@ -2,7 +2,7 @@ import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 import { formatWeddingDateRange } from '../weddings/weddings.js';
-
+import { getWebInvitePreviewUrl, getSampleWebInvitePreviewUrl, getWebInvitePublicPreviewUrl } from '../../global/js/env-config.js';
 // ==========================================
 // UTILITY HELPERS
 // ==========================================
@@ -101,23 +101,27 @@ export function renderWeddingDetails(weddingId) {
 async function loadWeddingData(container, weddingId) {
     const dashboardWeddingsUrl = '#weddings';
     
-    const showSwalError = (title, text) => {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: title,
-                text: text,
-                confirmButtonText: "Go Back to Weddings",
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                confirmButtonColor: 'var(--color-primary)'
-            }).then(() => {
-                window.location.hash = dashboardWeddingsUrl;
+    const showSwalError = async (title, text) => {
+        if (typeof Swal === 'undefined') {
+            await new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+                script.onload = resolve;
+                document.head.appendChild(script);
             });
-        } else {
-            alert(title + "\n\n" + text);
-            window.location.hash = dashboardWeddingsUrl;
         }
+
+        Swal.fire({
+            icon: 'error',
+            title: title,
+            text: text,
+            confirmButtonText: "Go Back to Weddings",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            confirmButtonColor: 'var(--color-primary)'
+        }).then(() => {
+            window.location.hash = dashboardWeddingsUrl;
+        });
     };
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -290,14 +294,14 @@ function buildSpecificHeader(wedding, hasWebInvite = true, variants = []) {
         const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
         const firstVariant = (variants && variants.length > 0) ? variants[0] : null;
 
-        let inviteUrl = `/#web-invites-preview?id=${wedding.id}`;
+        let inviteUrl = getWebInvitePreviewUrl(wedding.id);
         
         if (isWebInviteOnly) {
-            inviteUrl = firstVariant ? `/#web-invites-public-preview?variant_id=${firstVariant.id}` : `javascript:void(0);`;
+            inviteUrl = firstVariant ? getWebInvitePublicPreviewUrl(firstVariant.id) : `javascript:void(0);`;
         }
 
         if (wedding.id === '00000000-0000-0000-0000-000000000000') {
-            inviteUrl = `/#sample-web-invites-preview?id=sample-upcoming`;
+            inviteUrl = getSampleWebInvitePreviewUrl('sample-upcoming');
         }
 
         webInviteHTML = `

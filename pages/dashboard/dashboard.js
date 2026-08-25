@@ -1,5 +1,6 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
+import { getWebInvitePreviewUrl, getWebInvitePublicPreviewUrl } from '../../global/js/env-config.js';
 
 const PUBLIC_INVITE_BASE_URL = "/#web-invites-public-preview";
 
@@ -208,7 +209,7 @@ function buildWeddingListSection(title, weddingsList) {
 
         let webInviteHTML = '';
         if (!isWebInviteOnly && wedding.has_web_invite) {
-            const inviteUrl = `/#web-invites-preview?id=${wedding.id}`;
+            const inviteUrl = getWebInvitePreviewUrl(wedding.id);
             webInviteHTML = `
             <div class="dashboard-wedding-card__invite-wrap">
                 <a href="${inviteUrl}" target="_blank" class="dashboard-wedding-card__invite-btn" onclick="event.stopPropagation();">
@@ -285,7 +286,7 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
         rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Web Invites tab.</div>`;
     } else {
         rowsHTML = variants.map(v => {
-            const variantUrl = `${window.location.origin}${PUBLIC_INVITE_BASE_URL}?variant_id=${v.id}`;
+            const variantUrl = getWebInvitePublicPreviewUrl(v.id);
             const count = v.selected_event_ids?.length || 0;
             return `
                 <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 10px 14px; border-radius: 6px; margin-bottom: 8px;">

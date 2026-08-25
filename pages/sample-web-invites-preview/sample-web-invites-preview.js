@@ -138,19 +138,46 @@ function loadCSS(id, href) {
     });
 }
 
-export async function renderSampleWebInvites() {
-    let hashSplit = window.location.hash.split('?');
-    let inviteId = 'sample-inprogress';
-    if(hashSplit.length > 1) {
-        const urlParams = new URLSearchParams(hashSplit[1]);
-        if(urlParams.get('id')) inviteId = urlParams.get('id');
+function loadScript(id, src) {
+    return new Promise((resolve) => {
+        if (document.getElementById(id) || typeof Swal !== 'undefined') {
+            resolve();
+            return;
+        }
+        const script = document.createElement('script');
+        script.id = id;
+        script.src = src;
+        script.onload = resolve;
+        document.head.appendChild(script);
+    });
+}
+
+export async function renderSampleWebInvites(explicitSampleId = null) {
+    let inviteId = explicitSampleId;
+
+    if (!inviteId) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('id')) {
+            inviteId = urlParams.get('id');
+        } else {
+            let hashSplit = window.location.hash.split('?');
+            if (hashSplit.length > 1) {
+                const hashParams = new URLSearchParams(hashSplit[1]);
+                if (hashParams.get('id')) inviteId = hashParams.get('id');
+            }
+        }
+    }
+
+    if (!inviteId) {
+        inviteId = 'sample-inprogress';
     }
 
     setupMockData(inviteId);
 
     await Promise.all([
         loadCSS('web-invite-splash-styles', '/global/css/splash.css'),
-        loadCSS('web-invite-base-styles', '/global/css/invite.css')
+        loadCSS('web-invite-base-styles', '/global/css/invite.css'),
+        loadScript('swal-cdn-script', 'https://cdn.jsdelivr.net/npm/sweetalert2@11')
     ]);
 
     let selectedThemeName = 'blue';
@@ -179,7 +206,7 @@ export async function renderSampleWebInvites() {
             --theme-bg-dark-rgb: ${currentThemeRGB.bgDark};
         }
         body {
-            background-image: url('global/images/background/${selectedThemeName}-background.png');
+            background-image: url('/global/images/background/${selectedThemeName}-background.png');
         }
     `;
     document.head.appendChild(dynamicStyle);
@@ -222,8 +249,8 @@ export async function renderSampleWebInvites() {
         </div>
 
         <main id="main-content-area"></main>
-        <button class="back-to-top hidden" data-target="#welcome">↑</button>
-        <audio id="bgMusic" src="global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
+        <button class="back-to-top hidden" style="display: none;" data-target="#welcome">↑</button>
+        <audio id="bgMusic" src="/global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
     `;
 
     const seal = document.getElementById("seal-container");
