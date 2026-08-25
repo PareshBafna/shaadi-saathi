@@ -128,7 +128,7 @@ export async function onRequest(context) {
     <audio id="bgMusic" src="/global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
 
     <script type="module">
-        import { renderWebInvitesPreview } from '/web-invites-preview.js';
+        import { renderWebInvitesPreview } from '/pages/web-invites-preview/web-invites-preview.js';
         renderWebInvitesPreview('${inviteId}');
     </script>
 </body>
