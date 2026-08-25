@@ -13,7 +13,7 @@ export async function onRequest(context) {
 
     // Default Shaadi Saathi Logo
     //const defaultLogoUrl = `${url.origin}/global/logos/logo.png`;
-    const defaultLogoUrl = "https://development.shaadi-saathi.pages.dev/global/logos/logo.png";
+    const defaultLogoUrl = "https://development.shaadi-saathi.pages.dev/global/logos/logo-compressed.png";
 
     let ogTitle = "";
     let ogDescription = "";
