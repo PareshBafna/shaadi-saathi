@@ -22,6 +22,63 @@ function generateInitialsLogo(name1, name2, colors) {
     return 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><circle cx="100" cy="100" r="90" fill="none" stroke="${strokeColor}" stroke-width="4" stroke-dasharray="10 5"/><circle cx="100" cy="100" r="80" fill="none" stroke="${strokeColor}" stroke-width="1"/><text x="75" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${name1.charAt(0).toUpperCase()}</text><text x="125" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${name2.charAt(0).toUpperCase()}</text></svg>`);
 }
 
+function updatePageMetadata({ title, description, image, url }) {
+    document.title = title;
+
+    const setMeta = (nameOrProperty, key, value) => {
+        let element = document.querySelector(`meta[${nameOrProperty}="${key}"]`);
+        if (!element) {
+            element = document.createElement('meta');
+            element.setAttribute(nameOrProperty, key);
+            document.head.appendChild(element);
+        }
+        element.setAttribute('content', value);
+    };
+
+    // Standard Meta
+    setMeta('name', 'description', description);
+
+    // Open Graph (WhatsApp, Facebook, iMessage)
+    setMeta('property', 'og:title', title);
+    setMeta('property', 'og:description', description);
+    setMeta('property', 'og:type', 'website');
+    setMeta('property', 'og:url', url || window.location.href);
+    if (image) {
+        setMeta('property', 'og:image', image);
+        setMeta('property', 'og:image:secure_url', image);
+        setMeta('property', 'og:image:type', image.startsWith('data:image/svg') ? 'image/svg+xml' : 'image/png');
+    }
+
+    // Twitter Card
+    setMeta('name', 'twitter:card', 'summary_large_image');
+    setMeta('name', 'twitter:title', title);
+    setMeta('name', 'twitter:description', description);
+    if (image) {
+        setMeta('name', 'twitter:image', image);
+    }
+
+    // Dynamic Favicon & Preview Link
+    if (image) {
+        document.querySelectorAll("link[rel*='icon'], link[rel='apple-touch-icon'], link[rel='image_src']").forEach(el => el.remove());
+        
+        const icon = document.createElement('link');
+        icon.rel = 'icon';
+        icon.type = image.startsWith('data:image/svg') ? 'image/svg+xml' : 'image/png';
+        icon.href = image;
+        document.head.appendChild(icon);
+
+        const touchIcon = document.createElement('link');
+        touchIcon.rel = 'apple-touch-icon';
+        touchIcon.href = image;
+        document.head.appendChild(touchIcon);
+
+        const imgsrc = document.createElement('link');
+        imgsrc.rel = 'image_src';
+        imgsrc.href = image;
+        document.head.appendChild(imgsrc);
+    }
+}
+
 const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
     document.body.innerHTML = '';
     document.body.style.setProperty('background-image', 'none', 'important');
@@ -30,7 +87,7 @@ const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
 
     const navigateTo = () => {
         document.title = "Shaadi Saathi";
-        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+        document.querySelectorAll("link[rel*='icon'], link[rel='apple-touch-icon'], link[rel='image_src']").forEach(el => el.remove());
         const defaultFavicon = document.createElement('link');
         defaultFavicon.rel = 'icon';
         defaultFavicon.type = 'image/x-icon';
@@ -181,20 +238,26 @@ async function initDynamicInvite(inviteId) {
         const dynamicLogoUri = generateDynamicLogo(primaryFirstName, secondaryFirstName, colors);
         const initialsLogoUri = generateInitialsLogo(primaryFirstName, secondaryFirstName, colors);
         
-        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
-        const link = document.createElement('link');
-        link.rel = 'icon';
-        link.type = 'image/svg+xml';
-        link.href = initialsLogoUri;
-        document.head.appendChild(link);
-
         const sealImg = document.getElementById('seal-logo-img');
         if (sealImg) {
             sealImg.src = dynamicLogoUri;
             sealImg.style.opacity = "1";
         }
         
-        document.title = `Invitation - ${primaryFirstName} & ${secondaryFirstName}`;
+        // Build Dynamic Title, Description and Thumbnail
+        const familyPrefix = wedding.family_name ? `${wedding.family_name.trim()}'s ` : '';
+        const hashtagSuffix = wedding.hashtag ? ` - ${wedding.hashtag.replace(/^#/, '').trim()}` : '';
+        const previewTitle = `${familyPrefix}Invitation - ${primaryFirstName} Weds ${secondaryFirstName}${hashtagSuffix}`;
+        const previewDescription = `You are cordially invited to celebrate the wedding of ${primaryFirstName} & ${secondaryFirstName}. Join us on our special day!`;
+        const previewThumbnail = inviteDetails.thumbnail_url || dynamicLogoUri;
+
+        // Apply metadata and favicon dynamically
+        updatePageMetadata({
+            title: previewTitle,
+            description: previewDescription,
+            image: previewThumbnail,
+            url: window.location.href
+        });
 
         weddingConfig = {
             familyLastName: wedding.family_name ? `${wedding.family_name.toUpperCase()}'S` : "WEDDING",
