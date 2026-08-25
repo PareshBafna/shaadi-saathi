@@ -1,21 +1,14 @@
-# Credentials & Secrets
-credentials.js
+# Credentials & Secrets (Never committed to Git)
 **/credentials.js
-.env
-.env.*
+credentials.js
 
-# Local Server & Node leftovers (if any)
+# Build Output & Dependencies
+dist/
 node_modules/
 package-lock.json
-.wrangler/
+
+# Local env files
 .dev.vars
 .dev.vars.*
-
-# Logs
-npm-debug.log*
-
-# OS & Editor
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
+.env
+.env.*
