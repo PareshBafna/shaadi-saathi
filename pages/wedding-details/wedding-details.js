@@ -2,8 +2,7 @@ import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 import { formatWeddingDateRange } from '../weddings/weddings.js';
-import { getWebInvitePreviewUrl } from '../../global/js/env-config.js';
-
+import { getWebInvitePreviewUrl, getSampleWebInvitePreviewUrl, getWebInvitePublicPreviewUrl } from '../../global/js/env-config.js';
 // ==========================================
 // UTILITY HELPERS
 // ==========================================
@@ -294,11 +293,11 @@ function buildSpecificHeader(wedding, hasWebInvite = true, variants = []) {
         let inviteUrl = getWebInvitePreviewUrl(wedding.id);
         
         if (isWebInviteOnly) {
-            inviteUrl = firstVariant ? `/#web-invites-public-preview?variant_id=${firstVariant.id}` : `javascript:void(0);`;
+            inviteUrl = firstVariant ? getWebInvitePublicPreviewUrl(firstVariant.id) : `javascript:void(0);`;
         }
 
         if (wedding.id === '00000000-0000-0000-0000-000000000000') {
-            inviteUrl = `/#sample-web-invites-preview?id=sample-upcoming`;
+            inviteUrl = getSampleWebInvitePreviewUrl('sample-upcoming');
         }
 
         webInviteHTML = `

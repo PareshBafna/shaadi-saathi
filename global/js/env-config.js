@@ -20,6 +20,14 @@ export function getWebInvitePreviewUrl(inviteId) {
     return `${window.location.origin}/web-invites-preview-functions?id=${encodeURIComponent(inviteId)}`;
 }
 
+export function getWebInvitePublicPreviewUrl(variantId) {
+    if (!variantId) return '#';
+    if (ENV.isLocal) {
+        return `${window.location.origin}/#web-invites-public-preview?variant_id=${encodeURIComponent(variantId)}`;
+    }
+    return `${window.location.origin}/web-invites-public-preview-functions?variant_id=${encodeURIComponent(variantId)}`;
+}
+
 export function getSampleWebInvitePreviewUrl(sampleId = 'sample-upcoming') {
     if (ENV.isLocal) {
         return `${window.location.origin}/#sample-web-invites-preview?id=${encodeURIComponent(sampleId)}`;

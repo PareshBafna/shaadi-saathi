@@ -1,7 +1,7 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
-import { getWebInvitePreviewUrl } from '../../global/js/env-config.js';
+import { getWebInvitePreviewUrl, getWebInvitePublicPreviewUrl } from '../../global/js/env-config.js';
 
 const INVITE_BASE_URL = "/web-invites-preview-functions";
 const PUBLIC_INVITE_BASE_URL = "/#web-invites-public-preview";
@@ -225,13 +225,13 @@ function buildGallerySection(title, invites, isArchived) {
 
         let inviteUrl = getWebInvitePreviewUrl(w.id);
 if (isWebInviteOnly) {
-    inviteUrl = defaultVariant ? `${PUBLIC_INVITE_BASE_URL}?variant_id=${defaultVariant.id}` : `javascript:void(0);`;
+    inviteUrl = defaultVariant ? getWebInvitePublicPreviewUrl(defaultVariant.id) : `javascript:void(0);`;
 }
 
 const fullShareUrl = defaultVariant 
-    ? `${window.location.origin}${PUBLIC_INVITE_BASE_URL}?variant_id=${defaultVariant.id}` 
+    ? getWebInvitePublicPreviewUrl(defaultVariant.id) 
     : getWebInvitePreviewUrl(w.id);
-    
+
         const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
         const t = themePalettes[inv.theme] || themePalettes.blue;
 
@@ -365,7 +365,7 @@ export async function openVariantsModal(weddingId, weddingTitle) {
         }
 
         container.innerHTML = variants.map(v => {
-            const variantUrl = `${window.location.origin}${PUBLIC_INVITE_BASE_URL}?variant_id=${v.id}`;
+            const variantUrl = getWebInvitePublicPreviewUrl(v.id);
             const count = v.selected_event_ids?.length || 0;
             return `
                 <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;">
