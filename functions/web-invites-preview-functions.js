@@ -1,5 +1,5 @@
 export async function onRequest(context) {
-    const { request } = context;
+    const { request, env } = context;
     const url = new URL(request.url);
     const inviteId = url.searchParams.get("id");
 
@@ -8,8 +8,8 @@ export async function onRequest(context) {
     }
 
     // Read directly from Cloudflare Pages Environment Variables
-    const SUPABASE_URL = env.SUPABASE_URL;
-    const SUPABASE_KEY = env.SUPABASE_ANON_KEY;
+    const SUPABASE_URL = env?.SUPABASE_URL;
+    const SUPABASE_KEY = env?.SUPABASE_ANON_KEY;
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
         console.error("Missing Cloudflare Environment Variables: SUPABASE_URL or SUPABASE_ANON_KEY");
@@ -23,49 +23,51 @@ export async function onRequest(context) {
     let ogImage = defaultLogoUrl;
     let dynamicTheme = "blue";
 
-    try {
-        const [weddingRes, inviteRes] = await Promise.all([
-            fetch(`${SUPABASE_URL}/rest/v1/weddings?id=eq.${inviteId}&select=*`, {
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`
+    if (SUPABASE_URL && SUPABASE_KEY) {
+        try {
+            const [weddingRes, inviteRes] = await Promise.all([
+                fetch(`${SUPABASE_URL}/rest/v1/weddings?id=eq.${encodeURIComponent(inviteId)}&select=*`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                }),
+                fetch(`${SUPABASE_URL}/rest/v1/wedding_web_invite?wedding_id=eq.${encodeURIComponent(inviteId)}&select=*`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                })
+            ]);
+
+            const weddingData = await weddingRes.json();
+            const inviteData = await inviteRes.json();
+
+            const wedding = Array.isArray(weddingData) ? weddingData[0] : weddingData;
+            const invite = Array.isArray(inviteData) ? inviteData[0] : inviteData;
+
+            if (wedding && (wedding.bride_name || wedding.groom_name)) {
+                const familyPrefix = wedding.family_name ? `${wedding.family_name.trim()}'s ` : '';
+                const hashtagSuffix = wedding.hashtag ? ` - ${wedding.hashtag.replace(/^#/, '').trim()}` : '';
+                
+                const primarySide = (invite?.primary_side || 'groom').toLowerCase();
+                const isBridePrimary = primarySide === 'bride';
+
+                const name1 = isBridePrimary ? wedding.bride_name : wedding.groom_name;
+                const name2 = isBridePrimary ? wedding.groom_name : wedding.bride_name;
+
+                ogTitle = `${familyPrefix}Invitation - ${name1} Weds ${name2}${hashtagSuffix}`;
+                ogDescription = `You are cordially invited to celebrate the wedding of ${name1} & ${name2}. Join us on our special day!`;
+
+                if (invite?.theme) {
+                    dynamicTheme = invite.theme;
                 }
-            }),
-            fetch(`${SUPABASE_URL}/rest/v1/wedding_web_invite?wedding_id=eq.${inviteId}&select=*`, {
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`
-                }
-            })
-        ]);
-
-        const weddingData = await weddingRes.json();
-        const inviteData = await inviteRes.json();
-
-        const wedding = Array.isArray(weddingData) ? weddingData[0] : weddingData;
-        const invite = Array.isArray(inviteData) ? inviteData[0] : inviteData;
-
-        if (wedding && (wedding.bride_name || wedding.groom_name)) {
-            const familyPrefix = wedding.family_name ? `${wedding.family_name.trim()}'s ` : '';
-            const hashtagSuffix = wedding.hashtag ? ` - ${wedding.hashtag.replace(/^#/, '').trim()}` : '';
-            
-            const primarySide = (invite?.primary_side || 'groom').toLowerCase();
-            const isBridePrimary = primarySide === 'bride';
-
-            const name1 = isBridePrimary ? wedding.bride_name : wedding.groom_name;
-            const name2 = isBridePrimary ? wedding.groom_name : wedding.bride_name;
-
-            ogTitle = `${familyPrefix}Invitation - ${name1} Weds ${name2}`;
-            ogDescription = `You are cordially invited to celebrate the wedding of ${name1} & ${name2}. Join us on our special day!`;
-
-            if (invite?.theme) {
-                dynamicTheme = invite.theme;
+            } else {
+                console.error("Wedding not found or empty for ID:", inviteId, weddingData);
             }
-        } else {
-            console.error("Wedding not found or empty for ID:", inviteId, weddingData);
+        } catch (err) {
+            console.error("Failed to query dynamic metadata from Supabase:", err);
         }
-    } catch (err) {
-        console.error("Failed to query dynamic metadata from Supabase:", err);
     }
 
     // Safety fallback only if DB returns nothing
