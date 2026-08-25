@@ -12,8 +12,7 @@ export async function onRequest(context) {
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1Zmhtc29za3RreHNreW1maXN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMDk1MjgsImV4cCI6MjEwMDc4NTUyOH0.7XRBkwY7dw2nH2Jrvmp4I1M2BZAPv5j_n8cLGIB-hqk";             // Replace with your actual Supabase Anon Key
 
     // Default Shaadi Saathi Logo
-    //const defaultLogoUrl = `${url.origin}/global/logos/logo.png`;
-    const defaultLogoUrl = "https://development.shaadi-saathi.pages.dev/global/logos/logo-compressed.png";
+    const defaultLogoUrl = `${url.origin}/global/logos/logo.png`;
 
     let ogTitle = "";
     let ogDescription = "";
