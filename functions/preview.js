@@ -12,7 +12,7 @@ export async function onRequest(context) {
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1Zmhtc29za3RreHNreW1maXN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMDk1MjgsImV4cCI6MjEwMDc4NTUyOH0.7XRBkwY7dw2nH2Jrvmp4I1M2BZAPv5j_n8cLGIB-hqk";             // Replace with your actual Supabase Anon Key
 
     // Default Shaadi Saathi Logo
-    const defaultLogoUrl = `${url.origin}/global/logos/logo.png`;
+    const defaultLogoUrl = `${url.origin}/global/logos/logo-compressed.png`;
 
     let ogTitle = "";
     let ogDescription = "";
@@ -52,8 +52,7 @@ export async function onRequest(context) {
             const name2 = isBridePrimary ? wedding.groom_name : wedding.bride_name;
 
             ogTitle = `${familyPrefix}Invitation - ${name1} Weds ${name2}`;
-            //ogDescription = `You are cordially invited to celebrate the wedding of ${name1} & ${name2}. Join us on our special day!`;
-            ogDescription = `${url.origin}`;
+            ogDescription = `You are cordially invited to celebrate the wedding of ${name1} & ${name2}. Join us on our special day!`;
 
             if (invite?.theme) {
                 dynamicTheme = invite.theme;
