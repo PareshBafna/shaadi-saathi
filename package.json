@@ -1,7 +1,8 @@
 {
   "name": "shaadi-saathi",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
-    "build": "node -e \"fs.writeFileSync('./credentials.js', `export const SUPABASE_URL = '${process.env.SUPABASE_URL}';\nexport const SUPABASE_ANON_KEY = '${process.env.SUPABASE_ANON_KEY}';\n`)\" && rm -rf dist && mkdir -p dist && cp -r global pages database credentials.js index.html dist/ && cp _headers _redirects manifest.json dist/ 2>/dev/null || true && npx -y javascript-obfuscator dist --output dist --compact true --self-defending false --split-strings false --rename-globals false --identifier-names-generator hexadecimal"
+    "build": "node build.js"
   }
 }
