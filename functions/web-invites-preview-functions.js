@@ -107,6 +107,9 @@ export async function onRequest(context) {
     <link rel="icon" type="image/png" sizes="32x32" href="${ogImage}">
     <link rel="apple-touch-icon" href="${ogImage}">
 
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <!-- Stylesheets -->
     <link rel="stylesheet" href="/global/css/splash.css">
     <link rel="stylesheet" href="/global/css/invite.css">
