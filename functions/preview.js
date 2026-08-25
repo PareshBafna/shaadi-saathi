@@ -52,7 +52,8 @@ export async function onRequest(context) {
             const name2 = isBridePrimary ? wedding.groom_name : wedding.bride_name;
 
             ogTitle = `${familyPrefix}Invitation - ${name1} Weds ${name2}`;
-            ogDescription = `You are cordially invited to celebrate the wedding of ${name1} & ${name2}. Join us on our special day!`;
+            //ogDescription = `You are cordially invited to celebrate the wedding of ${name1} & ${name2}. Join us on our special day!`;
+            ogDescription = `${url.origin}`;
 
             if (invite?.theme) {
                 dynamicTheme = invite.theme;
