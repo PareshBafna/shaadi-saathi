@@ -1,3 +1,5 @@
+import { getSampleWebInvitePreviewUrl } from '../../global/js/env-config.js';
+
 let allSampleWeddings = [];
 
 function startOfDay(date) {
@@ -195,13 +197,14 @@ function buildGallerySection(title, weddings) {
 
         let webInviteHTML = '';
         if (wedding.has_web_invite) {
-            webInviteHTML = `
-            <div class="sample-wedding-card__invite-wrap">
-                <a href="#sample-web-invites-preview?id=${wedding.id}" target="_blank" onclick="event.stopPropagation();" class="sample-wedding-card__invite-btn">
-                    <i data-lucide="external-link"></i> Wedding Invitation
-                </a>
-            </div>`;
-        }
+    const inviteUrl = getSampleWebInvitePreviewUrl(wedding.id);
+    webInviteHTML = `
+    <div class="sample-wedding-card__invite-wrap">
+        <a href="${inviteUrl}" target="_blank" onclick="event.stopPropagation();" class="sample-wedding-card__invite-btn">
+            <i data-lucide="external-link"></i> Wedding Invitation
+        </a>
+    </div>`;
+}
 
         return `
         <div class="sample-wedding-card" data-wedding-id="${wedding.id}">

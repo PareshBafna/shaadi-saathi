@@ -19,3 +19,10 @@ export function getWebInvitePreviewUrl(inviteId) {
     }
     return `${window.location.origin}/web-invites-preview-functions?id=${encodeURIComponent(inviteId)}`;
 }
+
+export function getSampleWebInvitePreviewUrl(sampleId = 'sample-upcoming') {
+    if (ENV.isLocal) {
+        return `${window.location.origin}/#sample-web-invites-preview?id=${encodeURIComponent(sampleId)}`;
+    }
+    return `${window.location.origin}/sample-web-invites-preview-functions?id=${encodeURIComponent(sampleId)}`;
+}
