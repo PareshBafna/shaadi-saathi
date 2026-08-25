@@ -52,8 +52,7 @@ export async function onRequest(context) {
             const name1 = isBridePrimary ? wedding.bride_name : wedding.groom_name;
             const name2 = isBridePrimary ? wedding.groom_name : wedding.bride_name;
 
-            // Formats: "Bafna's Invitation - Lachi Weds Karanji - PDR"
-            ogTitle = `${familyPrefix}Invitation - ${name1} Weds ${name2}${hashtagSuffix}`;
+            ogTitle = `${familyPrefix}Invitation - ${name1} Weds ${name2}`;
             ogDescription = `You are cordially invited to celebrate the wedding of ${name1} & ${name2}. Join us on our special day!`;
 
             if (invite?.theme) {
