@@ -171,7 +171,7 @@ async function initDynamicInvite(inviteId) {
                 --theme-bg-dark-rgb: ${currentThemeRGB.bgDark};
             }
             body {
-                background-image: url('global/images/background/${selectedThemeName}-background.png');
+                background-image: url('/global/images/background/${selectedThemeName}-background.png');
             }
         `;
         document.head.appendChild(dynamicStyle);
@@ -692,10 +692,25 @@ function loadCSS(id, href) {
     });
 }
 
+function loadScript(id, src) {
+    return new Promise((resolve) => {
+        if (document.getElementById(id) || typeof Swal !== 'undefined') {
+            resolve();
+            return;
+        }
+        const script = document.createElement('script');
+        script.id = id;
+        script.src = src;
+        script.onload = resolve;
+        document.head.appendChild(script);
+    });
+}
+
 export async function renderWebInvitesPreview(inviteId) {
     await Promise.all([
         loadCSS('web-invite-splash-styles', '/global/css/splash.css'),
-        loadCSS('web-invite-base-styles', '/global/css/invite.css')
+        loadCSS('web-invite-base-styles', '/global/css/invite.css'),
+        loadScript('swal-cdn-script', 'https://cdn.jsdelivr.net/npm/sweetalert2@11')
     ]);
 
     document.body.innerHTML = `
@@ -717,7 +732,7 @@ export async function renderWebInvitesPreview(inviteId) {
 
         <main id="main-content-area"></main>
         <button class="back-to-top hidden" data-target="#welcome">↑</button>
-        <audio id="bgMusic" src="global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
+        <audio id="bgMusic" src="/global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
     `;
 
     initDynamicInvite(inviteId);

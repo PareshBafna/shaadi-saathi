@@ -964,3 +964,9 @@ button, a, .nav-dot {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
+
+.back-to-top.hidden {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+}

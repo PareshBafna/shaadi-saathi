@@ -1,5 +1,6 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
+import { getWebInvitePreviewUrl } from '../../global/js/env-config.js';
 
 const PUBLIC_INVITE_BASE_URL = "/#web-invites-public-preview";
 
@@ -208,7 +209,7 @@ function buildWeddingListSection(title, weddingsList) {
 
         let webInviteHTML = '';
         if (!isWebInviteOnly && wedding.has_web_invite) {
-            const inviteUrl = `/web-invites-preview-functions?id=${wedding.id}`;
+            const inviteUrl = getWebInvitePreviewUrl(wedding.id);
             webInviteHTML = `
             <div class="dashboard-wedding-card__invite-wrap">
                 <a href="${inviteUrl}" target="_blank" class="dashboard-wedding-card__invite-btn" onclick="event.stopPropagation();">

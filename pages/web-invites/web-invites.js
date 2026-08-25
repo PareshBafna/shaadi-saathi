@@ -1,6 +1,7 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
+import { getWebInvitePreviewUrl } from '../../global/js/env-config.js';
 
 const INVITE_BASE_URL = "/web-invites-preview-functions";
 const PUBLIC_INVITE_BASE_URL = "/#web-invites-public-preview";
@@ -222,12 +223,15 @@ function buildGallerySection(title, invites, isArchived) {
         const isWebInviteOnly = w.invitation_type === 'web_invite_only';
         const defaultVariant = (inv.variants && inv.variants.length > 0) ? inv.variants[0] : null;
 
-        let inviteUrl = `${INVITE_BASE_URL}?id=${w.id}`;
-        if (isWebInviteOnly) {
-            inviteUrl = defaultVariant ? `${PUBLIC_INVITE_BASE_URL}?variant_id=${defaultVariant.id}` : `javascript:void(0);`;
-        }
+        let inviteUrl = getWebInvitePreviewUrl(w.id);
+if (isWebInviteOnly) {
+    inviteUrl = defaultVariant ? `${PUBLIC_INVITE_BASE_URL}?variant_id=${defaultVariant.id}` : `javascript:void(0);`;
+}
 
-        const fullShareUrl = defaultVariant ? `${window.location.origin}${PUBLIC_INVITE_BASE_URL}?variant_id=${defaultVariant.id}` : `${window.location.origin}${INVITE_BASE_URL}?id=${w.id}`;
+const fullShareUrl = defaultVariant 
+    ? `${window.location.origin}${PUBLIC_INVITE_BASE_URL}?variant_id=${defaultVariant.id}` 
+    : getWebInvitePreviewUrl(w.id);
+    
         const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
         const t = themePalettes[inv.theme] || themePalettes.blue;
 

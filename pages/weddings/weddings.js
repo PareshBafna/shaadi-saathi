@@ -1,6 +1,7 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
+import { getWebInvitePreviewUrl } from '../../global/js/env-config.js';
 
 let allWeddings = [];
 
@@ -370,7 +371,7 @@ function buildGallerySection(title, weddings) {
         let webInviteHTML = '';
         if (wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000') {
             const firstVariant = (wedding.variants && wedding.variants.length > 0) ? wedding.variants[0] : null;
-            let inviteUrl = `/web-invites-preview-functions?id=${wedding.id}`;
+            let inviteUrl = getWebInvitePreviewUrl(wedding.id);
             
             if (isWebInviteOnly) {
                 inviteUrl = firstVariant ? `/#web-invites-public-preview?variant_id=${firstVariant.id}` : `javascript:void(0);`;
