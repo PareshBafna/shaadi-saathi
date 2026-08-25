@@ -370,7 +370,7 @@ function buildGallerySection(title, weddings) {
         let webInviteHTML = '';
         if (wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000') {
             const firstVariant = (wedding.variants && wedding.variants.length > 0) ? wedding.variants[0] : null;
-            let inviteUrl = `/#web-invites-preview?id=${wedding.id}`;
+            let inviteUrl = `/web-invites-preview?id=${wedding.id}`;
             
             if (isWebInviteOnly) {
                 inviteUrl = firstVariant ? `/#web-invites-public-preview?variant_id=${firstVariant.id}` : `javascript:void(0);`;
