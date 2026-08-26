@@ -66,7 +66,7 @@ function updateSocialMetaTags(title, description, imageUrl) {
     document.head.appendChild(imageSrcLink);
 }
 
-const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
+const showSwalError = async (title, text, confirmBtnText = "Go Back", redirectUrl = "#weddings") => {
     document.body.innerHTML = '';
     document.body.style.setProperty('background-image', 'none', 'important');
     document.body.style.setProperty('background-color', '#0f172a', 'important');
@@ -85,22 +85,26 @@ const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
         window.location.reload();
     };
 
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            icon: 'error',
-            title: title,
-            text: text,
-            confirmButtonText: confirmBtnText,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            confirmButtonColor: '#eab308'
-        }).then(() => {
-            navigateTo();
+    if (typeof Swal === 'undefined') {
+        await new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+            script.onload = resolve;
+            document.head.appendChild(script);
         });
-    } else {
-        alert(`${title}\n\n${text}`);
-        navigateTo();
     }
+
+    Swal.fire({
+        icon: 'error',
+        title: title,
+        text: text,
+        confirmButtonText: confirmBtnText,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        confirmButtonColor: '#eab308'
+    }).then(() => {
+        navigateTo();
+    });
 };
 
 async function initDynamicInvite(inviteId) {
@@ -210,9 +214,17 @@ async function initDynamicInvite(inviteId) {
                 return;
             }
 
-            const { data: eventGuests } = await supabase.from('event_guests').select('*').eq('guest_id', currentGuest.id);
-            const invitedEventIds = (eventGuests || []).map(eg => eg.event_id);
-            filteredEvents = (allEvents || []).filter(e => invitedEventIds.includes(e.id));
+            // Resolve events via variant_id
+            if (currentGuest.variant_id) {
+                const { data: variantData } = await supabase.from('invite_variants').select('*').eq('id', currentGuest.variant_id).maybeSingle();
+                if (variantData && variantData.selected_event_ids?.length > 0) {
+                    filteredEvents = (allEvents || []).filter(e => variantData.selected_event_ids.includes(e.id));
+                } else {
+                    filteredEvents = allEvents || [];
+                }
+            } else {
+                filteredEvents = allEvents || [];
+            }
         } else {
             filteredEvents = allEvents || [];
         }
@@ -231,7 +243,6 @@ async function initDynamicInvite(inviteId) {
             sealImg.style.opacity = "1";
         }
         
-        // Dynamically compute metadata texts & thumbnail
         const familyPrefix = wedding.family_name ? `${wedding.family_name.trim()}'s ` : '';
         const hashtagSuffix = wedding.hashtag ? ` - ${wedding.hashtag.replace(/^#/, '').trim()}` : '';
         const dynamicTitle = `${familyPrefix}Invitation - ${primaryFirstName} Weds ${secondaryFirstName}${hashtagSuffix}`;
@@ -279,7 +290,7 @@ async function initDynamicInvite(inviteId) {
                 id: `event-${ev.id}`,
                 label: ev.event_name || 'Untitled Event',
                 title: ev.title || "",
-                subtitle: ev.subtitle || "", 
+                subtitle: "", 
                 quote: ev.one_liner || "", 
                 description: ev.description || "",
                 month: evDate.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
@@ -731,7 +742,7 @@ export async function renderWebInvitesPreview(inviteId) {
         </div>
 
         <main id="main-content-area"></main>
-        <button class="back-to-top hidden" data-target="#welcome">↑</button>
+        <button class="back-to-top hidden" style="display: none;" data-target="#welcome">↑</button>
         <audio id="bgMusic" src="/global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
     `;
 

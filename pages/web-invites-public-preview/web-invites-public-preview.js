@@ -22,7 +22,51 @@ function generateInitialsLogo(name1, name2, colors) {
     return 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><circle cx="100" cy="100" r="90" fill="none" stroke="${strokeColor}" stroke-width="4" stroke-dasharray="10 5"/><circle cx="100" cy="100" r="80" fill="none" stroke="${strokeColor}" stroke-width="1"/><text x="75" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${name1.charAt(0).toUpperCase()}</text><text x="125" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${name2.charAt(0).toUpperCase()}</text></svg>`);
 }
 
-const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
+function updateSocialMetaTags(title, description, imageUrl) {
+    document.title = title;
+
+    const metaTags = [
+        { name: 'description', content: description },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:title', content: title },
+        { property: 'og:description', content: description },
+        { property: 'og:url', content: window.location.href },
+        { property: 'og:image', content: imageUrl },
+        { property: 'og:image:secure_url', content: imageUrl },
+        { property: 'og:image:type', content: imageUrl.startsWith('data:image/svg') ? 'image/svg+xml' : 'image/png' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: title },
+        { name: 'twitter:description', content: description },
+        { name: 'twitter:image', content: imageUrl }
+    ];
+
+    metaTags.forEach(tag => {
+        const selector = tag.name ? `meta[name="${tag.name}"]` : `meta[property="${tag.property}"]`;
+        let el = document.querySelector(selector);
+        if (!el) {
+            el = document.createElement('meta');
+            if (tag.name) el.setAttribute('name', tag.name);
+            if (tag.property) el.setAttribute('property', tag.property);
+            document.head.appendChild(el);
+        }
+        el.setAttribute('content', tag.content);
+    });
+
+    document.querySelectorAll("link[rel*='icon'], link[rel='image_src'], link[rel='apple-touch-icon']").forEach(el => el.remove());
+
+    const iconLink = document.createElement('link');
+    iconLink.rel = 'icon';
+    iconLink.type = imageUrl.startsWith('data:image/svg') ? 'image/svg+xml' : 'image/png';
+    iconLink.href = imageUrl;
+    document.head.appendChild(iconLink);
+
+    const imageSrcLink = document.createElement('link');
+    imageSrcLink.rel = 'image_src';
+    imageSrcLink.href = imageUrl;
+    document.head.appendChild(imageSrcLink);
+}
+
+const showSwalError = async (title, text, confirmBtnText = "Go Back", redirectUrl = "#weddings") => {
     document.body.innerHTML = '';
     document.body.style.setProperty('background-image', 'none', 'important');
     document.body.style.setProperty('background-color', '#0f172a', 'important');
@@ -41,22 +85,26 @@ const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
         window.location.reload();
     };
 
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            icon: 'error',
-            title: title,
-            text: text,
-            confirmButtonText: confirmBtnText,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            confirmButtonColor: '#eab308'
-        }).then(() => {
-            navigateTo();
+    if (typeof Swal === 'undefined') {
+        await new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+            script.onload = resolve;
+            document.head.appendChild(script);
         });
-    } else {
-        alert(`${title}\n\n${text}`);
-        navigateTo();
     }
+
+    Swal.fire({
+        icon: 'error',
+        title: title,
+        text: text,
+        confirmButtonText: confirmBtnText,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        confirmButtonColor: '#eab308'
+    }).then(() => {
+        navigateTo();
+    });
 };
 
 async function initPublicVariantInvite(variantId) {
@@ -148,20 +196,19 @@ async function initPublicVariantInvite(variantId) {
         const dynamicLogoUri = generateDynamicLogo(primaryFirstName, secondaryFirstName, colors);
         const initialsLogoUri = generateInitialsLogo(primaryFirstName, secondaryFirstName, colors);
         
-        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
-        const link = document.createElement('link');
-        link.rel = 'icon';
-        link.type = 'image/svg+xml';
-        link.href = initialsLogoUri;
-        document.head.appendChild(link);
-
         const sealImg = document.getElementById('seal-logo-img');
         if (sealImg) {
             sealImg.src = dynamicLogoUri;
             sealImg.style.opacity = "1";
         }
         
-        document.title = `Invitation - ${primaryFirstName} & ${secondaryFirstName}`;
+        const familyPrefix = wedding.family_name ? `${wedding.family_name.trim()}'s ` : '';
+        const hashtagSuffix = wedding.hashtag ? ` - ${wedding.hashtag.replace(/^#/, '').trim()}` : '';
+        const dynamicTitle = `${familyPrefix}Invitation - ${primaryFirstName} Weds ${secondaryFirstName}${hashtagSuffix}`;
+        const dynamicDesc = `You are cordially invited to celebrate the wedding of ${primaryFirstName} & ${secondaryFirstName}. Join us on our special day!`;
+        const dynamicThumbnail = inviteDetails.thumbnail_url || initialsLogoUri;
+
+        updateSocialMetaTags(dynamicTitle, dynamicDesc, dynamicThumbnail);
 
         weddingConfig = {
             familyLastName: wedding.family_name ? `${wedding.family_name.toUpperCase()}'S` : "WEDDING",
@@ -202,7 +249,7 @@ async function initPublicVariantInvite(variantId) {
                 id: `event-${ev.id}`,
                 label: ev.event_name || 'Untitled Event',
                 title: ev.title || "",
-                subtitle: ev.subtitle || "", 
+                subtitle: "", 
                 quote: ev.one_liner || "", 
                 description: ev.description || "",
                 month: evDate.toLocaleString('en-US', { month: 'short' }).toUpperCase(),

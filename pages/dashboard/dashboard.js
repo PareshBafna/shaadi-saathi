@@ -1,8 +1,7 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
-import { getWebInvitePreviewUrl, getWebInvitePublicPreviewUrl } from '../../global/js/env-config.js';
-
-const PUBLIC_INVITE_BASE_URL = "/#web-invites-public-preview";
+import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
+import { getWebInvitePreviewUrl, getSampleWebInvitePreviewUrl, getWebInvitePublicPreviewUrl } from '../../global/js/env-config.js';
 
 export function renderDashboard() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
@@ -16,13 +15,8 @@ export function renderDashboard() {
         return wrapper;
     }
 
-    const curUser = window.currentUser || { role: 'guest' };
     const wrapper = document.createElement('section');
     wrapper.className = "dashboard";
-
-    if (curUser.role !== 'creator') {
-        return wrapper; 
-    }
 
     wrapper.innerHTML = `
         <div class="dashboard-section">
@@ -35,71 +29,150 @@ export function renderDashboard() {
 }    
 
 async function loadGlobalDashboardData(section) {
+    const user = window.currentUser || { role: 'guest' };
+    const isCreator = user.role === 'creator';
+    const userPhone = user.phone || '';
+    const userId = user.id || '';
+
+    const cleanedUserPhone = userPhone ? userPhone.replace(/[^0-9]/g, '') : null;
+    const baseUserPhone = cleanedUserPhone ? cleanedUserPhone.slice(-10) : null;
+
     try {
-        let weddings = [];
-        const { data, error } = await supabase.from('weddings').select('*');
-        if (!error && data) {
-            weddings = data;
-        } else if (error) {
-            throw error;
+        let accessibleWeddingIds = [];
+
+        if (!isCreator) {
+            const [hostRes, wUserRes, allGuestsRes] = await Promise.all([
+                supabase.from('wedding_hosts').select('wedding_id').eq('user_id', userId),
+                supabase.from('wedding_users').select('wedding_id').eq('user_id', userId),
+                supabase.from('guests').select('id, wedding_id, phone')
+            ]);
+
+            const hostIds = (hostRes.data || []).map(h => h.wedding_id);
+            const wUserIds = (wUserRes.data || []).map(u => u.wedding_id);
+
+            const matchedGuests = (allGuestsRes.data || []).filter(g => {
+                const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
+                return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
+            });
+            const guestIds = matchedGuests.map(g => g.wedding_id);
+
+            accessibleWeddingIds = [...new Set([...hostIds, ...wUserIds, ...guestIds])];
+
+            if (accessibleWeddingIds.length === 0) {
+                renderEmptyDashboard(section);
+                return;
+            }
         }
+
+        let weddingsQuery = supabase.from('weddings').select('*');
+        if (!isCreator) {
+            weddingsQuery = weddingsQuery.in('id', accessibleWeddingIds);
+        }
+
+        const { data: rawWeddings, error } = await weddingsQuery;
+        if (error) throw error;
 
         const { data: allSysUsers, error: sysUsersErr } = await supabase.from('users').select('id, name, phone');
         if (sysUsersErr) throw sysUsersErr;
 
-        const { data: hostsData, error: hostsError } = await supabase.from('wedding_hosts').select('*');
-        if (hostsError && hostsError.code !== '42P01') throw hostsError;
-        
-        const { data: webInvitesData, error: webInvitesErr } = await supabase.from('wedding_web_invite').select('wedding_id');
-        if (webInvitesErr && webInvitesErr.code !== '42P01') throw webInvitesErr;
+        let hostsQuery = supabase.from('wedding_hosts').select('*');
+        let wUsersQuery = supabase.from('wedding_users').select('*');
+        let webInvitesQuery = supabase.from('wedding_web_invite').select('wedding_id');
+        let variantsQuery = supabase.from('invite_variants').select('*');
 
-        const { data: variantsData } = await supabase.from('invite_variants').select('*');
+        if (!isCreator) {
+            hostsQuery = hostsQuery.in('wedding_id', accessibleWeddingIds);
+            wUsersQuery = wUsersQuery.in('wedding_id', accessibleWeddingIds);
+            webInvitesQuery = webInvitesQuery.in('wedding_id', accessibleWeddingIds);
+            variantsQuery = variantsQuery.in('wedding_id', accessibleWeddingIds);
+        }
 
-        for (let wedding of weddings) {
-            const rawHosts = hostsData ? hostsData.filter(h => h.wedding_id === wedding.id) : [];
+        const [hostsRes, wUsersRes, webInvitesRes, variantsRes] = await Promise.all([
+            hostsQuery,
+            wUsersQuery,
+            webInvitesQuery,
+            variantsQuery
+        ]);
+
+        const hostsData = hostsRes.data || [];
+        const wUsersData = wUsersRes.data || [];
+        const webInvitesData = webInvitesRes.data || [];
+        const variantsData = variantsRes.data || [];
+
+        let processedWeddings = [];
+
+        for (let wedding of (rawWeddings || [])) {
+            const rawHosts = hostsData.filter(h => h.wedding_id === wedding.id);
             wedding.hosts = rawHosts.map(h => {
-                const u = allSysUsers.find(u => u.id === h.user_id) || {};
+                const u = (allSysUsers || []).find(u => u.id === h.user_id) || {};
                 return { ...h, name: u.name, phone: u.phone };
             });
 
-            wedding.has_web_invite = webInvitesData ? webInvitesData.some(w => w.wedding_id === wedding.id) : false;
-            wedding.variants = variantsData ? variantsData.filter(v => v.wedding_id === wedding.id) : [];
+            wedding.wedding_users = wUsersData.filter(u => u.wedding_id === wedding.id);
+            wedding.has_web_invite = (wedding.id === '00000000-0000-0000-0000-000000000000') || webInvitesData.some(w => w.wedding_id === wedding.id);
+            wedding.variants = variantsData.filter(v => v.wedding_id === wedding.id);
 
-            const { count: eventsCount } = await supabase.from('wedding_events').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
-            
+            const isHost = wedding.hosts.some(h => h.user_id === userId);
+            const isWUser = wedding.wedding_users.some(u => u.user_id === userId);
+            const canViewAll = isCreator || isHost || isWUser;
+
+            let eventsQuery = supabase.from('wedding_events').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
+
+            if (!canViewAll) {
+                const { data: weddingGuests } = await supabase.from('guests').select('id, phone, variant_id').eq('wedding_id', wedding.id);
+                const currentGuest = (weddingGuests || []).find(g => {
+                    const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
+                    return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
+                });
+
+                if (currentGuest) {
+                    if (currentGuest.variant_id) {
+                        const matchedVar = wedding.variants.find(v => v.id === currentGuest.variant_id);
+                        if (matchedVar && matchedVar.selected_event_ids?.length > 0) {
+                            eventsQuery = eventsQuery.in('id', matchedVar.selected_event_ids);
+                        }
+                    }
+                } else {
+                    eventsQuery = eventsQuery.eq('id', '00000000-0000-0000-0000-000000000000');
+                }
+            }
+
+            const { count: eventsCount } = await eventsQuery;
+            wedding.events_count = eventsCount || 0;
+
             const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
-            if (!isWebInviteOnly) {
+            if (!isWebInviteOnly && canViewAll) {
                 const { count: guestsCount } = await supabase.from('guests').select('*', { count: 'exact', head: true }).eq('wedding_id', wedding.id);
                 wedding.guests_count = guestsCount || 0;
             } else {
                 wedding.guests_count = 0;
             }
 
-            wedding.events_count = eventsCount || 0;
+            processedWeddings.push(wedding);
         }
-        
+
         section.innerHTML = "";
 
         const todayTime = startOfDay(new Date()).getTime();
 
-        const inProgressWeddings = weddings.filter(w => {
+        const inProgressWeddings = processedWeddings.filter(w => {
             const start = startOfDay(new Date(w.start_date)).getTime();
             const end = startOfDay(new Date(w.end_date)).getTime();
             return todayTime >= start && todayTime <= end;
         });
         
-        const upcomingWeddings = weddings.filter(w => {
+        const upcomingWeddings = processedWeddings.filter(w => {
             const start = startOfDay(new Date(w.start_date)).getTime();
             return todayTime < start;
         });
         
-        const archivedWeddings = weddings.filter(w => {
+        const archivedWeddings = processedWeddings.filter(w => {
             const end = startOfDay(new Date(w.end_date)).getTime();
             return todayTime > end;
         });
 
         const globalStats = [
-            { label: "Total Weddings", value: weddings.length, icon: "heart" },
+            { label: "Total Weddings", value: processedWeddings.length, icon: "heart" },
             { label: "In Progress", value: inProgressWeddings.length, icon: "loader" },
             { label: "Upcoming", value: upcomingWeddings.length, icon: "calendar" },
             { label: "Archived", value: archivedWeddings.length, icon: "archive" },
@@ -125,6 +198,14 @@ async function loadGlobalDashboardData(section) {
         console.error('[DEBUG ERROR] Failed to load dashboard data:', error);
         section.innerHTML = `<div class="dashboard-section dashboard-section--error"><span class="dashboard-section__error-text">Failed to load data: ${error.message}</span></div>`;
     }
+}
+
+function renderEmptyDashboard(section) {
+    section.innerHTML = `
+        <div class="dashboard-section">
+            <div class="dashboard-section__empty">No accessible weddings found for your account.</div>
+        </div>
+    `;
 }
 
 function buildStatsGrid(stats) {
@@ -188,6 +269,13 @@ function buildWeddingListSection(title, weddingsList) {
             : `${wedding.bride_name} & ${wedding.groom_name}`;
         
         const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+        const allowsVariants = wedding.allow_variants !== false;
+
+        let inviteTypeLabel = 'Full Wedding';
+        if (wedding.invitation_type === 'full_self') inviteTypeLabel = 'Full Wedding (Self)';
+        else if (wedding.invitation_type === 'web_invite_only') inviteTypeLabel = 'Web Invite Only';
+
+        const sideLabel = wedding.primary_side === 'groom' ? "Groom's Side" : "Bride's Side";
 
         let hostsHTML = '';
         if (!isWebInviteOnly) {
@@ -208,21 +296,35 @@ function buildWeddingListSection(title, weddingsList) {
         }
 
         let webInviteHTML = '';
-        if (!isWebInviteOnly && wedding.has_web_invite) {
-            const inviteUrl = getWebInvitePreviewUrl(wedding.id);
+        if (wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000') {
+            const firstVariant = (wedding.variants && wedding.variants.length > 0) ? wedding.variants[0] : null;
+            let inviteUrl = getWebInvitePreviewUrl(wedding.id);
+
+            if (isWebInviteOnly) {
+                inviteUrl = firstVariant ? getWebInvitePublicPreviewUrl(firstVariant.id) : `javascript:void(0);`;
+            }
+
+            if (wedding.id === '00000000-0000-0000-0000-000000000000') {
+                inviteUrl = getSampleWebInvitePreviewUrl('sample-upcoming');
+            }
+
             webInviteHTML = `
             <div class="dashboard-wedding-card__invite-wrap">
-                <a href="${inviteUrl}" target="_blank" class="dashboard-wedding-card__invite-btn" onclick="event.stopPropagation();">
+                <a href="${inviteUrl}" ${isWebInviteOnly && !firstVariant ? `onclick="event.stopPropagation(); showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Wedding Details page.'); return false;"` : 'target="_blank"'} class="dashboard-wedding-card__invite-btn" onclick="event.stopPropagation();">
                     <i data-lucide="external-link"></i> Wedding Invitation
                 </a>
             </div>`;
         }
 
-        const webInviteOnlyIcon = isWebInviteOnly ? `
-            <button class="dashboard-wedding-card__icon-badge dashboard-wedding-card__web-badge" title="View Links" type="button">
+        const variantsBadgeIcon = (isWebInviteOnly && allowsVariants) ? `
+            <button class="dashboard-wedding-card__icon-badge dashboard-wedding-card__web-badge" data-wedding-id="${wedding.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" title="View Links" type="button">
                 <i data-lucide="mail"></i>
             </button>
-        ` : '';
+        ` : (isWebInviteOnly ? `
+            <div class="dashboard-wedding-card__icon-badge" title="Web Invite Only">
+                <i data-lucide="mail"></i>
+            </div>
+        ` : '');
 
         const cardEl = document.createElement("div");
         cardEl.className = "dashboard-wedding-card";
@@ -239,15 +341,27 @@ function buildWeddingListSection(title, weddingsList) {
                         <p class="dashboard-wedding-card__dates"><i data-lucide="calendar"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
                     </div>
                 </div>
-                ${webInviteOnlyIcon}
+                ${variantsBadgeIcon}
             </div>
             
             <div class="dashboard-wedding-card__details">
+                <div class="dashboard-wedding-card__row">
+                    <i data-lucide="user-check"></i> <span><strong>Side:</strong> ${sideLabel}</span>
+                </div>
+                <div class="dashboard-wedding-card__row">
+                    <i data-lucide="file-text"></i> <span><strong>Type:</strong> ${inviteTypeLabel}</span>
+                </div>
+                <div class="dashboard-wedding-card__row">
+                    <i data-lucide="layers"></i> <span><strong>Allow Variants:</strong> ${allowsVariants ? 'Yes' : 'No'}</span>
+                </div>
+
                 ${wedding.family_name ? `<div class="dashboard-wedding-card__row"><i data-lucide="home"></i> <span>${wedding.family_name}</span></div>` : ''}
                 ${wedding.family_details ? `<div class="dashboard-wedding-card__row"><i data-lucide="users"></i> <span>${wedding.family_details}</span></div>` : ''}
+                
                 ${hostsHTML}
-                ${!isWebInviteOnly ? `<div class="dashboard-wedding-card__row"><i data-lucide="users"></i> <span>${wedding.guests_count || 0} Guests</span></div>` : ''}
+                ${!isWebInviteOnly ? `<div class="dashboard-wedding-card__row"><i data-lucide="user"></i> <span>${wedding.guests_count || 0} Guests</span></div>` : ''}
                 <div class="dashboard-wedding-card__row"><i data-lucide="calendar-days"></i> <span>${wedding.events_count || 0} Events</span></div>
+                
                 ${webInviteHTML}
             </div>
         `;
@@ -258,7 +372,9 @@ function buildWeddingListSection(title, weddingsList) {
         if (webBadgeBtn) {
             webBadgeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                showWeddingVariantsModal(wedding.id, displayNames);
+                const wId = webBadgeBtn.getAttribute('data-wedding-id');
+                const wTitle = webBadgeBtn.getAttribute('data-wedding-title');
+                showWeddingVariantsModal(wId, wTitle);
             });
         }
 
@@ -283,7 +399,7 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
 
     let rowsHTML = '';
     if (!variants || variants.length === 0) {
-        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Web Invites tab.</div>`;
+        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Wedding Details page.</div>`;
     } else {
         rowsHTML = variants.map(v => {
             const variantUrl = getWebInvitePublicPreviewUrl(v.id);
@@ -337,9 +453,7 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
                 e.stopPropagation();
                 const url = btn.getAttribute('data-url');
                 navigator.clipboard.writeText(url);
-                if (typeof window.showSweetAlert === 'function') {
-                    window.showSweetAlert('success', 'Copied!', 'Variant link copied to clipboard.');
-                }
+                showSweetAlert('success', 'Copied!', 'Variant link copied to clipboard.');
             });
         });
     }, 50);

@@ -49,7 +49,7 @@ async function loadUserEvents() {
     if (!user) return;
 
     try {
-        const { data: weddingsData } = await supabase.from('weddings').select('id, bride_name, groom_name, primary_side, family_name');
+        const { data: weddingsData } = await supabase.from('weddings').select('id, bride_name, groom_name, primary_side, family_name, invitation_type');
         allWeddings = weddingsData || [];
 
         if (user.role === 'creator') {
@@ -64,7 +64,7 @@ async function loadUserEvents() {
         const [hostRes, wUserRes, guestRes] = await Promise.all([
             supabase.from('wedding_hosts').select('wedding_id').eq('user_id', user.id),
             supabase.from('wedding_users').select('wedding_id').eq('user_id', user.id),
-            supabase.from('guests').select('id, wedding_id, phone')
+            supabase.from('guests').select('id, wedding_id, phone, variant_id')
         ]);
 
         const hostIds = (hostRes.data || []).map(h => h.wedding_id);
@@ -84,14 +84,24 @@ async function loadUserEvents() {
                 return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
             });
 
-            for (let g of matchedGuests) {
-                if (!fullAccessWeddingIds.includes(g.wedding_id)) {
-                    const { data: egData } = await supabase.from('event_guests').select('event_id').eq('guest_id', g.id);
-                    if (egData && egData.length > 0) {
-                        const eventIds = egData.map(eg => eg.event_id);
-                        const { data: specificEvents } = await supabase.from('wedding_events').select('*').in('id', eventIds);
-                        if (specificEvents) finalEvents.push(...specificEvents);
-                    }
+            const nonFullGuests = matchedGuests.filter(g => !fullAccessWeddingIds.includes(g.wedding_id));
+            const variantIds = nonFullGuests.map(g => g.variant_id).filter(Boolean);
+
+            let variantsMap = new Map();
+            if (variantIds.length > 0) {
+                const { data: variantsData } = await supabase.from('invite_variants').select('id, selected_event_ids').in('id', variantIds);
+                (variantsData || []).forEach(v => variantsMap.set(v.id, v.selected_event_ids));
+            }
+
+            for (let g of nonFullGuests) {
+                const selectedEventIds = g.variant_id ? variantsMap.get(g.variant_id) : null;
+
+                if (selectedEventIds && selectedEventIds.length > 0) {
+                    const { data: specificEvents } = await supabase.from('wedding_events').select('*').in('id', selectedEventIds);
+                    if (specificEvents) finalEvents.push(...specificEvents);
+                } else {
+                    const { data: allWeddingEvs } = await supabase.from('wedding_events').select('*').eq('wedding_id', g.wedding_id);
+                    if (allWeddingEvs) finalEvents.push(...allWeddingEvs);
                 }
             }
         }

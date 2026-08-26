@@ -358,6 +358,7 @@ function buildGallerySection(title, weddings) {
             : `${wedding.bride_name} & ${wedding.groom_name}`;
 
         const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+        const allowsVariants = wedding.allow_variants !== false;
 
         let hostsHTML = '';
         if (!isWebInviteOnly) {
@@ -398,11 +399,15 @@ function buildGallerySection(title, weddings) {
             </div>`;
         }
 
-        const webInviteOnlyIcon = isWebInviteOnly ? `
+        const webBadgeIcon = allowsVariants ? `
             <button class="dashboard-wedding-card__icon-badge dashboard-wedding-card__web-badge" data-wedding-id="${wedding.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" title="View Links" type="button">
                 <i data-lucide="mail"></i>
             </button>
-        ` : '';
+        ` : (isWebInviteOnly ? `
+            <div class="dashboard-wedding-card__icon-badge" title="Web Invite Only">
+                <i data-lucide="mail"></i>
+            </div>
+        ` : '');
 
         return `
         <div class="dashboard-wedding-card" data-wedding-id="${wedding.id}">
@@ -418,7 +423,7 @@ function buildGallerySection(title, weddings) {
                 </div>
                 <div class="dashboard-wedding-card__header-actions">
                     ${editBtnHTML}
-                    ${webInviteOnlyIcon}
+                    ${webBadgeIcon}
                 </div>
             </div>
 
@@ -582,14 +587,33 @@ export function openCreateWeddingModal() {
             <!-- Row 2: Invitation Type -->
             <div style="margin-bottom: 18px;">
                 <label class="wedding-modal-label">Invitation Type</label>
-                <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px;">
+                <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px; flex-wrap: wrap;">
                     <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
                         <input type="radio" name="invitationType" value="full" checked style="accent-color: var(--color-primary, #facc15);">
                         <span>Full Wedding</span>
                     </label>
                     <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="invitationType" value="full_self" style="accent-color: var(--color-primary, #facc15);">
+                        <span>Full Wedding (Self)</span>
+                    </label>
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
                         <input type="radio" name="invitationType" value="web_invite_only" style="accent-color: var(--color-primary, #facc15);">
                         <span>Web Invite Only</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Row 3: Allow Variants -->
+            <div style="margin-bottom: 18px;">
+                <label class="wedding-modal-label">Allow Variants</label>
+                <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px;">
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="allowVariants" value="true" checked style="accent-color: var(--color-primary, #facc15);">
+                        <span>Yes</span>
+                    </label>
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="allowVariants" value="false" style="accent-color: var(--color-primary, #facc15);">
+                        <span>No</span>
                     </label>
                 </div>
             </div>
@@ -702,6 +726,8 @@ export function openCreateWeddingModal() {
 
                     const primarySide = document.querySelector('input[name="primarySide"]:checked').value;
                     const invitationType = document.querySelector('input[name="invitationType"]:checked').value;
+                    const allowVariants = document.querySelector('input[name="allowVariants"]:checked')?.value === 'true';
+
                     const brideName = document.getElementById('brideName').value.trim();
                     const groomName = document.getElementById('groomName').value.trim();
                     const familyName = document.getElementById('familyName').value.trim();
@@ -714,6 +740,7 @@ export function openCreateWeddingModal() {
                         const { error } = await supabase.from('weddings').insert([{ 
                             primary_side: primarySide,
                             invitation_type: invitationType,
+                            allow_variants: allowVariants,
                             bride_name: brideName,
                             groom_name: groomName, 
                             start_date: startDate,
@@ -796,7 +823,12 @@ export function openEditWeddingModal(wedding) {
     }
 
     const todayStr = getLocalTodayString();
-    const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+    
+    let inviteTypeLabel = 'Full Wedding';
+    if (wedding.invitation_type === 'full_self') inviteTypeLabel = 'Full Wedding (Self)';
+    else if (wedding.invitation_type === 'web_invite_only') inviteTypeLabel = 'Web Invite Only';
+
+    const allowsVariants = wedding.allow_variants !== false;
 
     const formHTML = `
         <form id="editWeddingForm" novalidate class="wedding-modal-form">
@@ -818,7 +850,22 @@ export function openEditWeddingModal(wedding) {
             <!-- Row 2: Invitation Type (Read-Only) -->
             <div style="margin-bottom: 18px;">
                 <label class="wedding-modal-label">Invitation Type</label>
-                <input type="text" value="${isWebInviteOnly ? 'Web Invite Only' : 'Full Wedding'}" disabled class="wedding-modal-input" style="opacity: 0.6; cursor: not-allowed; margin-top: 6px;">
+                <input type="text" value="${inviteTypeLabel}" disabled class="wedding-modal-input" style="opacity: 0.6; cursor: not-allowed; margin-top: 6px;">
+            </div>
+
+            <!-- Row 3: Allow Variants -->
+            <div style="margin-bottom: 18px;">
+                <label class="wedding-modal-label">Allow Variants</label>
+                <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px;">
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="editAllowVariants" value="true" ${allowsVariants ? 'checked' : ''} style="accent-color: var(--color-primary, #facc15);">
+                        <span>Yes</span>
+                    </label>
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="editAllowVariants" value="false" ${!allowsVariants ? 'checked' : ''} style="accent-color: var(--color-primary, #facc15);">
+                        <span>No</span>
+                    </label>
+                </div>
             </div>
 
             <div class="wedding-modal-row">
@@ -963,10 +1010,12 @@ export function openEditWeddingModal(wedding) {
 
             const hashtagVal = document.getElementById('editWeddingHashtag').value.trim();
             const instagramVal = document.getElementById('editWeddingInstagram').value.trim();
+            const allowVariantsVal = document.querySelector('input[name="editAllowVariants"]:checked')?.value === 'true';
 
             try {
                 const { error } = await supabase.from('weddings').update({
                     primary_side: document.querySelector('input[name="editPrimarySide"]:checked').value,
+                    allow_variants: allowVariantsVal,
                     bride_name: document.getElementById('editBrideName').value.trim(),
                     groom_name: document.getElementById('editGroomName').value.trim(),
                     start_date: startDate,

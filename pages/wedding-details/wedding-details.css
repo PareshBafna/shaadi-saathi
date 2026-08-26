@@ -1056,3 +1056,167 @@ textarea.wedding-modal-input {
     padding-left: var(--space-4) !important;
   }
 }
+
+/* ============================================================
+   INVITE VARIANTS SECTION STYLES
+   ============================================================ */
+.variants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--space-4, 1rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.variant-card {
+  background: var(--color-bg, #0c0a09);
+  border: 1px solid var(--color-border, #292524);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--space-4, 1rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color var(--transition-fast, 0.15s ease);
+}
+
+.variant-card:hover {
+  border-color: var(--color-primary, #eab308);
+}
+
+.variant-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.variant-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-primary, #ffffff);
+}
+
+.variant-card__count-badge {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #a1a1aa);
+  margin-top: 4px;
+}
+
+.variant-card__events-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.variant-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-border, #292524);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.variant-card__btn-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ============================================================
+   GUEST VIEW TOGGLE & GROUPED BY VARIANT
+   ============================================================ */
+.guest-view-switcher {
+  display: inline-flex;
+  background: var(--color-bg, #0c0a09);
+  border: 1px solid var(--color-border, #292524);
+  border-radius: var(--radius-sm, 4px);
+  padding: 2px;
+  gap: 2px;
+}
+
+.guest-view-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary, #a1a1aa);
+  padding: 4px 10px;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-medium, 500);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.guest-view-btn.active {
+  background: var(--color-primary, #eab308);
+  color: var(--color-text-on-accent, #000000);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.variant-group-block {
+  background: var(--color-bg, #0c0a09);
+  border: 1px solid var(--color-border, #292524);
+  border-radius: var(--radius-md, 6px);
+  margin-bottom: var(--space-4, 1rem);
+  overflow: hidden;
+}
+
+.variant-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+  background: var(--color-white, #1c1917);
+  border-bottom: 1px solid var(--color-border, #292524);
+}
+
+.variant-group-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-primary, #eab308);
+}
+
+.variant-group-count {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #a1a1aa);
+}
+
+/* ============================================================
+   MULTI-CHECKBOX GUEST ASSIGNMENT MODAL
+   ============================================================ */
+.guest-assign-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border, #292524);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-bg, #0c0a09);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guest-assign-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.guest-assign-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.guest-assign-current-tag {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  background: var(--color-border, #292524);
+  color: var(--color-text-secondary, #a1a1aa);
+  border-radius: 4px;
+}
