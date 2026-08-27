@@ -54,6 +54,8 @@ function ensureXLSXLoaded() {
 // MAIN RENDER FUNCTION
 // ==========================================
 export function renderWeddingDetails(weddingId) {
+    document.body.style.overflowX = 'hidden';
+
     const wrapper = document.createElement("div");
     wrapper.className = "wedding-details-wrapper"; 
     
@@ -144,8 +146,15 @@ async function loadWeddingData(container, weddingId) {
         const { data: webInvite } = await supabase.from('wedding_web_invite').select('id').eq('wedding_id', weddingId).maybeSingle();
         const hasWebInvite = !!webInvite;
 
-        const { data: variantsData } = await supabase.from('invite_variants').select('*').eq('wedding_id', weddingId).order('created_at', { ascending: false });
-        const variants = variantsData || [];
+        const { data: variantsData } = await supabase.from('invite_variants').select('*').eq('wedding_id', weddingId);
+        const variants = (variantsData || []).sort((a, b) => {
+            const countA = a.selected_event_ids?.length || 0;
+            const countB = b.selected_event_ids?.length || 0;
+            if (countB !== countA) {
+                return countB - countA;
+            }
+            return (a.variant_name || '').localeCompare(b.variant_name || '');
+        });
 
         const { data: allSysUsers, error: sysUsersErr } = await supabase.from('users').select('id, name, phone, role');
         if (sysUsersErr) throw sysUsersErr;
@@ -176,7 +185,7 @@ async function loadWeddingData(container, weddingId) {
         const canConfig = (isCreator || isHost) && !isArchived; 
         const canViewAll = isCreator || isHost || isWeddingUser; 
         const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
-        const allowsVariants = wedding.allow_variants !== false;
+        const allowsVariants = isWebInviteOnly ? (wedding.allow_variants !== false) : true;
 
         window.__weddingContext = {
             weddingId,
@@ -195,18 +204,20 @@ async function loadWeddingData(container, weddingId) {
         const { data: guests, error: guestsError } = await supabase.from('guests').select('*').eq('wedding_id', weddingId);
         if (guestsError && !isWebInviteOnly) throw guestsError;
 
-        // Map events to each guest via their assigned variant
         if (guests) {
             guests.forEach(g => {
                 if (g.variant_id) {
                     const matchedVar = variants.find(v => v.id === g.variant_id);
-                    g.variant_name = matchedVar ? matchedVar.variant_name : 'Custom';
-                    g.invited_events = (matchedVar && matchedVar.selected_event_ids?.length > 0) 
-                        ? matchedVar.selected_event_ids 
-                        : (allEvents || []).map(e => e.id);
+                    if (matchedVar) {
+                        g.variant_name = matchedVar.variant_name;
+                        g.invited_events = matchedVar.selected_event_ids || [];
+                    } else {
+                        g.variant_name = 'No Variant Assigned';
+                        g.invited_events = [];
+                    }
                 } else {
-                    g.variant_name = 'All Events';
-                    g.invited_events = (allEvents || []).map(e => e.id);
+                    g.variant_name = 'No Variant Assigned';
+                    g.invited_events = [];
                 }
             });
         }
@@ -237,7 +248,6 @@ async function loadWeddingData(container, weddingId) {
         
         container.appendChild(buildEventItinerarySection(wedding, filteredEvents, canConfig));
 
-        // Variants Section
         if (allowsVariants && canViewAll) {
             container.appendChild(buildVariantsSection(wedding, variants, allEvents, guests, canConfig));
         }
@@ -460,7 +470,7 @@ function buildEventItinerarySection(wedding, events, canConfig) {
     
     let rightHTML = events && events.length > 0 ? `
         <button id="add-to-calendar-btn" class="wedding-action-btn-primary">
-            <i data-lucide="calendar-plus"></i> Add To Calendar
+            <i data-lucide="calendar"></i> Calendar
         </button>
     ` : '';
     
@@ -651,6 +661,8 @@ function buildVariantsSection(wedding, variants, allEvents = [], guests = [], ca
     const section = document.createElement("div");
     section.className = "wedding-details-section";
 
+    let searchQuery = '';
+
     const controlsRow = document.createElement("div");
     controlsRow.className = "wedding-details-section__control-bar";
 
@@ -663,7 +675,10 @@ function buildVariantsSection(wedding, variants, allEvents = [], guests = [], ca
     controlsRow.innerHTML = `
         <div class="wedding-details-section__left-actions">${leftHTML}</div>
         <div class="wedding-details-section__right-actions">
-            <h3 style="margin: 0; font-size: 1rem; color: var(--color-text-secondary);">Invite Variants</h3>
+            <div class="wedding-details-search-wrapper">
+                <i data-lucide="search"></i>
+                <input type="text" id="variantSearchInput" placeholder="Search ..." class="wedding-details-search-input">
+            </div>
         </div>
     `;
     section.appendChild(controlsRow);
@@ -672,14 +687,38 @@ function buildVariantsSection(wedding, variants, allEvents = [], guests = [], ca
     section.appendChild(content);
 
     function renderVariants() {
+        const filteredVariants = (variants || [])
+            .filter(v => {
+                const q = searchQuery.toLowerCase();
+                const nameMatch = (v.variant_name || '').toLowerCase().includes(q);
+                const eventsMatch = (allEvents || [])
+                    .filter(e => v.selected_event_ids?.includes(e.id))
+                    .some(e => (e.event_name || e.title || '').toLowerCase().includes(q));
+                return nameMatch || eventsMatch;
+            })
+            .sort((a, b) => {
+                const countA = a.selected_event_ids?.length || 0;
+                const countB = b.selected_event_ids?.length || 0;
+                if (countB !== countA) {
+                    return countB - countA;
+                }
+                return (a.variant_name || '').localeCompare(b.variant_name || '');
+            });
+
         if (!variants || variants.length === 0) {
             content.innerHTML = `<div class="wedding-details-empty-state">No invite variants created yet. Create a variant to generate targeted invite links.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
 
+        if (filteredVariants.length === 0) {
+            content.innerHTML = `<div class="wedding-details-empty-state">No variants match your search.</div>`;
+            if (window.lucide) window.lucide.createIcons();
+            return;
+        }
+
         let html = `<div class="variants-grid">`;
-        variants.forEach(v => {
+        filteredVariants.forEach(v => {
             const variantUrl = getWebInvitePublicPreviewUrl(v.id);
             const assignedGuests = (guests || []).filter(g => g.variant_id === v.id);
             const eventNames = (allEvents || [])
@@ -708,18 +747,18 @@ function buildVariantsSection(wedding, variants, allEvents = [], guests = [], ca
                             <div class="variant-card__events-wrap">${eventsDisplay}</div>
                         </div>
                     </div>
-                    <div class="variant-card__actions">
+                    <div class="variant-card__actions" style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-top: 12px; margin-top: 6px; border-top: 1px solid var(--color-border, #292524);">
                         ${canConfig ? `
-                            <button class="assign-variant-btn wedding-action-btn-primary" data-id="${v.id}" data-name="${v.variant_name.replace(/"/g, '&quot;')}" style="padding: 4px 8px; font-size: 0.75rem;">
+                            <button class="assign-variant-btn wedding-action-btn-primary" data-id="${v.id}" data-name="${v.variant_name.replace(/"/g, '&quot;')}" style="padding: 0.45rem 0.85rem; font-size: 0.825rem;">
                                 <i data-lucide="user-plus"></i> Assign Guests
                             </button>
                         ` : '<div></div>'}
-                        <div class="variant-card__btn-group">
-                            <a href="${variantUrl}" target="_blank" class="wedding-action-btn-primary" style="padding: 4px 8px; text-decoration: none;" title="Open Link">
-                                <i data-lucide="external-link"></i>
+                        <div class="variant-card__btn-group" style="display: flex; gap: 8px; align-items: center;">
+                            <a href="${variantUrl}" target="_blank" class="wedding-action-btn-primary" style="padding: 0.45rem 0.9rem; font-size: 0.825rem; text-decoration: none;" title="Open Web Invite">
+                                <i data-lucide="external-link" style="width: 15px; height: 15px;"></i> Web Invite
                             </a>
-                            <button class="copy-variant-btn wedding-details-icon-btn" data-url="${variantUrl}" title="Copy Link" type="button">
-                                <i data-lucide="link"></i>
+                            <button class="copy-variant-btn wedding-action-btn-primary" data-url="${variantUrl}" style="padding: 0.45rem 0.7rem; background: var(--color-bg, #0c0a09); border: 1px solid var(--color-border, #292524); color: var(--color-primary, #eab308);" title="Copy Link" type="button">
+                                <i data-lucide="link" style="width: 15px; height: 15px;"></i>
                             </button>
                         </div>
                     </div>
@@ -762,6 +801,15 @@ function buildVariantsSection(wedding, variants, allEvents = [], guests = [], ca
 
     setTimeout(() => {
         renderVariants();
+
+        const searchInput = section.querySelector('#variantSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                renderVariants();
+            });
+        }
+
         if (canConfig) {
             const addBtn = section.querySelector('#add-variant-btn');
             if (addBtn) {
@@ -1105,8 +1153,10 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
     return section;
 }
 
+let currentGuestView = 'all'; // Preserves state across re-renders ('all' | 'grouped')
+
 // ==========================================
-// 7. GUEST LIST SECTION (WITH GROUPED VIEW)
+// 7. GUEST LIST SECTION (BY VARIANT DEFAULT)
 // ==========================================
 function buildGuestListSection(wedding, guests, events, variants, canConfig) {
     window.__currentEvents = events || [];
@@ -1115,11 +1165,9 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig) {
     const section = document.createElement("div");
     section.className = "wedding-details-section";
 
-    let currentGuestView = 'all'; // 'all' | 'grouped'
-    let currentPage = 1;
-    const itemsPerPage = 10; 
     let searchQuery = '';
 
+    // Control bar: Action buttons & Search
     const controlsRow = document.createElement("div");
     controlsRow.className = "wedding-details-section__control-bar";
     
@@ -1137,13 +1185,7 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig) {
 
     controlsRow.innerHTML = `
         <div class="wedding-details-section__left-actions">${leftActions}</div>
-        <div class="wedding-details-section__middle-actions">
-            ${middleActions}
-            <div class="guest-view-switcher">
-                <button class="guest-view-btn active" id="viewAllGuestsBtn" type="button">All Guests</button>
-                <button class="guest-view-btn" id="viewGroupedGuestsBtn" type="button">By Variant</button>
-            </div>
-        </div>
+        <div class="wedding-details-section__middle-actions">${middleActions}</div>
         <div class="wedding-details-section__right-actions">
             <div class="wedding-details-search-wrapper">
                 <i data-lucide="search"></i>
@@ -1155,6 +1197,46 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig) {
 
     const content = document.createElement("div");
     section.appendChild(content);
+
+    function getWhatsAppButton(guest) {
+        const cleanPhone = guest.phone ? guest.phone.replace(/[^0-9+]/g, '') : '';
+        const guestEvents = events ? events.filter(e => guest.invited_events?.includes(e.id)) : [];
+        const hasInvitedEvents = guest.invited_events && guest.invited_events.length > 0;
+        
+        if (guest.phone && hasInvitedEvents) {
+            const displayNames = wedding.primary_side === 'groom' ? `${wedding.groom_name} & ${wedding.bride_name}` : `${wedding.bride_name} & ${wedding.groom_name}`;
+            const weddingUrl = guest.variant_id 
+                ? getWebInvitePublicPreviewUrl(guest.variant_id)
+                : `https://shaadi-saathi.pages.dev/#wedding-details?id=${wedding.id}`;
+            
+            const sortedGuestEvents = [...guestEvents].sort((a, b) => {
+                const timeA = a.time || '00:00:00';
+                const timeB = b.time || '00:00:00';
+                return new Date(`${a.date}T${timeA.length === 5 ? timeA + ':00' : timeA}`).getTime() - 
+                       new Date(`${b.date}T${timeB.length === 5 ? timeB + ':00' : timeB}`).getTime();
+            });
+            
+            const eventsListText = sortedGuestEvents.map(ev => {
+                const evDate = new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                return `• ${ev.event_name || ev.title} (${evDate})`;
+            }).join('\n');
+
+            const waMessage = `Jai Jinendra,\n\n*${(guest.name || '').toUpperCase()}*,\n\n*${(wedding.family_name || '').toUpperCase()}* Family has sent you an invitation for the wedding of *${displayNames}* on *_Shaadi Saathi_*.\n\nYou are cordially invited to the following events:\n${eventsListText}\n\nClick the link below to view the complete invitation and event details:\n${weddingUrl}\n\nAwaiting your gracious presence.\n\nRegards,\n*${wedding.family_details || ''}*\n\n*_Shaadi Saathi_*`;
+            const encodedMessage = encodeURIComponent(waMessage);
+
+            return `
+                <a href="https://wa.me/${cleanPhone}?text=${encodedMessage}" target="_blank" onclick="event.stopPropagation();" class="guest-wa-btn" title="WhatsApp">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                </a>
+            `;
+        } else if (!guest.phone) {
+            return `<div class="guest-wa-badge--error">No Phone</div>`;
+        } else {
+            return `<div class="guest-wa-badge--error">No Events</div>`;
+        }
+    }
 
     function renderGuests() {
         const filteredGuests = (guests || []).filter(g => {
@@ -1174,194 +1256,110 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig) {
             return;
         }
 
-        if (currentGuestView === 'grouped') {
-            // Grouped By Variant View
-            const groupedMap = new Map();
-            (variants || []).forEach(v => groupedMap.set(v.id, { variant: v, guests: [] }));
-            groupedMap.set('none', { variant: { id: 'none', variant_name: 'All Events (No Variant)' }, guests: [] });
+        const gridClass = canConfig ? "guests-table-grid--config" : "guests-table-grid--readonly";
+        const groupedGridStyle = canConfig 
+            ? "grid-template-columns: 32px 45px minmax(160px, 1.5fr) minmax(130px, 1fr) 65px 40px;"
+            : "grid-template-columns: 45px minmax(160px, 1.5fr) minmax(130px, 1fr) 65px;";
 
-            filteredGuests.forEach(g => {
-                const key = g.variant_id || 'none';
-                if (groupedMap.has(key)) {
-                    groupedMap.get(key).guests.push(g);
-                } else {
-                    groupedMap.get('none').guests.push(g);
-                }
-            });
+        const sortedVariants = [...(variants || [])].sort((a, b) => {
+            const countA = a.selected_event_ids?.length || 0;
+            const countB = b.selected_event_ids?.length || 0;
+            if (countB !== countA) return countB - countA;
+            return (a.variant_name || '').localeCompare(b.variant_name || '');
+        });
 
-            let groupHTML = `<div>`;
-            groupedMap.forEach(({ variant, guests: gList }) => {
-                if (gList.length === 0) return;
-                groupHTML += `
-                    <div class="variant-group-block">
-                        <div class="variant-group-header">
-                            <h4 class="variant-group-title">${variant.variant_name}</h4>
-                            <span class="variant-group-count">${gList.length} guest(s)</span>
+        const groupedMap = new Map();
+        sortedVariants.forEach(v => groupedMap.set(v.id, { variant: v, guests: [] }));
+        groupedMap.set('none', { variant: { id: 'none', variant_name: 'No Variant Assigned', selected_event_ids: [] }, guests: [] });
+
+        filteredGuests.forEach(g => {
+            const key = g.variant_id && groupedMap.has(g.variant_id) ? g.variant_id : 'none';
+            groupedMap.get(key).guests.push(g);
+        });
+
+        let groupHTML = `<div>`;
+        let accordionIdx = 0;
+
+        groupedMap.forEach(({ variant, guests: gList }) => {
+            if (gList.length === 0) return;
+
+            // Sort guests alphabetically by Name
+            gList.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+            const bodyId = `variant-accordion-body-${accordionIdx++}`;
+
+            groupHTML += `
+                <div class="variant-group-block" style="margin-bottom: 1rem;">
+                    <div class="variant-group-header variant-accordion-toggle" data-target="${bodyId}" style="cursor: pointer; user-select: none;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="chevron-down" class="variant-accordion-icon" style="transition: transform 0.2s ease; width: 18px; height: 18px; color: var(--color-primary);"></i>
+                            <h4 class="variant-group-title" style="margin: 0;">${variant.variant_name}</h4>
                         </div>
-                        <div style="padding: 8px 12px; display: flex; flex-direction: column; gap: 4px;">
-                `;
-
-                gList.forEach(g => {
-                    const cleanPhone = g.phone ? g.phone.replace(/[^0-9+]/g, '') : '';
-                    groupHTML += `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--color-border, #292524);">
-                            <div>
-                                <span style="font-weight: 500; color: var(--color-text-primary); font-size: 0.9rem;">${g.name}</span>
-                                <span style="font-size: 0.8rem; color: var(--color-text-secondary); margin-left: 8px;">${g.phone}</span>
-                            </div>
-                            ${canConfig ? `
-                                <button class="edit-guest-btn wedding-details-icon-btn" data-id="${g.id}" title="Edit">
-                                    <i data-lucide="edit-2" class="wedding-details-edit-icon"></i>
-                                </button>
-                            ` : ''}
-                        </div>
-                    `;
-                });
-
-                groupHTML += `
-                        </div>
+                        <span class="variant-group-count">${gList.length} guest(s)</span>
                     </div>
-                `;
-            });
-            groupHTML += `</div>`;
-            content.innerHTML = groupHTML;
-
-        } else {
-            // Standard Table View
-            const sortedGuests = filteredGuests.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
-            const totalPages = Math.ceil(sortedGuests.length / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const paginatedGuests = sortedGuests.slice(startIndex, startIndex + itemsPerPage);
-
-            const gridClass = canConfig ? "guests-table-grid--config" : "guests-table-grid--readonly";
-
-            let listHTML = `
-                <div class="wedding-details-table-container">
-                    <div class="wedding-details-table-inner--guests">
-                        <div class="${gridClass} wedding-details-table-header">
-                            <div></div> 
-                            ${canConfig ? '<div></div>' : ''}
-                            <div>S.No</div>
-                            <div>Name</div>
-                            <div>Phone Number</div>
-                            <div class="guest-events-count">Events</div>
-                            ${canConfig ? '<div class="guest-events-count">WA</div>' : ''}
-                        </div>
+                    <div id="${bodyId}" class="variant-accordion-body wedding-details-table-container" style="padding: 12px 8px 4px 8px;">
+                        <div class="wedding-details-table-inner--guests">
+                            <div class="wedding-details-table-header" style="display: grid; align-items: center; gap: 10px; ${groupedGridStyle}">
+                                ${canConfig ? '<div></div>' : ''}
+                                <div>S.No</div>
+                                <div>Name</div>
+                                <div>Phone Number</div>
+                                <div class="guest-events-count">Events</div>
+                                ${canConfig ? '<div class="guest-events-count">WA</div>' : ''}
+                            </div>
             `;
 
-            listHTML += paginatedGuests.map((guest, index) => {
-                const globalIndex = startIndex + index + 1;
-                const guestEvents = events ? events.filter(e => guest.invited_events?.includes(e.id)) : [];
-                const eventsTags = guestEvents.length > 0 
-                    ? guestEvents.map(e => `<span class="wedding-details-guest-event-tag"><i data-lucide="calendar"></i> ${e.event_name || e.title}</span>`).join('')
-                    : `<span class="guest-child-row__empty">No events assigned</span>`;
-
-                const cleanPhone = guest.phone ? guest.phone.replace(/[^0-9+]/g, '') : '';
-                const hasInvitedEvents = guest.invited_events && guest.invited_events.length > 0;
-                
-                let waCellContent = '';
-                
-                if (guest.phone && hasInvitedEvents) {
-                    const displayNames = wedding.primary_side === 'groom' ? `${wedding.groom_name} & ${wedding.bride_name}` : `${wedding.bride_name} & ${wedding.groom_name}`;
-                    const weddingUrl = guest.variant_id 
-                        ? getWebInvitePublicPreviewUrl(guest.variant_id)
-                        : `https://shaadi-saathi.pages.dev/#wedding-details?id=${wedding.id}`;
-                    
-                    const sortedGuestEvents = [...guestEvents].sort((a, b) => {
-                        const timeA = a.time || '00:00:00';
-                        const timeB = b.time || '00:00:00';
-                        return new Date(`${a.date}T${timeA.length === 5 ? timeA + ':00' : timeA}`).getTime() - 
-                               new Date(`${b.date}T${timeB.length === 5 ? timeB + ':00' : timeB}`).getTime();
-                    });
-                    
-                    const eventsListText = sortedGuestEvents.map(ev => {
-                        const evDate = new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                        return `• ${ev.event_name || ev.title} (${evDate})`;
-                    }).join('\n');
-
-                    const waMessage = `Jai Jinendra,\n\n*${(guest.name || '').toUpperCase()}*,\n\n*${(wedding.family_name || '').toUpperCase()}* Family has sent you an invitation for the wedding of *${displayNames}* on *_Shaadi Saathi_*.\n\nYou are cordially invited to the following events:\n${eventsListText}\n\nClick the link below to view the complete invitation and event details:\n${weddingUrl}\n\nAwaiting your gracious presence.\n\nRegards,\n*${wedding.family_details || ''}*\n\n*_Shaadi Saathi_*`;
-                    const encodedMessage = encodeURIComponent(waMessage);
-
-                    waCellContent = `
-                        <a href="https://wa.me/${cleanPhone}?text=${encodedMessage}" target="_blank" onclick="event.stopPropagation();" class="guest-wa-btn" title="WhatsApp">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                            </svg>
-                        </a>
-                    `;
-                } else if (!guest.phone) {
-                    waCellContent = `<div class="guest-wa-badge--error">No Phone</div>`;
-                } else {
-                    waCellContent = `<div class="guest-wa-badge--error">No Events</div>`;
-                }
-
+            gList.forEach((guest, index) => {
                 const editCol = canConfig ? `
                     <button class="edit-guest-btn wedding-details-icon-btn" data-id="${guest.id}" title="Edit">
                         <i data-lucide="edit-2" class="wedding-details-edit-icon"></i>
                     </button>
                 ` : '';
-                    
-                return `
-                <div class="wedding-details-table-row-wrap">
-                    <div class="${gridClass}">
-                        
-                        <button class="toggle-events-btn wedding-details-icon-btn" data-target="child-${guest.id}">
-                            <i data-lucide="chevron-right"></i>
-                        </button>
 
-                        ${editCol}
-
-                        <div class="wedding-details-col-sno">${globalIndex}</div>
-                        
-                        <div class="guest-name-cell">
-                            <h4 class="guest-name-text">${guest.name || '-'}</h4>
+                groupHTML += `
+                    <div class="wedding-details-table-row-wrap">
+                        <div style="display: grid; align-items: center; padding: 0.75rem 1rem; gap: 10px; ${groupedGridStyle}">
+                            ${editCol}
+                            <div class="wedding-details-col-sno">${index + 1}</div>
+                            <div class="guest-name-cell">
+                                <h4 class="guest-name-text">${guest.name || '-'}</h4>
+                            </div>
+                            <div class="guest-phone-cell">
+                                <i data-lucide="phone"></i> <span>${guest.phone || '-'}</span>
+                            </div>
+                            <div class="guest-events-count">
+                                ${guest.invited_events?.length || 0}
+                            </div>
+                            ${canConfig ? `<div>${getWhatsAppButton(guest)}</div>` : ''}
                         </div>
-                        
-                        <div class="guest-phone-cell">
-                            <i data-lucide="phone"></i> <span>${guest.phone || '-'}</span>
-                        </div>
-                        
-                        <div class="guest-events-count">
-                            ${guest.invited_events?.length || 0}
-                        </div>
-
-                        ${canConfig ? `<div>${waCellContent}</div>` : ''}
-                    </div>
-
-                    <div id="child-${guest.id}" class="guest-child-row ${canConfig ? 'guest-child-row--config' : 'guest-child-row--readonly'}">
-                        <div class="guest-child-row__title">Assigned Variant: <strong style="color: var(--color-primary);">${guest.variant_name}</strong></div>
-                        <div class="guest-child-row__tags">
-                            ${eventsTags}
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-
-            listHTML += `
-                    </div>
-                </div>
-                <div class="wedding-details-pagination-bar">
-                    <div class="wedding-details-pagination-info">
-                        Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, sortedGuests.length)} of ${sortedGuests.length} guests
-                    </div>
-            `;
-
-            if (totalPages > 1) {
-                listHTML += `
-                    <div class="wedding-details-pagination-controls">
-                        <button class="pagination-btn wedding-details-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
-                        <span class="wedding-details-page-indicator">Page ${currentPage} of ${totalPages}</span>
-                        <button class="pagination-btn wedding-details-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
                     </div>
                 `;
-            } else {
-                listHTML += `<div></div>`; 
-            }
-            listHTML += `</div>`;
-            content.innerHTML = listHTML;
-        }
+            });
+
+            groupHTML += `
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        groupHTML += `</div>`;
+        content.innerHTML = groupHTML;
+
+        // Accordion click bindings
+        content.querySelectorAll('.variant-accordion-toggle').forEach(headerEl => {
+            headerEl.addEventListener('click', () => {
+                const targetId = headerEl.getAttribute('data-target');
+                const bodyEl = document.getElementById(targetId);
+                const icon = headerEl.querySelector('.variant-accordion-icon');
+                if (!bodyEl) return;
+
+                const isClosed = bodyEl.style.display === 'none';
+                bodyEl.style.display = isClosed ? 'block' : 'none';
+                if (icon) {
+                    icon.style.transform = isClosed ? 'rotate(0deg)' : 'rotate(-90deg)';
+                }
+            });
+        });
 
         setTimeout(() => {
             if (canConfig) {
@@ -1374,69 +1372,24 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig) {
                 });
             }
 
-            const toggleBtns = content.querySelectorAll('.toggle-events-btn');
-            toggleBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const targetId = btn.getAttribute('data-target');
-                    const childRow = document.getElementById(targetId);
-                    const icon = btn.querySelector('i, svg');
-                    
-                    if (childRow.style.display === 'none' || !childRow.style.display) {
-                        childRow.style.display = 'block';
-                        if (icon) icon.style.transform = 'rotate(90deg)';
-                    } else {
-                        childRow.style.display = 'none';
-                        if (icon) icon.style.transform = 'rotate(0deg)';
-                    }
-                });
-            });
-
-            const pageBtns = content.querySelectorAll('.pagination-btn');
-            pageBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    if (btn.hasAttribute('disabled')) return;
-                    currentPage = parseInt(btn.getAttribute('data-page'));
-                    renderGuests();
-                });
-            });
-
             if (window.lucide) window.lucide.createIcons();
         }, 0);
     }
     
     setTimeout(() => {
         renderGuests();
+        
         const searchInput = section.querySelector('#guestSearchInput');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 searchQuery = e.target.value;
-                currentPage = 1; 
-                renderGuests();
-            });
-        }
-
-        const btnAll = section.querySelector('#viewAllGuestsBtn');
-        const btnGrouped = section.querySelector('#viewGroupedGuestsBtn');
-
-        if (btnAll && btnGrouped) {
-            btnAll.addEventListener('click', () => {
-                currentGuestView = 'all';
-                btnAll.classList.add('active');
-                btnGrouped.classList.remove('active');
-                renderGuests();
-            });
-            btnGrouped.addEventListener('click', () => {
-                currentGuestView = 'grouped';
-                btnGrouped.classList.add('active');
-                btnAll.classList.remove('active');
                 renderGuests();
             });
         }
 
         if (canConfig) {
             const trigger = section.querySelector('#addGuestBtnTrigger');
-            if(trigger) {
+            if (trigger) {
                 trigger.replaceWith(trigger.cloneNode(true));
                 section.querySelector('#addGuestBtnTrigger').addEventListener('click', () => window.openGuestModal(wedding.id, variants));
             }
@@ -1445,6 +1398,315 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig) {
 
     return section;
 }
+
+function layoutDetailsModalFooter(isEditModal = false) {
+    const allBtns = Array.from(document.querySelectorAll('button'));
+    const cancelBtn = allBtns.find(b => b.textContent.trim() === 'Cancel');
+    const closeBtn = allBtns.find(b => b.textContent.trim() === 'Close');
+    const deleteBtn = allBtns.find(b => b.textContent.trim() === 'Delete');
+    const primaryBtn = allBtns.find(b => ['Add', 'Edit', 'Update', 'Create', 'Apply Variant'].includes(b.textContent.trim()));
+
+    if (cancelBtn) {
+        cancelBtn.classList.add('modal-btn-cancel');
+        cancelBtn.style.order = '1';
+        cancelBtn.style.flexShrink = '0';
+        cancelBtn.style.margin = '0';
+    }
+
+    if (closeBtn) {
+        closeBtn.classList.remove('modal-btn-cancel');
+        closeBtn.classList.add('wedding-action-btn-primary');
+        closeBtn.style.order = '1';
+        closeBtn.style.marginLeft = 'auto';
+    }
+
+    if (deleteBtn) {
+        deleteBtn.classList.add('modal-btn-delete');
+        deleteBtn.style.order = '2';
+        deleteBtn.style.flexShrink = '0';
+        deleteBtn.style.margin = '0 auto';
+    }
+
+    if (primaryBtn) {
+        primaryBtn.style.order = '3';
+        primaryBtn.style.flexShrink = '0';
+        primaryBtn.style.marginLeft = (isEditModal && deleteBtn) ? '0' : 'auto';
+        primaryBtn.style.whiteSpace = 'nowrap';
+    }
+
+    const container = cancelBtn?.parentElement || closeBtn?.parentElement;
+    if (container) {
+        container.style.display = 'flex';
+        container.style.flexDirection = 'row';
+        container.style.flexWrap = 'nowrap';
+        container.style.width = '100%';
+        container.style.justifyContent = 'space-between';
+        container.style.alignItems = 'center';
+        container.style.gap = '8px';
+        container.style.boxSizing = 'border-box';
+    }
+}
+
+// ==========================================
+// SEARCHABLE DROPDOWN
+// ==========================================
+function convertToSearchableDropdown(selectId, onSelectCallback = null) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    select.style.display = 'none';
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position: relative; width: 100%; text-align: left; font-family: inherit; box-sizing: border-box;';
+    select.parentNode.insertBefore(wrapper, select);
+
+    const initialValid = select.value !== "";
+    const displayBorder = initialValid ? '1px solid #16a34a' : (select.hasAttribute('required') ? '1px solid #dc2626' : '1px solid var(--color-border, #292524)');
+
+    const displayBox = document.createElement('div');
+    displayBox.style.cssText = `width: 100%; min-height: 38px; height: 38px; padding: 0 32px 0 10px; border: ${displayBorder}; border-radius: var(--radius-sm, 4px); box-sizing: border-box; background: var(--color-bg, #0c0a09); color: var(--color-text-primary, #ffffff); cursor: pointer; display: flex; align-items: center; transition: border-color 0.2s;`;
+    
+    const displayText = document.createElement('span');
+    displayText.style.cssText = 'overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex-grow: 1; font-size: var(--font-size-sm, 0.875rem); line-height: 1;';
+    displayBox.appendChild(displayText);
+
+    const chevron = document.createElement('div');
+    chevron.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+    chevron.style.cssText = 'position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--color-text-secondary, #a1a1aa); display: flex; align-items: center;';
+    
+    wrapper.appendChild(displayBox);
+    wrapper.appendChild(chevron);
+
+    const dropdownMenu = document.createElement('div');
+    dropdownMenu.style.cssText = 'width: 100%; background: var(--color-bg, #0c0a09); border: 1px solid var(--color-border, #292524); border-radius: var(--radius-sm, 4px); display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); margin-top: 6px; padding: 8px; flex-direction: column; gap: 8px; box-sizing: border-box; position: absolute; z-index: 9999; top: 100%; left: 0;';
+    
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search...';
+    searchInput.style.cssText = 'width: 100%; height: 34px; padding: 6px 10px; border: 1px solid var(--color-border, #292524); border-radius: var(--radius-sm, 4px); box-sizing: border-box; background: var(--color-white, #1c1917); color: var(--color-text-primary, #ffffff); outline: none; font-size: var(--font-size-sm, 0.875rem);';
+    
+    const optionsList = document.createElement('div');
+    optionsList.style.cssText = 'max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; scrollbar-gutter: stable; padding-right: 2px;';
+
+    dropdownMenu.appendChild(searchInput);
+    dropdownMenu.appendChild(optionsList);
+    wrapper.appendChild(dropdownMenu);
+
+    const options = Array.from(select.options);
+    
+    function updateDisplay() {
+        const selectedOpt = options.find(o => o.value === select.value);
+        if (selectedOpt && select.value !== "") {
+            displayText.textContent = selectedOpt.text;
+            displayText.style.color = 'var(--color-text-primary, #ffffff)';
+            displayBox.style.borderColor = '#16a34a';
+        } else {
+            displayText.textContent = options[0]?.text || '-- Select --';
+            displayText.style.color = 'var(--color-text-secondary, #a1a1aa)';
+            displayBox.style.borderColor = select.hasAttribute('required') ? '#dc2626' : 'var(--color-border, #292524)';
+        }
+    }
+
+    function renderList(filter = '') {
+        optionsList.innerHTML = '';
+        const filtered = options.filter(opt => opt.text.toLowerCase().includes(filter.toLowerCase()));
+
+        if (filtered.length === 0) {
+            const noRes = document.createElement('div');
+            noRes.style.cssText = 'padding: 8px; color: var(--color-text-muted, #71717a); font-size: 0.85rem; text-align: center;';
+            noRes.textContent = 'No results found';
+            optionsList.appendChild(noRes);
+            return;
+        }
+
+        filtered.forEach(opt => {
+            const item = document.createElement('div');
+            const isSelected = select.value === opt.value;
+            item.style.cssText = `padding: 7px 10px; cursor: pointer; border-radius: 4px; font-size: var(--font-size-sm, 0.875rem); color: var(--color-text-primary, #ffffff); transition: background 0.15s; margin-bottom: 2px; ${isSelected ? 'background: var(--color-border, #292524); font-weight: 600;' : ''}`;
+            item.textContent = opt.text;
+            
+            item.addEventListener('mouseover', () => { if(select.value !== opt.value) item.style.background = 'rgba(255,255,255,0.06)'; });
+            item.addEventListener('mouseout', () => { if(select.value !== opt.value) item.style.background = 'transparent'; });
+            
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                select.value = opt.value;
+                updateDisplay();
+                dropdownMenu.style.display = 'none';
+                select.dispatchEvent(new Event('change'));
+                if (typeof onSelectCallback === 'function') {
+                    onSelectCallback(opt.value);
+                }
+            });
+            optionsList.appendChild(item);
+        });
+    }
+
+    displayBox.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdownMenu.style.display === 'flex';
+        
+        document.querySelectorAll('.searchable-dropdown-menu').forEach(el => {
+            el.style.display = 'none';
+        });
+
+        if (!isOpen) {
+            dropdownMenu.style.display = 'flex';
+            dropdownMenu.classList.add('searchable-dropdown-menu');
+            searchInput.value = '';
+            renderList('');
+            setTimeout(() => searchInput.focus(), 20);
+        } else {
+            dropdownMenu.style.display = 'none';
+        }
+    });
+
+    searchInput.addEventListener('input', (e) => {
+        renderList(e.target.value);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) {
+            dropdownMenu.style.display = 'none';
+        }
+    });
+
+    updateDisplay();
+}
+
+// ==========================================
+// SYSTEM USER MODAL (FIXED LAYOUT & PADDING)
+// ==========================================
+window.openSystemUserModal = async function(type, existingRecordId = null) {
+    const ctx = window.__weddingContext;
+    if (!ctx || !ctx.canConfig) return;
+
+    const isHost = type === 'host';
+    const tableName = isHost ? 'wedding_hosts' : 'wedding_users';
+    const titleType = isHost ? 'Wedding Host' : 'Wedding User';
+
+    let existingRecord = null;
+    if (existingRecordId) {
+        try {
+            const { data, error } = await supabase.from(tableName).select('*').eq('id', existingRecordId).single();
+            if (error) throw error;
+            existingRecord = data;
+        } catch (e) {
+            showSweetAlert('error', 'Error', 'Failed to load record details.');
+            return;
+        }
+    }
+
+    let eligibleUsers = ctx.allSysUsers.filter(u => !ctx.assignedIds.has(u.id) && u.role !== 'creator');
+    
+    if (existingRecord) {
+        const currentSysUser = ctx.allSysUsers.find(u => u.id === existingRecord.user_id);
+        if (currentSysUser && !eligibleUsers.some(u => u.id === currentSysUser.id)) {
+            eligibleUsers.push(currentSysUser);
+        }
+    }
+
+    eligibleUsers.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+
+    let optionsHtml = eligibleUsers.map(u => 
+        `<option value="${u.id}" ${existingRecord && existingRecord.user_id === u.id ? 'selected' : ''}>${u.name} - ${u.phone}</option>`
+    ).join('');
+
+    if (!optionsHtml) {
+        optionsHtml = `<option value="" disabled>No eligible users available</option>`;
+    }
+
+    const formHTML = `
+        <form id="sysUserForm" novalidate class="wedding-details-modal-form" style="min-height: 220px; overflow: visible !important;">
+            <div style="position: relative; width: 100%;">
+                <label class="wedding-modal-label">Select ${titleType} *</label>
+                <select id="sysUserId" required class="wedding-modal-input">
+                    ${existingRecord ? '' : `<option value="" disabled selected>-- Select --</option>`}
+                    ${optionsHtml}
+                </select>
+            </div>
+        </form>
+    `;
+
+    const actions = [];
+    actions.push({ label: "Cancel", variant: "ghost" });
+
+    if (existingRecord) {
+        actions.push({
+            label: "Delete",
+            variant: "danger", 
+            closesModal: false,
+            onClick: async () => {
+                const result = await Swal.fire({
+                    title: 'Are you sure?',
+                    text: `Do you really want to remove this ${titleType.toLowerCase()}?`,
+                    icon: 'question', 
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, remove them!'
+                });
+
+                if (result.isConfirmed) {
+                    try {
+                        const { error } = await supabase.from(tableName).delete().eq('id', existingRecord.id);
+                        if (error) throw error;
+                        
+                        modal.close();
+                        broadcastWeddingDataUpdated();
+                        showSweetAlert('success', 'Removed!', `${titleType} has been removed.`);
+                    } catch (error) {
+                        showSweetAlert('error', 'Database Error', error.message);
+                    }
+                }
+            }
+        });
+    }
+
+    actions.push({ 
+        label: existingRecord ? "Update" : "Add", 
+        variant: "primary", 
+        closesModal: false,
+        onClick: async () => {
+            const selectEl = document.getElementById('sysUserId');
+            const selectedUserId = selectEl.value;
+
+            if (!selectedUserId) {
+                showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${titleType}`);
+                return;
+            }
+
+            try {
+                const payload = { wedding_id: ctx.weddingId, user_id: selectedUserId };
+
+                if (existingRecord) {
+                    const { error } = await supabase.from(tableName).update(payload).eq('id', existingRecord.id);
+                    if (error) throw error;
+                } else {
+                    const { error } = await supabase.from(tableName).insert([payload]);
+                    if (error) throw error;
+                }
+
+                modal.close();
+                broadcastWeddingDataUpdated();
+                showSweetAlert('success', existingRecord ? 'Updated!' : 'Added!', `${titleType} saved successfully.`);
+            } catch (error) {
+                showSweetAlert('error', 'Database Error', error.message);
+            }
+        }
+    });
+
+    const modal = openModal({
+        title: existingRecord ? `Edit ${titleType}` : `Add New ${titleType}`,
+        content: formHTML,
+        actions: actions
+    });
+
+    setTimeout(() => {
+        layoutDetailsModalFooter(!!existingRecord);
+        convertToSearchableDropdown('sysUserId');
+    }, 50);
+};
 
 // ==========================================
 // VARIANT MODALS (CREATE/EDIT & MULTI-ASSIGN)
@@ -1484,7 +1746,7 @@ export function openVariantModal(weddingId, events = [], existingVariant = null)
             onClick: async () => {
                 const res = await Swal.fire({
                     title: 'Delete Variant?',
-                    text: "Guests assigned to this variant will revert to 'All Events'.",
+                    text: "Guests assigned to this variant will be unassigned.",
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#dc2626',
@@ -1561,11 +1823,14 @@ export function openVariantModal(weddingId, events = [], existingVariant = null)
 }
 
 export function openAssignVariantModal(variantId, variantName, guests = []) {
-    let filteredList = [...guests];
+    const sortedGuests = [...guests].sort((a, b) => 
+        (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+    );
+    let filteredList = [...sortedGuests];
 
     const listMarkup = (items) => items.map(g => {
         const isCurrentlyAssigned = g.variant_id === variantId;
-        const currentTag = g.variant_name && g.variant_name !== 'All Events' ? `<span class="guest-assign-current-tag">${g.variant_name}</span>` : '';
+        const currentTag = g.variant_name && g.variant_name !== 'No Variant Assigned' ? `<span class="guest-assign-current-tag">${g.variant_name}</span>` : '';
         return `
             <label class="guest-assign-item">
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -1601,8 +1866,25 @@ export function openAssignVariantModal(variantId, variantName, guests = []) {
                 onClick: async () => {
                     const selectedGuestIds = Array.from(document.querySelectorAll('input[name="assign_guest"]:checked')).map(cb => cb.value);
 
+                    // Check if any selected guest is already assigned to a different variant
+                    const guestsWithOtherVariant = sortedGuests.filter(g => 
+                        selectedGuestIds.includes(g.id) && g.variant_id && g.variant_id !== variantId
+                    );
+
+                    if (guestsWithOtherVariant.length > 0) {
+                        const confirmRes = await Swal.fire({
+                            title: 'Overwrite Existing Variant?',
+                            text: `${guestsWithOtherVariant.length} of the selected guest(s) are already assigned to another variant. Do you want to overwrite their assignment?`,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: 'var(--color-primary, #eab308)',
+                            cancelButtonColor: '#6b7280',
+                            confirmButtonText: 'Yes, overwrite!'
+                        });
+                        if (!confirmRes.isConfirmed) return;
+                    }
+
                     try {
-                        // 1. Set variant_id for selected guests
                         if (selectedGuestIds.length > 0) {
                             const { error: assignErr } = await supabase
                                 .from('guests')
@@ -1611,10 +1893,16 @@ export function openAssignVariantModal(variantId, variantName, guests = []) {
                             if (assignErr) throw assignErr;
                         }
 
-                        // 2. Clear variant_id for unselected guests previously assigned to this variant
-                        const unselectedIds = guests.filter(g => g.variant_id === variantId && !selectedGuestIds.includes(g.id)).map(g => g.id);
+                        const unselectedIds = sortedGuests
+                            .filter(g => g.variant_id === variantId && !selectedGuestIds.includes(g.id))
+                            .map(g => g.id);
+
                         if (unselectedIds.length > 0) {
-                            await supabase.from('guests').update({ variant_id: null }).in('id', unselectedIds);
+                            const { error: unassignErr } = await supabase
+                                .from('guests')
+                                .update({ variant_id: null })
+                                .in('id', unselectedIds);
+                            if (unassignErr) throw unassignErr;
                         }
 
                         modal.close();
@@ -1635,12 +1923,448 @@ export function openAssignVariantModal(variantId, variantName, guests = []) {
         if (search && container) {
             search.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase();
-                const matched = guests.filter(g => (g.name || '').toLowerCase().includes(query) || (g.phone || '').includes(query));
+                const matched = sortedGuests.filter(g => (g.name || '').toLowerCase().includes(query) || (g.phone || '').includes(query));
                 container.innerHTML = listMarkup(matched);
             });
         }
     }, 50);
 }
+
+// ==========================================
+// EVENTS MODALS
+// ==========================================
+window.openEventModal = async function(weddingId, minDate, maxDate) {
+    let templates = [];
+    try {
+        const { data } = await supabase.from('events').select('*');
+        templates = data || [];
+    } catch (e) {
+        console.error("Failed to load templates", e);
+    }
+
+    let templateOptions = `<option value="">-- Custom Event --</option>`;
+    templates.forEach(t => {
+        templateOptions += `<option value="${t.id}">${t.event_name}</option>`;
+    });
+
+    const formHTML = `
+        <form id="createEventForm" novalidate class="wedding-details-modal-form">
+            <div>
+                <label class="wedding-modal-label">Apply Template (Optional)</label>
+                <select id="eventTemplateSelect" class="wedding-modal-input">
+                    ${templateOptions}
+                </select>
+            </div>
+
+            <div class="wedding-modal-row">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Event Name *</label>
+                    <input type="text" id="eventName" required placeholder="e.g., Grithpaan" class="wedding-modal-input wedding-modal-input--invalid">
+                </div>
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Display Title *</label>
+                    <input type="text" id="eventDisplayTitle" required placeholder="e.g., Blessings & Beginnings" class="wedding-modal-input wedding-modal-input--invalid">
+                </div>
+            </div>
+
+            <div>
+                <label class="wedding-modal-label">One Liner Quote *</label>
+                <input type="text" id="eventOneLiner" required placeholder="e.g., Golden ghee, elders blessings..." class="wedding-modal-input wedding-modal-input--invalid">
+            </div>
+
+            <div>
+                <label class="wedding-modal-label">Description *</label>
+                <textarea id="eventDescription" rows="3" required placeholder="An auspicious start to our wedding celebrations..." class="wedding-modal-input wedding-modal-input--invalid"></textarea>
+            </div>
+            
+            <div class="wedding-modal-row">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Date *</label>
+                    <input type="date" id="eventDate" min="${minDate}" max="${maxDate}" 
+                        onclick="try{this.showPicker()}catch(e){}" 
+                        onkeydown="if(event.key !== 'Tab' && event.key !== 'Shift') event.preventDefault();" 
+                        onpaste="return false;" 
+                        required class="wedding-modal-input wedding-modal-input--invalid">
+                </div>
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Time *</label>
+                    <input type="time" id="eventTime" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--invalid">
+                </div>
+            </div>
+
+            <div>
+                <label class="wedding-modal-label">Venue *</label>
+                <input type="text" id="eventVenue" required placeholder="e.g., The Grand Hotel" class="wedding-modal-input wedding-modal-input--invalid">
+            </div>
+
+            <div>
+                <label class="wedding-modal-label">Venue Location (Maps Link) *</label>
+                <input type="url" id="eventVenueMapLink" required placeholder="e.g., https://maps.google.com/..." class="wedding-modal-input wedding-modal-input--invalid">
+            </div>
+        </form>
+    `;
+
+    const applyTemplateData = (selectedId) => {
+        if (!selectedId) return;
+        const template = templates.find(t => t.id === selectedId);
+        if (!template) return;
+        
+        ['eventName', 'eventDisplayTitle', 'eventOneLiner', 'eventDescription'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                if (id === 'eventName') el.value = template.event_name || '';
+                if (id === 'eventDisplayTitle') el.value = template.display_title || '';
+                if (id === 'eventOneLiner') el.value = template.one_liner || '';
+                if (id === 'eventDescription') el.value = template.description || '';
+                el.classList.toggle('wedding-modal-input--invalid', !el.value.trim());
+                el.classList.toggle('wedding-modal-input--valid', !!el.value.trim());
+            }
+        });
+    };
+
+    const modal = openModal({
+        title: "Add New Event",
+        content: formHTML,
+        actions: [
+            { label: "Cancel", variant: "ghost" },
+            { 
+                label: "Add", 
+                variant: "primary", 
+                closesModal: false,
+                onClick: async () => {
+                    const requiredFields = [
+                        { id: 'eventName', name: "Event Name" },
+                        { id: 'eventDisplayTitle', name: "Display Title" },
+                        { id: 'eventOneLiner', name: "One Liner Quote" },
+                        { id: 'eventDescription', name: "Description" },
+                        { id: 'eventDate', name: "Date" },
+                        { id: 'eventTime', name: "Time" },
+                        { id: 'eventVenue', name: "Venue" },
+                        { id: 'eventVenueMapLink', name: "Venue Location (Maps Link)" }
+                    ];
+
+                    let isValid = true;
+                    let firstEmpty = null;
+
+                    requiredFields.forEach(field => {
+                        const el = document.getElementById(field.id);
+                        if (!el.value.trim()) { 
+                            el.classList.add('wedding-modal-input--invalid');
+                            el.classList.remove('wedding-modal-input--valid');
+                            isValid = false; 
+                            if(!firstEmpty) firstEmpty = field.name; 
+                        } else { 
+                            el.classList.remove('wedding-modal-input--invalid');
+                            el.classList.add('wedding-modal-input--valid');
+                        }
+                    });
+
+                    const selectedDate = document.getElementById('eventDate').value;
+                    const selectedTime = document.getElementById('eventTime').value;
+
+                    if (selectedDate && (selectedDate < minDate || selectedDate > maxDate)) {
+                        isValid = false;
+                        document.getElementById('eventDate').classList.add('wedding-modal-input--invalid');
+                        showSweetAlert('error', 'Invalid Date', `Event date must be between ${minDate} and ${maxDate}.`);
+                        return;
+                    }
+
+                    if (!isValid) {
+                        showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstEmpty}`);
+                        return;
+                    }
+
+                    try {
+                        const { error } = await supabase.from('wedding_events').insert([{ 
+                            wedding_id: weddingId,
+                            event_name: document.getElementById('eventName').value.trim(),
+                            title: document.getElementById('eventDisplayTitle').value.trim(),
+                            one_liner: document.getElementById('eventOneLiner').value.trim(),
+                            description: document.getElementById('eventDescription').value.trim(),
+                            date: selectedDate,
+                            time: selectedTime,
+                            venue: document.getElementById('eventVenue').value.trim(),
+                            venue_map_link: document.getElementById('eventVenueMapLink').value.trim()
+                        }]);
+                        if (error) throw error;
+                        
+                        modal.close();
+                        broadcastWeddingDataUpdated();
+                        showSweetAlert('success', 'Added!', 'Event saved successfully.');
+                    } catch (error) {
+                        showSweetAlert('error', 'Database Error', error.message);
+                    }
+                }
+            }
+        ]
+    });
+
+    setTimeout(() => {
+        layoutDetailsModalFooter(false);
+        convertToSearchableDropdown('eventTemplateSelect', applyTemplateData);
+
+        const templateSelect = document.getElementById('eventTemplateSelect');
+        if (templateSelect) {
+            templateSelect.addEventListener('change', (e) => applyTemplateData(e.target.value));
+        }
+
+        ['eventName', 'eventDisplayTitle', 'eventOneLiner', 'eventDescription', 'eventDate', 'eventTime', 'eventVenue', 'eventVenueMapLink'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const updateValidity = () => {
+                    el.classList.toggle('wedding-modal-input--invalid', !el.value.trim());
+                    el.classList.toggle('wedding-modal-input--valid', !!el.value.trim());
+                };
+                updateValidity();
+                el.addEventListener('input', updateValidity);
+                el.addEventListener('change', updateValidity);
+            }
+        });
+    }, 50);
+};
+
+window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId) {
+    let ev = null;
+    let templates = [];
+    
+    try {
+        const [evRes, tplRes] = await Promise.all([
+            supabase.from('wedding_events').select('*').eq('id', eventId).single(),
+            supabase.from('events').select('*')
+        ]);
+        if (evRes.error) throw evRes.error;
+        ev = evRes.data;
+        templates = tplRes.data || [];
+    } catch (e) {
+        showSweetAlert('error', 'Error', 'Failed to load event data.');
+        return;
+    }
+
+    let templateOptions = `<option value="">-- Apply a Template --</option>`;
+    templates.forEach(t => {
+        templateOptions += `<option value="${t.id}">${t.event_name}</option>`;
+    });
+
+    let timeValue = '';
+    if (ev.time) {
+        const timePart = ev.time.includes('T') ? ev.time.split('T')[1] : ev.time;
+        const [hours, minutes] = timePart.split(':');
+        timeValue = `${hours}:${minutes}`;
+    }
+
+    const formHTML = `
+        <form id="editEventForm" novalidate class="wedding-details-modal-form">
+            <div>
+                <label class="wedding-modal-label">Apply Template (Optional Overwrite)</label>
+                <select id="editTemplateSelect" class="wedding-modal-input">
+                    ${templateOptions}
+                </select>
+            </div>
+
+            <div class="wedding-modal-row">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Event Name *</label>
+                    <input type="text" id="editEventName" value="${ev.event_name || ev.title || ''}" required class="wedding-modal-input wedding-modal-input--valid">
+                </div>
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Display Title *</label>
+                    <input type="text" id="editEventDisplayTitle" value="${ev.title || ev.display_title || ''}" required class="wedding-modal-input wedding-modal-input--valid">
+                </div>
+            </div>
+
+            <div>
+                <label class="wedding-modal-label">One Liner Quote *</label>
+                <input type="text" id="editEventOneLiner" value="${ev.one_liner || ''}" required class="wedding-modal-input wedding-modal-input--valid">
+            </div>
+
+            <div>
+                <label class="wedding-modal-label">Description *</label>
+                <textarea id="editEventDescription" rows="3" required class="wedding-modal-input wedding-modal-input--valid"></textarea>
+            </div>
+            
+            <div class="wedding-modal-row">
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Date *</label>
+                    <input type="date" id="editEventDate" value="${ev.date}" min="${minDate}" max="${maxDate}" 
+                        onclick="try{this.showPicker()}catch(e){}" 
+                        onkeydown="if(event.key !== 'Tab' && event.key !== 'Shift') event.preventDefault();" 
+                        onpaste="return false;" 
+                        required class="wedding-modal-input wedding-modal-input--valid">
+                </div>
+                <div class="wedding-modal-col">
+                    <label class="wedding-modal-label">Time *</label>
+                    <input type="time" id="editEventTime" value="${timeValue}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--valid">
+                </div>
+            </div>
+
+            <div>
+                <label class="wedding-modal-label">Venue *</label>
+                <input type="text" id="editEventVenue" value="${ev.venue || ''}" required placeholder="e.g., The Grand Hotel" class="wedding-modal-input wedding-modal-input--valid">
+            </div>
+
+            <div>
+                <label class="wedding-modal-label">Venue Location (Maps Link) *</label>
+                <input type="url" id="editEventVenueMapLink" value="${ev.venue_map_link || ''}" required placeholder="e.g., https://maps.google.com/..." class="wedding-modal-input wedding-modal-input--valid">
+            </div>
+        </form>
+    `;
+
+    const applyEditTemplateData = (selectedId) => {
+        if (!selectedId) return;
+        const template = templates.find(t => t.id === selectedId);
+        if (!template) return;
+        
+        ['editEventName', 'editEventDisplayTitle', 'editEventOneLiner', 'editEventDescription'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                if (id === 'editEventName') el.value = template.event_name || '';
+                if (id === 'editEventDisplayTitle') el.value = template.display_title || '';
+                if (id === 'editEventOneLiner') el.value = template.one_liner || '';
+                if (id === 'editEventDescription') el.value = template.description || '';
+                el.classList.toggle('wedding-modal-input--invalid', !el.value.trim());
+                el.classList.toggle('wedding-modal-input--valid', !!el.value.trim());
+            }
+        });
+    };
+
+    const modal = openModal({
+        title: "Edit Event",
+        content: formHTML,
+        actions: [            
+            { label: "Cancel", variant: "ghost" },
+            {
+                label: "Delete",
+                variant: "danger", 
+                closesModal: false,
+                onClick: async () => {
+                    const result = await Swal.fire({
+                        title: 'Are you sure?',
+                        text: "Do you really want to delete this event? This action cannot be undone.",
+                        icon: 'question', 
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc2626',
+                        cancelButtonColor: '#6b7280',
+                        confirmButtonText: 'Yes, delete it!'
+                    });
+
+                    if (result.isConfirmed) {
+                        try {
+                            const { error } = await supabase.from('wedding_events').delete().eq('id', ev.id);
+                            if (error) throw error;
+                            
+                            modal.close();
+                            broadcastWeddingDataUpdated();
+                            showSweetAlert('success', 'Deleted!', 'Event has been removed.');
+                        } catch (error) {
+                            showSweetAlert('error', 'Database Error', error.message);
+                        }
+                    }
+                }
+            },
+            { 
+                label: "Edit", 
+                variant: "primary", 
+                closesModal: false,
+                onClick: async () => {
+                    const requiredFields = [
+                        { id: 'editEventName', name: "Event Name" },
+                        { id: 'editEventDisplayTitle', name: "Display Title" },
+                        { id: 'editEventOneLiner', name: "One Liner Quote" },
+                        { id: 'editEventDescription', name: "Description" },
+                        { id: 'editEventDate', name: "Date" },
+                        { id: 'editEventTime', name: "Time" },
+                        { id: 'editEventVenue', name: "Venue" },
+                        { id: 'editEventVenueMapLink', name: "Venue Location (Maps Link)" }
+                    ];
+
+                    let isValid = true;
+                    let firstEmpty = null;
+
+                    requiredFields.forEach(field => {
+                        const el = document.getElementById(field.id);
+                        if (!el.value.trim()) { 
+                            el.classList.add('wedding-modal-input--invalid');
+                            el.classList.remove('wedding-modal-input--valid');
+                            isValid = false; 
+                            if(!firstEmpty) firstEmpty = field.name; 
+                        } else { 
+                            el.classList.remove('wedding-modal-input--invalid');
+                            el.classList.add('wedding-modal-input--valid');
+                        }
+                    });
+
+                    const selectedDate = document.getElementById('editEventDate').value;
+                    const selectedTime = document.getElementById('editEventTime').value;
+
+                    if (selectedDate && (selectedDate < minDate || selectedDate > maxDate)) {
+                        isValid = false;
+                        document.getElementById('editEventDate').classList.add('wedding-modal-input--invalid');
+                        showSweetAlert('error', 'Invalid Date', `Event date must be between ${minDate} and ${maxDate}.`);
+                        return;
+                    }
+
+                    if (!isValid) {
+                        showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstEmpty}`);
+                        return;
+                    }
+
+                    try {
+                        const { error } = await supabase.from('wedding_events').update({ 
+                            event_name: document.getElementById('editEventName').value.trim(),
+                            title: document.getElementById('editEventDisplayTitle').value.trim(),
+                            one_liner: document.getElementById('editEventOneLiner').value.trim(),
+                            description: document.getElementById('editEventDescription').value.trim(),
+                            date: selectedDate,
+                            time: selectedTime,
+                            venue: document.getElementById('editEventVenue').value.trim(),
+                            venue_map_link: document.getElementById('editEventVenueMapLink').value.trim()
+                        }).eq('id', ev.id);
+                        
+                        if (error) throw error;
+                        
+                        modal.close();
+                        broadcastWeddingDataUpdated();
+                        showSweetAlert('success', 'Updated!', 'Event details updated successfully.');
+                    } catch (error) {
+                        showSweetAlert('error', 'Database Error', error.message);
+                    }
+                }
+            }
+        ]
+    });
+
+    setTimeout(() => {
+        layoutDetailsModalFooter(true);
+        convertToSearchableDropdown('editTemplateSelect', applyEditTemplateData);
+
+        if (ev) {
+            document.getElementById('editEventName').value = ev.event_name || ev.title || '';
+            document.getElementById('editEventDisplayTitle').value = ev.title || ev.display_title || '';
+            document.getElementById('editEventOneLiner').value = ev.one_liner || '';
+            document.getElementById('editEventDescription').value = ev.description || '';
+            document.getElementById('editEventVenue').value = ev.venue || '';
+            document.getElementById('editEventVenueMapLink').value = ev.venue_map_link || '';
+        }
+
+        const templateSelect = document.getElementById('editTemplateSelect');
+        if (templateSelect) {
+            templateSelect.addEventListener('change', (e) => applyEditTemplateData(e.target.value));
+        }
+
+        ['editEventName', 'editEventDisplayTitle', 'editEventOneLiner', 'editEventDescription', 'editEventDate', 'editEventTime', 'editEventVenue', 'editEventVenueMapLink'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const updateValidity = () => {
+                    el.classList.toggle('wedding-modal-input--invalid', !el.value.trim());
+                    el.classList.toggle('wedding-modal-input--valid', !!el.value.trim());
+                };
+                updateValidity();
+                el.addEventListener('input', updateValidity);
+                el.addEventListener('change', updateValidity);
+            }
+        });
+    }, 50);
+};
 
 // ==========================================
 // GUEST MODALS (LINKED VIA VARIANT)
@@ -1661,7 +2385,7 @@ window.openGuestModal = function(weddingId, variants = []) {
             <div>
                 <label class="wedding-modal-label">Assign Variant (Optional)</label>
                 <select id="guestVariantId" class="wedding-modal-input">
-                    <option value="">-- All Events (Default) --</option>
+                    <option value="">-- No Variant (Default) --</option>
                     ${variantOptions}
                 </select>
             </div>
@@ -1773,7 +2497,7 @@ window.openEditGuestModal = async function(weddingId, guestId, variants = []) {
             <div>
                 <label class="wedding-modal-label">Assign Variant</label>
                 <select id="editGuestVariantId" class="wedding-modal-input">
-                    <option value="">-- All Events (Default) --</option>
+                    <option value="">-- No Variant (Default) --</option>
                     ${variantOptions}
                 </select>
             </div>
@@ -1920,7 +2644,7 @@ window.downloadSampleExcel = async function() {
 
             const assignedVariant = variantNames.length > 0 && Math.random() > 0.3 
                 ? variantNames[Math.floor(Math.random() * variantNames.length)] 
-                : "All Events";
+                : "";
 
             sampleRows.push([name, phone, assignedVariant]);
         }
@@ -1954,9 +2678,62 @@ window.triggerCSVImport = function(weddingId) {
                     const data = new Uint8Array(event.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                    const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
-                    if (rows.length === 0) throw new Error("The Excel file is empty.");
+                    if (rawRows.length === 0) throw new Error("The Excel file is empty.");
+
+                    const getCellValue = (row, keyPatterns) => {
+                        const rowKeys = Object.keys(row);
+                        for (const pattern of keyPatterns) {
+                            const matchedKey = rowKeys.find(k => k.trim().toLowerCase() === pattern.toLowerCase());
+                            if (matchedKey !== undefined && row[matchedKey] !== undefined) {
+                                return row[matchedKey].toString().trim();
+                            }
+                        }
+                        return "";
+                    };
+
+                    const { data: variants, error: varErr } = await supabase
+                        .from('invite_variants')
+                        .select('id, variant_name')
+                        .eq('wedding_id', weddingId);
+                    if (varErr) throw varErr;
+
+                    const validRows = [];
+                    const invalidVariantRows = [];
+
+                    rawRows.forEach((row, idx) => {
+                        const name = getCellValue(row, ['Name', 'Guest Name', 'Full Name']);
+                        const phone = getCellValue(row, ['Phone Number', 'Phone', 'Mobile', 'Mobile Number', 'Contact']);
+                        const variantCol = getCellValue(row, ['Variant', 'Variant Name', 'Invite Variant', 'Assigned Variant']);
+
+                        if (!name && !phone) return;
+
+                        let vId = null;
+                        if (variantCol && 
+                            variantCol.toLowerCase() !== 'no variant assigned' && 
+                            variantCol.toLowerCase() !== 'none' &&
+                            variantCol.toLowerCase() !== 'no variant') {
+                            
+                            const match = variants?.find(v => v.variant_name.trim().toLowerCase() === variantCol.toLowerCase());
+                            if (match) {
+                                vId = match.id;
+                            } else {
+                                invalidVariantRows.push({
+                                    rowNumber: idx + 2,
+                                    guestName: name || `Row ${idx + 2}`,
+                                    variantName: variantCol
+                                });
+                            }
+                        }
+
+                        validRows.push({ name, phone, variantId: vId });
+                    });
+
+                    if (validRows.length === 0) {
+                        showSweetAlert('info', 'No Data', 'No valid guest records found in the sheet.');
+                        return;
+                    }
 
                     Swal.fire({ 
                         title: 'Importing Guests...', 
@@ -1965,23 +2742,20 @@ window.triggerCSVImport = function(weddingId) {
                         didOpen: () => Swal.showLoading() 
                     });
 
-                    const { data: variants } = await supabase.from('invite_variants').select('id, variant_name').eq('wedding_id', weddingId);
-                    const { data: existingGuests } = await supabase.from('guests').select('*').eq('wedding_id', weddingId);
+                    const { data: existingGuests, error: guestsErr } = await supabase
+                        .from('guests')
+                        .select('*')
+                        .eq('wedding_id', weddingId);
+                    if (guestsErr) throw guestsErr;
                     
                     const seenNormalized = new Set();
+                    let importedCount = 0;
 
-                    for (const row of rows) {
-                        const name = row['Name']?.toString().trim();
-                        const phone = row['Phone Number']?.toString().trim();
-                        const variantCol = row['Variant']?.toString().trim();
-
+                    for (const { name, phone, variantId } of validRows) {
                         if (!name || !phone) continue;
                         const cleanedNormalized = normalizePhone(phone);
                         if (!cleanedNormalized || seenNormalized.has(cleanedNormalized)) continue;
                         seenNormalized.add(cleanedNormalized);
-
-                        const matchedVariant = variants?.find(v => v.variant_name.toLowerCase() === (variantCol || '').toLowerCase());
-                        const vId = matchedVariant ? matchedVariant.id : null;
 
                         const existing = existingGuests?.find(g => normalizePhone(g.phone) === cleanedNormalized);
 
@@ -1989,21 +2763,46 @@ window.triggerCSVImport = function(weddingId) {
                             await supabase.from('guests').update({
                                 name: name,
                                 phone: phone,
-                                variant_id: vId
+                                variant_id: variantId
                             }).eq('id', existing.id);
                         } else {
                             await supabase.from('guests').insert([{
                                 wedding_id: weddingId,
                                 name: name,
                                 phone: phone,
-                                variant_id: vId,
+                                variant_id: variantId,
                                 invite_code: generateInviteCode()
                             }]);
                         }
+                        importedCount++;
                     }
 
                     broadcastWeddingDataUpdated();
-                    showSweetAlert('success', 'Import Complete!', 'Guests imported successfully.');
+
+                    if (invalidVariantRows.length > 0) {
+                        const errorListHTML = invalidVariantRows.map(err => 
+                            `<li style="margin-bottom: 4px;"><strong>Row ${err.rowNumber} (${err.guestName}):</strong> Variant "<em>${err.variantName}</em>" not found (set to No Variant).</li>`
+                        ).join('');
+
+                        await Swal.fire({
+                            icon: 'warning',
+                            title: 'Import Completed with Warnings',
+                            html: `
+                                <div style="text-align: left; font-size: 0.85rem; max-height: 220px; overflow-y: auto;">
+                                    <p style="margin-bottom: 8px;"><strong>${importedCount}</strong> guests were processed successfully.</p>
+                                    <p style="margin-bottom: 6px; color: #facc15;">The following guests had non-existent variants and were imported without a variant:</p>
+                                    <ul style="padding-left: 18px; margin: 0; color: #f87171;">
+                                        ${errorListHTML}
+                                    </ul>
+                                </div>
+                            `,
+                            confirmButtonColor: 'var(--color-primary, #eab308)',
+                            confirmButtonText: 'Understood'
+                        });
+                    } else {
+                        showSweetAlert('success', 'Import Complete!', `${importedCount} guests imported successfully.`);
+                    }
+
                 } catch (err) {
                     showSweetAlert('error', 'Import Failed', err.message);
                 }
@@ -2014,350 +2813,4 @@ window.triggerCSVImport = function(weddingId) {
         }
     };
     input.click();
-};
-
-// ==========================================
-// EVENTS MODALS
-// ==========================================
-window.openEventModal = async function(weddingId, minDate, maxDate) {
-    let templates = [];
-    try {
-        const { data } = await supabase.from('events').select('*');
-        templates = data || [];
-    } catch (e) {
-        console.error("Failed to load templates", e);
-    }
-
-    let templateOptions = `<option value="">-- Custom Event --</option>`;
-    templates.forEach(t => {
-        templateOptions += `<option value="${t.id}">${t.event_name}</option>`;
-    });
-
-    const formHTML = `
-        <form id="createEventForm" novalidate class="wedding-details-modal-form">
-            <div>
-                <label class="wedding-modal-label">Apply Template (Optional)</label>
-                <select id="eventTemplateSelect" class="wedding-modal-input">
-                    ${templateOptions}
-                </select>
-            </div>
-
-            <div class="wedding-modal-row">
-                <div class="wedding-modal-col">
-                    <label class="wedding-modal-label">Event Name *</label>
-                    <input type="text" id="eventName" required placeholder="e.g., Grithpaan" class="wedding-modal-input wedding-modal-input--invalid">
-                </div>
-                <div class="wedding-modal-col">
-                    <label class="wedding-modal-label">Display Title *</label>
-                    <input type="text" id="eventDisplayTitle" required placeholder="e.g., Blessings & Beginnings" class="wedding-modal-input wedding-modal-input--invalid">
-                </div>
-            </div>
-
-            <div>
-                <label class="wedding-modal-label">One Liner Quote *</label>
-                <input type="text" id="eventOneLiner" required placeholder="e.g., Golden ghee, elders blessings..." class="wedding-modal-input wedding-modal-input--invalid">
-            </div>
-
-            <div>
-                <label class="wedding-modal-label">Description *</label>
-                <textarea id="eventDescription" rows="3" required placeholder="An auspicious start to our wedding celebrations..." class="wedding-modal-input wedding-modal-input--invalid"></textarea>
-            </div>
-            
-            <div class="wedding-modal-row">
-                <div class="wedding-modal-col">
-                    <label class="wedding-modal-label">Date *</label>
-                    <input type="date" id="eventDate" min="${minDate}" max="${maxDate}" 
-                        onclick="try{this.showPicker()}catch(e){}" 
-                        onkeydown="if(event.key !== 'Tab' && event.key !== 'Shift') event.preventDefault();" 
-                        onpaste="return false;" 
-                        required class="wedding-modal-input wedding-modal-input--invalid">
-                </div>
-                <div class="wedding-modal-col">
-                    <label class="wedding-modal-label">Time *</label>
-                    <input type="time" id="eventTime" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--invalid">
-                </div>
-            </div>
-
-            <div>
-                <label class="wedding-modal-label">Venue *</label>
-                <input type="text" id="eventVenue" required placeholder="e.g., The Grand Hotel" class="wedding-modal-input wedding-modal-input--invalid">
-            </div>
-
-            <div>
-                <label class="wedding-modal-label">Venue Location (Maps Link) *</label>
-                <input type="url" id="eventVenueMapLink" required placeholder="e.g., https://maps.google.com/..." class="wedding-modal-input wedding-modal-input--invalid">
-            </div>
-        </form>
-    `;
-
-    const modal = openModal({
-        title: "Add New Event",
-        content: formHTML,
-        actions: [
-            { label: "Cancel", variant: "ghost" },
-            { 
-                label: "Add", 
-                variant: "primary", 
-                closesModal: false,
-                onClick: async () => {
-                    const requiredFields = [
-                        { id: 'eventName', name: "Event Name" },
-                        { id: 'eventDisplayTitle', name: "Display Title" },
-                        { id: 'eventOneLiner', name: "One Liner Quote" },
-                        { id: 'eventDescription', name: "Description" },
-                        { id: 'eventDate', name: "Date" },
-                        { id: 'eventTime', name: "Time" },
-                        { id: 'eventVenue', name: "Venue" },
-                        { id: 'eventVenueMapLink', name: "Venue Location (Maps Link)" }
-                    ];
-
-                    let isValid = true;
-                    let firstEmpty = null;
-
-                    requiredFields.forEach(field => {
-                        const el = document.getElementById(field.id);
-                        if (!el.value.trim()) { 
-                            el.classList.add('wedding-modal-input--invalid');
-                            el.classList.remove('wedding-modal-input--valid');
-                            isValid = false; 
-                            if(!firstEmpty) firstEmpty = field.name; 
-                        } else { 
-                            el.classList.remove('wedding-modal-input--invalid');
-                            el.classList.add('wedding-modal-input--valid');
-                        }
-                    });
-
-                    const selectedDate = document.getElementById('eventDate').value;
-                    const selectedTime = document.getElementById('eventTime').value;
-
-                    if (selectedDate && (selectedDate < minDate || selectedDate > maxDate)) {
-                        isValid = false;
-                        document.getElementById('eventDate').classList.add('wedding-modal-input--invalid');
-                        showSweetAlert('error', 'Invalid Date', `Event date must be between ${minDate} and ${maxDate}.`);
-                        return;
-                    }
-
-                    if (!isValid) {
-                        showSweetAlert('error', 'Missing Information', `Please fill out all mandatory fields. Missing: ${firstEmpty}`);
-                        return;
-                    }
-
-                    try {
-                        const { error } = await supabase.from('wedding_events').insert([{ 
-                            wedding_id: weddingId,
-                            event_name: document.getElementById('eventName').value.trim(),
-                            title: document.getElementById('eventDisplayTitle').value.trim(),
-                            one_liner: document.getElementById('eventOneLiner').value.trim(),
-                            description: document.getElementById('eventDescription').value.trim(),
-                            date: selectedDate,
-                            time: selectedTime,
-                            venue: document.getElementById('eventVenue').value.trim(),
-                            venue_map_link: document.getElementById('eventVenueMapLink').value.trim()
-                        }]);
-                        if (error) throw error;
-                        
-                        modal.close();
-                        broadcastWeddingDataUpdated();
-                        showSweetAlert('success', 'Added!', 'Event saved successfully.');
-                    } catch (error) {
-                        showSweetAlert('error', 'Database Error', error.message);
-                    }
-                }
-            }
-        ]
-    });
-
-    setTimeout(() => {
-        layoutDetailsModalFooter(false);
-        convertToSearchableDropdown('eventTemplateSelect');
-        
-        const templateSelect = document.getElementById('eventTemplateSelect');
-        if (templateSelect) {
-            templateSelect.addEventListener('change', (e) => {
-                const selectedId = e.target.value;
-                if (!selectedId) return;
-                const template = templates.find(t => t.id === selectedId);
-                if (!template) return;
-                
-                ['eventName', 'eventDisplayTitle', 'eventOneLiner', 'eventDescription'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        if (id === 'eventName') el.value = template.event_name || '';
-                        if (id === 'eventDisplayTitle') el.value = template.display_title || '';
-                        if (id === 'eventOneLiner') el.value = template.one_liner || '';
-                        if (id === 'eventDescription') el.value = template.description || '';
-                        el.classList.toggle('wedding-modal-input--invalid', !el.value.trim());
-                        el.classList.toggle('wedding-modal-input--valid', !!el.value.trim());
-                    }
-                });
-            });
-        }
-    }, 50);
-};
-
-window.openEditEventModal = async function(weddingId, minDate, maxDate, eventId) {
-    let ev = null;
-    let templates = [];
-    
-    try {
-        const [evRes, tplRes] = await Promise.all([
-            supabase.from('wedding_events').select('*').eq('id', eventId).single(),
-            supabase.from('events').select('*')
-        ]);
-        if (evRes.error) throw evRes.error;
-        ev = evRes.data;
-        templates = tplRes.data || [];
-    } catch (e) {
-        showSweetAlert('error', 'Error', 'Failed to load event data.');
-        return;
-    }
-
-    let templateOptions = `<option value="">-- Apply a Template --</option>`;
-    templates.forEach(t => {
-        templateOptions += `<option value="${t.id}">${t.event_name}</option>`;
-    });
-
-    let timeValue = '';
-    if (ev.time) {
-        const timePart = ev.time.includes('T') ? ev.time.split('T')[1] : ev.time;
-        const [hours, minutes] = timePart.split(':');
-        timeValue = `${hours}:${minutes}`;
-    }
-
-    const formHTML = `
-        <form id="editEventForm" novalidate class="wedding-details-modal-form">
-            <div>
-                <label class="wedding-modal-label">Apply Template (Optional Overwrite)</label>
-                <select id="editTemplateSelect" class="wedding-modal-input">
-                    ${templateOptions}
-                </select>
-            </div>
-
-            <div class="wedding-modal-row">
-                <div class="wedding-modal-col">
-                    <label class="wedding-modal-label">Event Name *</label>
-                    <input type="text" id="editEventName" value="${ev.event_name || ev.title || ''}" required class="wedding-modal-input wedding-modal-input--valid">
-                </div>
-                <div class="wedding-modal-col">
-                    <label class="wedding-modal-label">Display Title *</label>
-                    <input type="text" id="editEventDisplayTitle" value="${ev.title || ev.display_title || ''}" required class="wedding-modal-input wedding-modal-input--valid">
-                </div>
-            </div>
-
-            <div>
-                <label class="wedding-modal-label">One Liner Quote *</label>
-                <input type="text" id="editEventOneLiner" value="${ev.one_liner || ''}" required class="wedding-modal-input wedding-modal-input--valid">
-            </div>
-
-            <div>
-                <label class="wedding-modal-label">Description *</label>
-                <textarea id="editEventDescription" rows="3" required class="wedding-modal-input wedding-modal-input--valid"></textarea>
-            </div>
-            
-            <div class="wedding-modal-row">
-                <div class="wedding-modal-col">
-                    <label class="wedding-modal-label">Date *</label>
-                    <input type="date" id="editEventDate" value="${ev.date}" min="${minDate}" max="${maxDate}" 
-                        onclick="try{this.showPicker()}catch(e){}" 
-                        onkeydown="if(event.key !== 'Tab' && event.key !== 'Shift') event.preventDefault();" 
-                        onpaste="return false;" 
-                        required class="wedding-modal-input wedding-modal-input--valid">
-                </div>
-                <div class="wedding-modal-col">
-                    <label class="wedding-modal-label">Time *</label>
-                    <input type="time" id="editEventTime" value="${timeValue}" onclick="try{this.showPicker()}catch(e){}" required class="wedding-modal-input wedding-modal-input--valid">
-                </div>
-            </div>
-
-            <div>
-                <label class="wedding-modal-label">Venue *</label>
-                <input type="text" id="editEventVenue" value="${ev.venue || ''}" required placeholder="e.g., The Grand Hotel" class="wedding-modal-input wedding-modal-input--valid">
-            </div>
-
-            <div>
-                <label class="wedding-modal-label">Venue Location (Maps Link) *</label>
-                <input type="url" id="editEventVenueMapLink" value="${ev.venue_map_link || ''}" required placeholder="e.g., https://maps.google.com/..." class="wedding-modal-input wedding-modal-input--valid">
-            </div>
-        </form>
-    `;
-
-    const modal = openModal({
-        title: "Edit Event",
-        content: formHTML,
-        actions: [            
-            { label: "Cancel", variant: "ghost" },
-            {
-                label: "Delete",
-                variant: "danger", 
-                closesModal: false,
-                onClick: async () => {
-                    const result = await Swal.fire({
-                        title: 'Are you sure?',
-                        text: "Do you really want to delete this event? This action cannot be undone.",
-                        icon: 'question', 
-                        showCancelButton: true,
-                        confirmButtonColor: '#dc2626',
-                        cancelButtonColor: '#6b7280',
-                        confirmButtonText: 'Yes, delete it!'
-                    });
-
-                    if (result.isConfirmed) {
-                        try {
-                            const { error } = await supabase.from('wedding_events').delete().eq('id', ev.id);
-                            if (error) throw error;
-                            
-                            modal.close();
-                            broadcastWeddingDataUpdated();
-                            showSweetAlert('success', 'Deleted!', 'Event has been removed.');
-                        } catch (error) {
-                            showSweetAlert('error', 'Database Error', error.message);
-                        }
-                    }
-                }
-            },
-            { 
-                label: "Edit", 
-                variant: "primary", 
-                closesModal: false,
-                onClick: async () => {
-                    const selectedDate = document.getElementById('editEventDate').value;
-                    const selectedTime = document.getElementById('editEventTime').value;
-
-                    try {
-                        const { error } = await supabase.from('wedding_events').update({ 
-                            event_name: document.getElementById('editEventName').value.trim(),
-                            title: document.getElementById('editEventDisplayTitle').value.trim(),
-                            one_liner: document.getElementById('editEventOneLiner').value.trim(),
-                            description: document.getElementById('editEventDescription').value.trim(),
-                            date: selectedDate,
-                            time: selectedTime,
-                            venue: document.getElementById('editEventVenue').value.trim(),
-                            venue_map_link: document.getElementById('editEventVenueMapLink').value.trim()
-                        }).eq('id', ev.id);
-                        
-                        if (error) throw error;
-                        
-                        modal.close();
-                        broadcastWeddingDataUpdated();
-                        showSweetAlert('success', 'Updated!', 'Event details updated successfully.');
-                    } catch (error) {
-                        showSweetAlert('error', 'Database Error', error.message);
-                    }
-                }
-            }
-        ]
-    });
-
-    setTimeout(() => {
-        layoutDetailsModalFooter(true);
-        convertToSearchableDropdown('editTemplateSelect');
-        if (ev) {
-            document.getElementById('editEventName').value = ev.event_name || ev.title || '';
-            document.getElementById('editEventDisplayTitle').value = ev.title || ev.display_title || '';
-            document.getElementById('editEventOneLiner').value = ev.one_liner || '';
-            document.getElementById('editEventDescription').value = ev.description || '';
-            document.getElementById('editEventVenue').value = ev.venue || '';
-            document.getElementById('editEventVenueMapLink').value = ev.venue_map_link || '';
-        }
-    }, 50);
 };

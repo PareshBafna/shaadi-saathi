@@ -358,7 +358,7 @@ function buildGallerySection(title, weddings) {
             : `${wedding.bride_name} & ${wedding.groom_name}`;
 
         const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
-        const allowsVariants = wedding.allow_variants !== false;
+        const allowsVariants = isWebInviteOnly ? (wedding.allow_variants !== false) : true;
 
         let hostsHTML = '';
         if (!isWebInviteOnly) {
@@ -393,7 +393,7 @@ function buildGallerySection(title, weddings) {
 
             webInviteHTML = `
             <div class="dashboard-wedding-card__invite-wrap">
-                <a href="${inviteUrl}" ${isWebInviteOnly && !firstVariant ? `onclick="event.stopPropagation(); showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Web Invites tab.'); return false;"` : 'target="_blank"'} onclick="event.stopPropagation();" class="dashboard-wedding-card__invite-btn">
+                <a href="${inviteUrl}" ${isWebInviteOnly && !firstVariant ? `onclick="event.stopPropagation(); showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Wedding Details page.'); return false;"` : 'target="_blank"'} onclick="event.stopPropagation();" class="dashboard-wedding-card__invite-btn">
                     <i data-lucide="external-link"></i> Wedding Invitation
                 </a>
             </div>`;
@@ -457,7 +457,7 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
 
     let rowsHTML = '';
     if (!variants || variants.length === 0) {
-        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Web Invites tab.</div>`;
+        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Wedding Details page.</div>`;
     } else {
         rowsHTML = variants.map(v => {
             const variantUrl = getWebInvitePublicPreviewUrl(v.id);
@@ -608,11 +608,11 @@ export function openCreateWeddingModal() {
                 <label class="wedding-modal-label">Allow Variants</label>
                 <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px;">
                     <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
-                        <input type="radio" name="allowVariants" value="true" checked style="accent-color: var(--color-primary, #facc15);">
+                        <input type="radio" name="allowVariants" value="true" checked disabled style="accent-color: var(--color-primary, #facc15);">
                         <span>Yes</span>
                     </label>
                     <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
-                        <input type="radio" name="allowVariants" value="false" style="accent-color: var(--color-primary, #facc15);">
+                        <input type="radio" name="allowVariants" value="false" disabled style="accent-color: var(--color-primary, #facc15);">
                         <span>No</span>
                     </label>
                 </div>
@@ -726,7 +726,8 @@ export function openCreateWeddingModal() {
 
                     const primarySide = document.querySelector('input[name="primarySide"]:checked').value;
                     const invitationType = document.querySelector('input[name="invitationType"]:checked').value;
-                    const allowVariants = document.querySelector('input[name="allowVariants"]:checked')?.value === 'true';
+                    const isWebOnly = invitationType === 'web_invite_only';
+                    const allowVariants = isWebOnly ? (document.querySelector('input[name="allowVariants"]:checked')?.value === 'true') : true;
 
                     const brideName = document.getElementById('brideName').value.trim();
                     const groomName = document.getElementById('groomName').value.trim();
@@ -767,6 +768,22 @@ export function openCreateWeddingModal() {
 
     setTimeout(() => {
         layoutModalFooter(false);
+
+        const invTypeRadios = document.querySelectorAll('input[name="invitationType"]');
+        const variantRadios = document.querySelectorAll('input[name="allowVariants"]');
+        
+        invTypeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const isWebOnly = e.target.value === 'web_invite_only';
+                variantRadios.forEach(vr => {
+                    vr.disabled = !isWebOnly;
+                    if (!isWebOnly && vr.value === 'true') {
+                        vr.checked = true;
+                    }
+                });
+            });
+        });
+
         const requiredIds = ['brideName', 'groomName', 'startDate', 'endDate', 'familyName', 'familyDetails'];
         requiredIds.forEach(id => {
             const el = document.getElementById(id);
@@ -853,16 +870,16 @@ export function openEditWeddingModal(wedding) {
                 <input type="text" value="${inviteTypeLabel}" disabled class="wedding-modal-input" style="opacity: 0.6; cursor: not-allowed; margin-top: 6px;">
             </div>
 
-            <!-- Row 3: Allow Variants -->
+            <!-- Row 3: Allow Variants (Read-Only / Fixed) -->
             <div style="margin-bottom: 18px;">
                 <label class="wedding-modal-label">Allow Variants</label>
                 <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px;">
-                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
-                        <input type="radio" name="editAllowVariants" value="true" ${allowsVariants ? 'checked' : ''} style="accent-color: var(--color-primary, #facc15);">
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: not-allowed; opacity: 0.7; white-space: nowrap;">
+                        <input type="radio" name="editAllowVariants" value="true" ${allowsVariants ? 'checked' : ''} disabled style="accent-color: var(--color-primary, #facc15);">
                         <span>Yes</span>
                     </label>
-                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
-                        <input type="radio" name="editAllowVariants" value="false" ${!allowsVariants ? 'checked' : ''} style="accent-color: var(--color-primary, #facc15);">
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: not-allowed; opacity: 0.7; white-space: nowrap;">
+                        <input type="radio" name="editAllowVariants" value="false" ${!allowsVariants ? 'checked' : ''} disabled style="accent-color: var(--color-primary, #facc15);">
                         <span>No</span>
                     </label>
                 </div>
@@ -1010,12 +1027,10 @@ export function openEditWeddingModal(wedding) {
 
             const hashtagVal = document.getElementById('editWeddingHashtag').value.trim();
             const instagramVal = document.getElementById('editWeddingInstagram').value.trim();
-            const allowVariantsVal = document.querySelector('input[name="editAllowVariants"]:checked')?.value === 'true';
 
             try {
                 const { error } = await supabase.from('weddings').update({
                     primary_side: document.querySelector('input[name="editPrimarySide"]:checked').value,
-                    allow_variants: allowVariantsVal,
                     bride_name: document.getElementById('editBrideName').value.trim(),
                     groom_name: document.getElementById('editGroomName').value.trim(),
                     start_date: startDate,
