@@ -467,15 +467,15 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
 
     let rowsHTML = '';
 
-    const btnStyle = "background: var(--color-primary, #facc15) !important; color: #1c1917 !important; border: none !important; outline: none !important; font-weight: 600 !important; font-size: 0.8rem !important; padding: 0.45rem 0.85rem !important; border-radius: 4px !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; text-decoration: none !important; cursor: pointer !important; box-shadow: none !important;";
+    const btnStyle = "background: var(--color-primary, #facc15) !important; color: #1c1917 !important; border: none !important; outline: none !important; font-weight: 600 !important; font-size: 0.8rem !important; padding: 0.5rem 0.85rem !important; border-radius: 4px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important; text-decoration: none !important; cursor: pointer !important; box-shadow: none !important; flex: 1 1 0;";
 
     const buildVariantRowHTML = (title, countText, url) => `
-        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 12px 14px; border-radius: 6px; margin-bottom: 10px; gap: 12px;">
-            <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 600; font-size: 0.95rem; color: var(--color-text-primary, #ffffff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${title}</div>
-                <div style="font-size: 0.75rem; color: var(--color-text-muted, #94a3b8); margin-top: 2px;">${countText}</div>
+        <div style="display: flex; flex-direction: column; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 12px 14px; border-radius: 6px; margin-bottom: 10px; gap: 10px;">
+            <div>
+                <div style="font-weight: 600; font-size: 1rem; color: var(--color-text-primary, #ffffff); line-height: 1.3;">${title}</div>
+                <div style="font-size: 0.85rem; font-weight: 500; color: #cbd5e1; margin-top: 4px;">${countText}</div>
             </div>
-            <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+            <div style="display: flex; gap: 8px; width: 100%;">
                 <a href="${url}" target="_blank" style="${btnStyle}" title="Open Web Invite">
                     <i data-lucide="external-link" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Web Invite
                 </a>
@@ -491,7 +491,7 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
         const eventCount = (allEvents || []).length;
         rowsHTML = buildVariantRowHTML("All Events", `${eventCount} event(s) included`, directUrl);
     } else if (!variants || variants.length === 0) {
-        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Wedding Details page.</div>`;
+        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet.</div>`;
     } else {
         rowsHTML = variants.map(v => {
             const variantUrl = getWebInvitePublicPreviewUrl(weddingId, v.id);
