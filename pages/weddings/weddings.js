@@ -270,9 +270,14 @@ function filterAndRenderGalleries() {
     const searchTerm = document.getElementById('weddingSearchInput')?.value.toLowerCase() || '';
     
     let filtered = allWeddings.filter(w => {
-        const side = w.primary_side || 'bride';
-        const full = side === 'groom' ? `${w.groom_name} & ${w.bride_name}`.toLowerCase() : `${w.bride_name} & ${w.groom_name}`.toLowerCase();
-        return full.includes(searchTerm.replace(/\s+/g, '')) || w.bride_name.toLowerCase().includes(searchTerm) || w.groom_name.toLowerCase().includes(searchTerm);
+        const isGroom = (w.primary_side || '').toString().toLowerCase().includes('groom');
+        const displayNames = isGroom 
+            ? `${w.groom_name} & ${w.bride_name}` 
+            : `${w.bride_name} & ${w.groom_name}`;
+        return displayNames.toLowerCase().includes(searchTerm.replace(/\s+/g, '')) || 
+               w.bride_name.toLowerCase().includes(searchTerm) || 
+               w.groom_name.toLowerCase().includes(searchTerm) ||
+               (w.hashtag && w.hashtag.toLowerCase().includes(searchTerm));
     });
 
     filtered.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
@@ -290,11 +295,7 @@ function filterAndRenderGalleries() {
     const container = document.getElementById('weddings-galleries-container');
     if (!container) return;
 
-    if (filtered.length === 0) {
-        container.innerHTML = `<div class="weddings-empty-state">No weddings match your search.</div>`;
-        return;
-    }
-
+    // Always render all three sections
     container.innerHTML = `
         <div class="weddings-galleries-grid">
             ${buildGallerySection("In Progress", inProgress)}
@@ -340,7 +341,16 @@ function filterAndRenderGalleries() {
 }
 
 function buildGallerySection(title, weddings) {
-    if (!weddings || weddings.length === 0) return '';
+    if (!weddings || weddings.length === 0) {
+        return `
+            <div class="dashboard-section">
+                <h2 class="dashboard-section__heading">${title}</h2>
+                <div class="weddings-empty-state" style="padding: 1.5rem; text-align: center; color: var(--color-text-muted);">
+                    No ${title.toLowerCase()} weddings found.
+                </div>
+            </div>
+        `;
+    }
     
     const listItems = weddings.map(wedding => {
         let editBtnHTML = '';

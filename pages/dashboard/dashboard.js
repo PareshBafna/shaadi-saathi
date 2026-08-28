@@ -260,135 +260,161 @@ function buildWeddingListSection(title, weddingsList) {
         return container;
     }
 
-    const listContainer = document.createElement("div");
-    listContainer.className = "dashboard-section__list";
+    const invitationTypeCategories = [
+        { type: 'full', label: 'Full Wedding' },
+        { type: 'full_self', label: 'Full Wedding (Self)' },
+        { type: 'web_invite_only', label: 'Web Invite Only' }
+    ];
 
-    weddingsList.sort((a, b) => new Date(a.start_date) - new Date(b.start_date)).forEach(wedding => {        
-        const isGroom = (wedding.primary_side || '').toString().toLowerCase().includes('groom');
-        const displayNames = isGroom 
-            ? `${wedding.groom_name} & ${wedding.bride_name}` 
-            : `${wedding.bride_name} & ${wedding.groom_name}`;
-        
-        const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
-        const allowsVariants = wedding.allow_variants !== false;
-        const hasWebInvite = wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000';
+    const sortedWeddings = [...weddingsList].sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 
-        let inviteTypeLabel = 'Full Wedding';
-        if (wedding.invitation_type === 'full_self') inviteTypeLabel = 'Full Wedding (Self)';
-        else if (wedding.invitation_type === 'web_invite_only') inviteTypeLabel = 'Web Invite Only';
+    invitationTypeCategories.forEach(category => {
+        const categoryWeddings = sortedWeddings.filter(w => {
+            if (category.type === 'full') return !w.invitation_type || w.invitation_type === 'full';
+            return w.invitation_type === category.type;
+        });
 
-        const sideLabel = isGroom ? "Groom's Side" : "Bride's Side";
+        if (categoryWeddings.length === 0) return;
 
-        let hostsHTML = '';
-        if (!isWebInviteOnly) {
-            if (wedding.hosts && wedding.hosts.length > 0) {
-                const sortedHosts = [...wedding.hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
-                const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
-                
-                hostsHTML = `
-                <div class="dashboard-wedding-card__row">
-                    <i data-lucide="phone"></i> <span>${inlineHosts}</span>
-                </div>`;
-            } else {
-                hostsHTML = `
-                <div class="dashboard-wedding-card__row dashboard-wedding-card__row--empty">
-                    <i data-lucide="phone"></i> <span>No wedding hosts added</span>
-                </div>`;
-            }
-        }
+        const groupWrapper = document.createElement("div");
+        groupWrapper.className = "dashboard-invitation-type-group";
+        groupWrapper.style.marginBottom = "1.25rem";
 
-        let webInviteHTML = '';
-        if (hasWebInvite) {
-            const firstVariant = (wedding.variants && wedding.variants.length > 0) ? wedding.variants[0] : null;
-            let inviteUrl = getWebInvitePreviewUrl(wedding.id);
+        const subHeading = document.createElement("h3");
+        subHeading.className = "dashboard-invitation-type-heading";
+        subHeading.style.cssText = "font-size: 0.9rem; font-weight: 600; color: var(--color-primary, #facc15); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;";
+        subHeading.textContent = `${category.label} (${categoryWeddings.length})`;
+        groupWrapper.appendChild(subHeading);
 
-            if (isWebInviteOnly) {
-                if (allowsVariants) {
-                    inviteUrl = firstVariant ? getWebInvitePublicPreviewUrl(wedding.id, firstVariant.id) : `javascript:void(0);`;
+        const listContainer = document.createElement("div");
+        listContainer.className = "dashboard-section__list";
+
+        categoryWeddings.forEach(wedding => {
+            const isGroom = (wedding.primary_side || '').toString().toLowerCase().includes('groom');
+            const displayNames = isGroom 
+                ? `${wedding.groom_name} & ${wedding.bride_name}` 
+                : `${wedding.bride_name} & ${wedding.groom_name}`;
+            
+            const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+            const allowsVariants = wedding.allow_variants !== false;
+            const hasWebInvite = wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000';
+
+            let inviteTypeLabel = category.label;
+            const sideLabel = isGroom ? "Groom's Side" : "Bride's Side";
+
+            let hostsHTML = '';
+            if (!isWebInviteOnly) {
+                if (wedding.hosts && wedding.hosts.length > 0) {
+                    const sortedHosts = [...wedding.hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+                    const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
+                    
+                    hostsHTML = `
+                    <div class="dashboard-wedding-card__row">
+                        <i data-lucide="phone"></i> <span>${inlineHosts}</span>
+                    </div>`;
                 } else {
-                    inviteUrl = getWebInvitePublicPreviewUrl(wedding.id);
+                    hostsHTML = `
+                    <div class="dashboard-wedding-card__row dashboard-wedding-card__row--empty">
+                        <i data-lucide="phone"></i> <span>No wedding hosts added</span>
+                    </div>`;
                 }
             }
 
-            if (wedding.id === '00000000-0000-0000-0000-000000000000') {
-                inviteUrl = getSampleWebInvitePreviewUrl('sample-upcoming');
+            let webInviteHTML = '';
+            if (hasWebInvite) {
+                const firstVariant = (wedding.variants && wedding.variants.length > 0) ? wedding.variants[0] : null;
+                let inviteUrl = getWebInvitePreviewUrl(wedding.id);
+
+                if (isWebInviteOnly) {
+                    if (allowsVariants) {
+                        inviteUrl = firstVariant ? getWebInvitePublicPreviewUrl(wedding.id, firstVariant.id) : `javascript:void(0);`;
+                    } else {
+                        inviteUrl = getWebInvitePublicPreviewUrl(wedding.id);
+                    }
+                }
+
+                if (wedding.id === '00000000-0000-0000-0000-000000000000') {
+                    inviteUrl = getSampleWebInvitePreviewUrl('sample-upcoming');
+                }
+
+                webInviteHTML = `
+                <div class="dashboard-wedding-card__invite-wrap">
+                    <a href="${inviteUrl}" ${isWebInviteOnly && allowsVariants && !firstVariant ? `onclick="event.stopPropagation(); showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Wedding Details page.'); return false;"` : 'target="_blank"'} class="dashboard-wedding-card__invite-btn" onclick="event.stopPropagation();">
+                        <i data-lucide="external-link"></i> Wedding Invitation
+                    </a>
+                </div>`;
             }
 
-            webInviteHTML = `
-            <div class="dashboard-wedding-card__invite-wrap">
-                <a href="${inviteUrl}" ${isWebInviteOnly && allowsVariants && !firstVariant ? `onclick="event.stopPropagation(); showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Wedding Details page.'); return false;"` : 'target="_blank"'} class="dashboard-wedding-card__invite-btn" onclick="event.stopPropagation();">
-                    <i data-lucide="external-link"></i> Wedding Invitation
-                </a>
-            </div>`;
-        }
+            const variantsBadgeIcon = hasWebInvite ? `
+                <button class="dashboard-wedding-card__icon-badge dashboard-wedding-card__web-badge" data-wedding-id="${wedding.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" title="View Links" type="button">
+                    <i data-lucide="mail"></i>
+                </button>
+            ` : '';
 
-        const variantsBadgeIcon = hasWebInvite ? `
-            <button class="dashboard-wedding-card__icon-badge dashboard-wedding-card__web-badge" data-wedding-id="${wedding.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" title="View Links" type="button">
-                <i data-lucide="mail"></i>
-            </button>
-        ` : '';
-
-        const cardEl = document.createElement("div");
-        cardEl.className = "dashboard-wedding-card";
-        cardEl.setAttribute('data-wedding-id', wedding.id);
-        
-        let cardHTML = `
-            <div class="dashboard-wedding-card__header">
-                <div class="dashboard-wedding-card__title-group">
-                    <div class="dashboard-wedding-card__icon-badge">
-                        <i data-lucide="heart"></i>
-                    </div>
-                    <div>
-                        <h3 class="dashboard-wedding-card__names">${displayNames}</h3>
-                        <p class="dashboard-wedding-card__dates"><i data-lucide="calendar"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
-                    </div>
-                </div>
-                ${variantsBadgeIcon}
-            </div>
+            const cardEl = document.createElement("div");
+            cardEl.className = "dashboard-wedding-card";
+            cardEl.setAttribute('data-wedding-id', wedding.id);
             
-            <div class="dashboard-wedding-card__details">
-                <div class="dashboard-wedding-card__row">
-                    <i data-lucide="user-check"></i> <span><strong>Side:</strong> ${sideLabel}</span>
+            let cardHTML = `
+                <div class="dashboard-wedding-card__header">
+                    <div class="dashboard-wedding-card__title-group">
+                        <div class="dashboard-wedding-card__icon-badge">
+                            <i data-lucide="heart"></i>
+                        </div>
+                        <div>
+                            <h3 class="dashboard-wedding-card__names">${displayNames}</h3>
+                            <p class="dashboard-wedding-card__dates"><i data-lucide="calendar"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
+                        </div>
+                    </div>
+                    ${variantsBadgeIcon}
                 </div>
-                <div class="dashboard-wedding-card__row">
-                    <i data-lucide="file-text"></i> <span><strong>Type:</strong> ${inviteTypeLabel}</span>
-                </div>
-                <div class="dashboard-wedding-card__row">
-                    <i data-lucide="layers"></i> <span><strong>Allow Variants:</strong> ${allowsVariants ? 'Yes' : 'No'}</span>
-                </div>
-
-                ${wedding.family_name ? `<div class="dashboard-wedding-card__row"><i data-lucide="home"></i> <span>${wedding.family_name}</span></div>` : ''}
-                ${wedding.family_details ? `<div class="dashboard-wedding-card__row"><i data-lucide="users"></i> <span>${wedding.family_details}</span></div>` : ''}
                 
-                ${hostsHTML}
-                ${!isWebInviteOnly ? `<div class="dashboard-wedding-card__row"><i data-lucide="user"></i> <span>${wedding.guests_count || 0} Guests</span></div>` : ''}
-                <div class="dashboard-wedding-card__row"><i data-lucide="calendar-days"></i> <span>${wedding.events_count || 0} Events</span></div>
-                
-                ${webInviteHTML}
-            </div>
-        `;
+                <div class="dashboard-wedding-card__details">
+                    <div class="dashboard-wedding-card__row">
+                        <i data-lucide="user-check"></i> <span><strong>Side:</strong> ${sideLabel}</span>
+                    </div>
+                    <div class="dashboard-wedding-card__row">
+                        <i data-lucide="file-text"></i> <span><strong>Type:</strong> ${inviteTypeLabel}</span>
+                    </div>
+                    <div class="dashboard-wedding-card__row">
+                        <i data-lucide="layers"></i> <span><strong>Allow Variants:</strong> ${allowsVariants ? 'Yes' : 'No'}</span>
+                    </div>
 
-        cardEl.innerHTML = cardHTML;
+                    ${wedding.family_name ? `<div class="dashboard-wedding-card__row"><i data-lucide="home"></i> <span>${wedding.family_name}</span></div>` : ''}
+                    ${wedding.family_details ? `<div class="dashboard-wedding-card__row"><i data-lucide="users"></i> <span>${wedding.family_details}</span></div>` : ''}
+                    
+                    ${hostsHTML}
+                    ${!isWebInviteOnly ? `<div class="dashboard-wedding-card__row"><i data-lucide="user"></i> <span>${wedding.guests_count || 0} Guests</span></div>` : ''}
+                    <div class="dashboard-wedding-card__row"><i data-lucide="calendar-days"></i> <span>${wedding.events_count || 0} Events</span></div>
+                    
+                    ${webInviteHTML}
+                </div>
+            `;
 
-        const webBadgeBtn = cardEl.querySelector('.dashboard-wedding-card__web-badge');
-        if (webBadgeBtn) {
-            webBadgeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const wId = webBadgeBtn.getAttribute('data-wedding-id');
-                const wTitle = webBadgeBtn.getAttribute('data-wedding-title');
-                showWeddingVariantsModal(wId, wTitle);
+            cardEl.innerHTML = cardHTML;
+
+            const webBadgeBtn = cardEl.querySelector('.dashboard-wedding-card__web-badge');
+            if (webBadgeBtn) {
+                webBadgeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const wId = webBadgeBtn.getAttribute('data-wedding-id');
+                    const wTitle = webBadgeBtn.getAttribute('data-wedding-title');
+                    showWeddingVariantsModal(wId, wTitle);
+                });
+            }
+
+            cardEl.addEventListener('click', () => {
+                const weddingId = cardEl.getAttribute('data-wedding-id');
+                window.location.hash = `#wedding-details?id=${weddingId}`;
             });
-        }
 
-        cardEl.addEventListener('click', () => {
-            const weddingId = cardEl.getAttribute('data-wedding-id');
-            window.location.hash = `#wedding-details?id=${weddingId}`;
+            listContainer.appendChild(cardEl);
         });
 
-        listContainer.appendChild(cardEl);
+        groupWrapper.appendChild(listContainer);
+        container.appendChild(groupWrapper);
     });
 
-    container.appendChild(listContainer);
     return container;
 }
 
