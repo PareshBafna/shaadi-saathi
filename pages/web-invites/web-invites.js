@@ -223,17 +223,19 @@ function buildGallerySection(title, invites, isArchived) {
         const t = themePalettes[inv.theme] || themePalettes.blue;
 
         const editButtonHtml = isArchived ? '' : `
-            <button class="web-invite-card__edit-btn edit-invite-btn" data-invite='${invJson}' title="Edit Invite" type="button">
-                <i data-lucide="edit-2" class="web-invite-card__edit-icon"></i>
+            <button class="edit-invite-btn" data-invite='${invJson}' title="Edit Invite" type="button" style="background: ${t.accent}; border: none; outline: none; cursor: pointer; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0;">
+                <i data-lucide="edit-2" style="color: ${t.bgDark}; width: 18px; height: 18px;"></i>
             </button>
         `;
 
         return `
-        <div class="web-invite-card" style="background: ${t.bgDark}; border-color: ${t.accent};">
-            <div class="web-invite-card__header">
-                ${editButtonHtml}
-                <div class="web-invite-card__icon-wrap" style="background: ${t.accent};">
+        <div class="web-invite-card" style="background: ${t.bgDark}; border-color: ${t.accent}; position: relative;">
+            <div class="web-invite-card__header" style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%;">
+                <div class="web-invite-card__icon-wrap" style="background: ${t.accent}; margin: 0 auto;">
                     <i data-lucide="mail" style="color: ${t.bgDark};"></i>
+                </div>
+                <div style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%);">
+                    ${editButtonHtml}
                 </div>
             </div>
             <div class="web-invite-card__body">

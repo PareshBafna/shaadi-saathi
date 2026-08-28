@@ -358,7 +358,7 @@ function buildGallerySection(title, weddings) {
 
         if (canEditWedding(wedding)) {
             editBtnHTML = `
-                <button class="dashboard-wedding-card__edit-btn" title="Edit Wedding" type="button">
+                <button class="dashboard-wedding-card__icon-badge dashboard-wedding-card__edit-btn" title="Edit Wedding" type="button" style="cursor: pointer; border: none; outline: none;">
                     <i data-lucide="edit-2"></i>
                 </button>
             `;
