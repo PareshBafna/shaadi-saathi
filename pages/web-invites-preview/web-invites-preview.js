@@ -539,7 +539,7 @@ const generateAboutUsHTML = () => {
                         <strong class="creator-heading">Created By</strong>
                         <br/><br/>
                         <div class="signature-glow">
-                            Paresh Bafna
+                            Shaadi Saathi
                         </div>
                         <div class="creator-social-links">
                             <a href="https://pareshbafna-portfolio.pages.dev/" target="_blank">
@@ -548,7 +548,7 @@ const generateAboutUsHTML = () => {
                             <a href="https://www.instagram.com/paresh_bafna_studio/" target="_blank">
                                 <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/instagram.svg" width="30" height="30" class="social-icon-img" alt="Instagram">
                             </a>
-                            <a href="https://www.instagram.com/web_invites_by_pb/" target="_blank">
+                            <a href="https://www.instagram.com/shaadi.saathi/" target="_blank">
                                 <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/instagram.svg" width="30" height="30" class="social-icon-img" alt="Instagram">
                             </a>
                             <a href="https://wa.me/919791146838" target="_blank">

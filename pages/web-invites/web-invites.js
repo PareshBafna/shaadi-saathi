@@ -209,59 +209,86 @@ function buildGallerySection(title, invites, isArchived) {
         pink:   { bgDark: '#500724', accent: '#f472b6' }
     };
 
-    const listItems = invites.map(inv => {
-        const w = inv.weddings || {};
-        const isGroom = (w.primary_side || '').toString().toLowerCase().includes('groom');
-        const displayNames = isGroom 
-            ? `${w.groom_name} & ${w.bride_name}` 
-            : `${w.bride_name} & ${w.groom_name}`;
-            
-        const targetDate = w.end_date || w.start_date;
-        const dateStr = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
+    const invitationTypeCategories = [
+        { type: 'full', label: 'Full Wedding' },
+        { type: 'full_self', label: 'Full Wedding (Self)' },
+        { type: 'web_invite_only', label: 'Web Invite Only' }
+    ];
 
-        const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-        const t = themePalettes[inv.theme] || themePalettes.blue;
+    let categoryGroupsHTML = '';
 
-        const editButtonHtml = isArchived ? '' : `
-            <button class="edit-invite-btn" data-invite='${invJson}' title="Edit Invite" type="button" style="background: ${t.accent}; border: none; outline: none; cursor: pointer; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0;">
-                <i data-lucide="edit-2" style="color: ${t.bgDark}; width: 18px; height: 18px;"></i>
-            </button>
-        `;
+    invitationTypeCategories.forEach(category => {
+        const categoryInvites = invites.filter(inv => {
+            const type = inv.weddings?.invitation_type;
+            if (category.type === 'full') return !type || type === 'full';
+            return type === category.type;
+        });
 
-        return `
-        <div class="web-invite-card" style="background: ${t.bgDark}; border-color: ${t.accent}; position: relative;">
-            <div class="web-invite-card__header" style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%;">
-                <div class="web-invite-card__icon-wrap" style="background: ${t.accent}; margin: 0 auto;">
-                    <i data-lucide="mail" style="color: ${t.bgDark};"></i>
+        if (categoryInvites.length === 0) return;
+
+        const listItems = categoryInvites.map(inv => {
+            const w = inv.weddings || {};
+            const isGroom = (w.primary_side || '').toString().toLowerCase().includes('groom');
+            const displayNames = isGroom 
+                ? `${w.groom_name} & ${w.bride_name}` 
+                : `${w.bride_name} & ${w.groom_name}`;
+                
+            const targetDate = w.end_date || w.start_date;
+            const dateStr = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
+
+            const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            const t = themePalettes[inv.theme] || themePalettes.blue;
+
+            const editButtonHtml = isArchived ? '' : `
+                <button class="edit-invite-btn" data-invite='${invJson}' title="Edit Invite" type="button" style="background: ${t.accent}; border: none; outline: none; cursor: pointer; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0;">
+                    <i data-lucide="edit-2" style="color: ${t.bgDark}; width: 18px; height: 18px;"></i>
+                </button>
+            `;
+
+            return `
+            <div class="web-invite-card" style="background: ${t.bgDark}; border-color: ${t.accent}; position: relative;">
+                <div class="web-invite-card__header" style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%;">
+                    <div class="web-invite-card__icon-wrap" style="background: ${t.accent}; margin: 0 auto;">
+                        <i data-lucide="mail" style="color: ${t.bgDark};"></i>
+                    </div>
+                    <div style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%);">
+                        ${editButtonHtml}
+                    </div>
                 </div>
-                <div style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%);">
-                    ${editButtonHtml}
+                <div class="web-invite-card__body">
+                    <h3 class="web-invite-card__names">${displayNames}</h3>
+                    
+                    <p class="web-invite-card__meta">
+                        ${w.hashtag ? `<span class="web-invite-card__hashtag" style="color: ${t.accent};">${w.hashtag}</span><br/>` : ''}
+                        <span class="web-invite-card__date">${dateStr}</span>
+                    </p>
+                    
+                    <div class="web-invite-card__actions" style="margin-top: 10px;">
+                        <button type="button" class="web-invite-open-links-btn" data-wedding-id="${w.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" style="width: 100%; border: none; outline: none; box-shadow: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0.6rem 1rem; border-radius: 4px; font-weight: 600; font-size: 0.85rem; background: ${t.accent}; color: ${t.bgDark};">
+                            <i data-lucide="external-link" style="width: 15px; height: 15px; stroke: ${t.bgDark};"></i> Wedding Invitation
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="web-invite-card__body">
-                <h3 class="web-invite-card__names">${displayNames}</h3>
-                
-                <p class="web-invite-card__meta">
-                    ${w.hashtag ? `<span class="web-invite-card__hashtag" style="color: ${t.accent};">${w.hashtag}</span><br/>` : ''}
-                    <span class="web-invite-card__date">${dateStr}</span>
-                </p>
-                
-                <div class="web-invite-card__actions" style="margin-top: 10px;">
-                    <button type="button" class="web-invite-open-links-btn" data-wedding-id="${w.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" style="width: 100%; border: none; outline: none; box-shadow: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0.6rem 1rem; border-radius: 4px; font-weight: 600; font-size: 0.85rem; background: ${t.accent}; color: ${t.bgDark};">
-                        <i data-lucide="external-link" style="width: 15px; height: 15px; stroke: ${t.bgDark};"></i> Wedding Invitation
-                    </button>
+            `;
+        }).join('');
+
+        categoryGroupsHTML += `
+            <div class="dashboard-invitation-type-group" style="margin-bottom: 1.25rem;">
+                <h3 class="dashboard-invitation-type-heading" style="font-size: 0.9rem; font-weight: 600; color: var(--color-primary, #facc15); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                    ${category.label} (${categoryInvites.length})
+                </h3>
+                <div class="web-invites-section__list">
+                    ${listItems}
                 </div>
             </div>
-        </div>
         `;
-    }).join('');
+    });
 
     return `
         <div class="web-invites-section">
             <h2 class="web-invites-section__heading">${title} (${count})</h2>
-            <div class="web-invites-section__list">
-                ${listItems}
-            </div>
+            ${categoryGroupsHTML}
         </div>
     `;
 }
