@@ -189,7 +189,8 @@ function renderUsersList() {
         const nameMatch = (u.name || '').toLowerCase().includes(query);
         const phoneMatch = (u.phone || '').toLowerCase().includes(query);
         const codeMatch = (u.verification_code || u.code || '').toLowerCase().includes(query);
-        return nameMatch || phoneMatch || codeMatch;
+        const idMatch = (u.id || '').toLowerCase().includes(query);
+        return nameMatch || phoneMatch || codeMatch || idMatch;
     });
 
     filteredUsers.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
@@ -206,34 +207,29 @@ function renderUsersList() {
         return;
     }
 
-    let listHTML = `
-        <div class="users-table-scroll-container">
-            <div class="users-table-inner">
-                <div class="users-table-header">
-                    <div></div>
-                    <div></div>
-                    <div>Name</div>
-                    <div>Phone Number</div>
-                    <div>PIN</div>
-                    <div>Verification Code</div>
-                    <div>User Role</div>
-                    <div>Wedding Role</div>
-                    <div>Verification</div>
-                    <div class="users-table-header__action">Action</div>
-                    <div></div>
-                </div>
-    `;
+const rowGridStyle = "grid-template-columns: 32px minmax(140px, 1.2fr) minmax(120px, 1fr) 90px 140px 100px 120px minmax(180px, 1.8fr) 100px 90px;";
+
+let listHTML = `
+    <div class="users-table-scroll-container">
+        <div class="users-table-inner" style="min-width: 1050px;">
+            <div class="users-table-header" style="display: grid; align-items: center; gap: 10px; ${rowGridStyle}">
+                <div></div>
+                <div>Name</div>
+                <div>Phone Number</div>
+                <div>PIN</div>
+                <div>Verification Code</div>
+                <div>User Role</div>
+                <div>Wedding Role</div>
+                <div>Associated Weddings</div>
+                <div>Verification</div>
+                <div class="users-table-header__action">Action</div>
+            </div>
+`;
 
     paginatedUsers.forEach(u => {
         const verifiedBadge = u.is_verified 
             ? `<span class="users-badge-verified">Verified</span>` 
             : `<button class="verify-user-btn users-btn-verify" data-id="${u.id}">Verify</button>`;
-
-        const toggleBtn = `
-            <button class="toggle-weddings-btn users-icon-btn users-toggle-btn" data-target="child-user-${u.id}">
-                <i data-lucide="chevron-right"></i>
-            </button>
-        `;
 
         const editBtn = !u.is_verified ? `
             <button class="edit-sys-user-btn users-icon-btn users-edit-btn" data-id="${u.id}" title="Edit">
@@ -241,81 +237,68 @@ function renderUsersList() {
             </button>
         ` : `<div></div>`;
         
-        const renderWeddingsList = (title, weds) => {
-            if (!weds || weds.length === 0) return '';
-            const uniqueWeds = [];
-            const seenIds = new Set();
-            for (const w of weds) {
-                if (!seenIds.has(w.id)) { seenIds.add(w.id); uniqueWeds.push(w); }
+        const allAssociated = [...(u.host_weddings || []), ...(u.user_weddings || []), ...(u.guest_weddings || [])];
+        const uniqueWeds = [];
+        const seenIds = new Set();
+        for (const w of allAssociated) {
+            if (!seenIds.has(w.id)) {
+                seenIds.add(w.id);
+                uniqueWeds.push(w);
             }
-            const wNames = uniqueWeds.map(w => {
+        }
+
+        let weddingsContent = '-';
+        if (uniqueWeds.length > 0) {
+            weddingsContent = uniqueWeds.map(w => {
                 const names = w.primary_side === 'groom' ? `${w.groom_name} & ${w.bride_name}` : `${w.bride_name} & ${w.groom_name}`;
-                return `<span class="users-wedding-tag"><i data-lucide="heart"></i> ${names}</span>`;
+                return `<span class="users-wedding-tag" style="display: inline-flex; margin: 2px 4px 2px 0;"><i data-lucide="heart" style="width: 12px; height: 12px; margin-right: 4px;"></i> ${names}</span>`;
             }).join('');
-            return `<div class="users-child-group">
-                        <div class="users-child-group__title">${title}:</div>
-                        <div class="users-child-group__list">${wNames}</div>
-                    </div>`;
-        };
+        }
 
-        const idHTML = `
-            <div class="users-child-group">
-                <div class="users-child-group__title">User ID:</div>
-                <div class="users-child-id-box">${u.id}</div>
-            </div>
-        `;
-
-        const hostHTML = renderWeddingsList('Host', u.host_weddings);
-        const userHTML = renderWeddingsList('User', u.user_weddings);
-        const guestHTML = renderWeddingsList('Guest', u.guest_weddings);
-
-        let childContent = idHTML + hostHTML + userHTML + guestHTML;
         const verificationCodeDisplay = u.verification_code || u.code || '-';
 
         listHTML += `
-        <div class="users-table-row-wrapper">
-            <div class="users-table-row">
-                ${toggleBtn}
-                ${editBtn}
-                
-                <div class="users-name-col">
-                    <h4>${u.name || '-'}</h4>
-                </div>
+<div class="users-table-row-wrapper" style="margin-bottom: 8px;">
+    <div class="users-table-row" style="display: grid; align-items: center; padding: 0.75rem 1rem; gap: 10px; ${rowGridStyle}">
+        ${editBtn}
 
-                <div class="users-phone-col">
-                    <i data-lucide="phone"></i> <span>${u.phone || '-'}</span>
-                </div>
+        <div class="users-name-col">
+            <h4 style="margin: 0; font-size: 0.95rem;">${u.name || '-'}</h4>
+        </div>
 
-                <div>
-                    <span class="users-pin-col" data-pin="${u.pin || '------'}" data-hidden="true" title="Click to reveal PIN">
-                        ••••••
-                    </span>
-                </div>
+        <div class="users-phone-cell" style="display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="phone" style="width: 13px; height: 13px;"></i> <span>${u.phone || '-'}</span>
+        </div>
 
-                <div>
-                    <span class="users-code-col" title="${verificationCodeDisplay}">
-                        ${verificationCodeDisplay}
-                    </span>
-                </div>
+        <div>
+            <span class="users-pin-col" data-pin="${u.pin || '------'}" data-hidden="true" title="Click to reveal PIN" style="cursor: pointer;">
+                ••••••
+            </span>
+        </div>
 
-                <div class="users-role-col">${u.role}</div>
+        <div>
+            <span class="users-code-col" title="${verificationCodeDisplay}">
+                ${verificationCodeDisplay}
+            </span>
+        </div>
 
-                <div class="users-wedding-role-col">${u.wedding_role || '-'}</div>
+        <div class="users-role-col">${u.role}</div>
 
-                <div class="users-status-col">${verifiedBadge}</div>
+        <div class="users-wedding-role-col">${u.wedding_role || '-'}</div>
 
-                <div class="users-action-col">
-                    <button onclick="imitateUser('${u.id}', '${(u.name || '').replace(/'/g, "\\'")}')" class="users-btn-imitate">
-                        Imitate
-                    </button>
-                </div>
-                <div></div>
-            </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center;">
+            ${weddingsContent}
+        </div>
 
-            <div id="child-user-${u.id}" class="users-child-row">
-                ${childContent}
-            </div>
-        </div>`;
+        <div class="users-status-col">${verifiedBadge}</div>
+
+        <div class="users-action-col">
+            <button onclick="imitateUser('${u.id}', '${(u.name || '').replace(/'/g, "\\'")}')" class="users-btn-imitate">
+                Imitate
+            </button>
+        </div>
+    </div>
+</div>`;
     });
 
     listHTML += `
@@ -383,24 +366,6 @@ function renderUsersList() {
             });
         });
 
-        const toggleBtns = content.querySelectorAll('.toggle-weddings-btn');
-        toggleBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const targetId = btn.getAttribute('data-target');
-                const childRow = document.getElementById(targetId);
-                const icon = btn.querySelector('i, svg');
-                
-                if (childRow.style.display === 'none' || !childRow.style.display) {
-                    childRow.style.display = 'block';
-                    if (icon) icon.style.transform = 'rotate(90deg)';
-                } else {
-                    childRow.style.display = 'none';
-                    if (icon) icon.style.transform = 'rotate(0deg)';
-                }
-            });
-        });
-
         const verifyBtns = content.querySelectorAll('.verify-user-btn');
         verifyBtns.forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -444,7 +409,7 @@ function layoutUserModalFooter(isEditModal = false) {
         cancelBtn.classList.add('modal-btn-cancel');
         cancelBtn.style.order = '1';
         cancelBtn.style.flexShrink = '0';
-        cancelBtn.style.marginRight = isEditModal ? '0' : '0';
+        cancelBtn.style.margin = '0';
     }
 
     if (deleteBtn) {
@@ -457,7 +422,7 @@ function layoutUserModalFooter(isEditModal = false) {
     if (primaryBtn) {
         primaryBtn.style.order = '3';
         primaryBtn.style.flexShrink = '0';
-        primaryBtn.style.marginLeft = isEditModal ? '0' : 'auto';
+        primaryBtn.style.marginLeft = (isEditModal && deleteBtn) ? '0' : 'auto';
         primaryBtn.style.whiteSpace = 'nowrap';
     }
 
