@@ -353,12 +353,14 @@ function buildGallerySection(title, weddings) {
             `;
         }
 
-        const displayNames = wedding.primary_side === 'groom' 
+        const isGroom = (wedding.primary_side || '').toString().toLowerCase().includes('groom');
+        const displayNames = isGroom 
             ? `${wedding.groom_name} & ${wedding.bride_name}` 
             : `${wedding.bride_name} & ${wedding.groom_name}`;
 
         const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
         const allowsVariants = isWebInviteOnly ? (wedding.allow_variants !== false) : true;
+        const hasWebInvite = wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000';
 
         let hostsHTML = '';
         if (!isWebInviteOnly) {
@@ -379,12 +381,16 @@ function buildGallerySection(title, weddings) {
         }
 
         let webInviteHTML = '';
-        if (wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000') {
+        if (hasWebInvite) {
             const firstVariant = (wedding.variants && wedding.variants.length > 0) ? wedding.variants[0] : null;
             let inviteUrl = getWebInvitePreviewUrl(wedding.id);
             
             if (isWebInviteOnly) {
-                inviteUrl = firstVariant ? getWebInvitePublicPreviewUrl(firstVariant.id) : `javascript:void(0);`;
+                if (allowsVariants) {
+                    inviteUrl = firstVariant ? getWebInvitePublicPreviewUrl(wedding.id, firstVariant.id) : `javascript:void(0);`;
+                } else {
+                    inviteUrl = getWebInvitePublicPreviewUrl(wedding.id);
+                }
             }
 
             if (wedding.id === '00000000-0000-0000-0000-000000000000') {
@@ -393,21 +399,17 @@ function buildGallerySection(title, weddings) {
 
             webInviteHTML = `
             <div class="dashboard-wedding-card__invite-wrap">
-                <a href="${inviteUrl}" ${isWebInviteOnly && !firstVariant ? `onclick="event.stopPropagation(); showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Wedding Details page.'); return false;"` : 'target="_blank"'} onclick="event.stopPropagation();" class="dashboard-wedding-card__invite-btn">
+                <a href="${inviteUrl}" ${isWebInviteOnly && allowsVariants && !firstVariant ? `onclick="event.stopPropagation(); showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Wedding Details page.'); return false;"` : 'target="_blank"'} onclick="event.stopPropagation();" class="dashboard-wedding-card__invite-btn">
                     <i data-lucide="external-link"></i> Wedding Invitation
                 </a>
             </div>`;
         }
 
-        const webBadgeIcon = allowsVariants ? `
+        const webBadgeIcon = hasWebInvite ? `
             <button class="dashboard-wedding-card__icon-badge dashboard-wedding-card__web-badge" data-wedding-id="${wedding.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" title="View Links" type="button">
                 <i data-lucide="mail"></i>
             </button>
-        ` : (isWebInviteOnly ? `
-            <div class="dashboard-wedding-card__icon-badge" title="Web Invite Only">
-                <i data-lucide="mail"></i>
-            </div>
-        ` : '');
+        ` : '';
 
         return `
         <div class="dashboard-wedding-card" data-wedding-id="${wedding.id}">
@@ -449,18 +451,41 @@ function buildGallerySection(title, weddings) {
 }
 
 async function showWeddingVariantsModal(weddingId, weddingTitle) {
-    const { data: variants } = await supabase
-        .from('invite_variants')
-        .select('*')
-        .eq('wedding_id', weddingId)
-        .order('created_at', { ascending: false });
+    const [{ data: wedding }, { data: variants }, { data: allEvents }] = await Promise.all([
+        supabase.from('weddings').select('invitation_type, allow_variants').eq('id', weddingId).single(),
+        supabase.from('invite_variants').select('*').eq('wedding_id', weddingId).order('created_at', { ascending: false }),
+        supabase.from('wedding_events').select('id, event_name, title').eq('wedding_id', weddingId)
+    ]);
+
+    const isWebInviteOnly = wedding?.invitation_type === 'web_invite_only';
+    const allowsVariants = wedding?.allow_variants !== false;
 
     let rowsHTML = '';
-    if (!variants || variants.length === 0) {
+
+    if (isWebInviteOnly && !allowsVariants) {
+        const directUrl = getWebInvitePublicPreviewUrl(weddingId);
+        const eventCount = (allEvents || []).length;
+        rowsHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 10px 14px; border-radius: 6px; margin-bottom: 8px;">
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-text-primary, #ffffff);">All Events</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted, #94a3b8);">${eventCount} event(s) included</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <a href="${directUrl}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 6px 10px; border-radius: 4px; text-decoration: none;" title="Open Link">
+                        <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+                    </a>
+                    <button class="dash-copy-variant-btn" data-url="${directUrl}" style="background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Copy Link" type="button">
+                        <i data-lucide="link" style="width: 14px; height: 14px;"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    } else if (!variants || variants.length === 0) {
         rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Wedding Details page.</div>`;
     } else {
         rowsHTML = variants.map(v => {
-            const variantUrl = getWebInvitePublicPreviewUrl(v.id);
+            const variantUrl = getWebInvitePublicPreviewUrl(weddingId, v.id);
             const count = v.selected_event_ids?.length || 0;
             return `
                 <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 10px 14px; border-radius: 6px; margin-bottom: 8px;">
@@ -511,7 +536,7 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
                 e.stopPropagation();
                 const url = btn.getAttribute('data-url');
                 navigator.clipboard.writeText(url);
-                showSweetAlert('success', 'Copied!', 'Variant link copied to clipboard.');
+                showSweetAlert('success', 'Copied!', 'Invite link copied to clipboard.');
             });
         });
     }, 50);
@@ -944,22 +969,42 @@ export function openEditWeddingModal(wedding) {
             onClick: async () => {
                 const result = await Swal.fire({
                     title: 'Are you sure?',
-                    text: "Do you really want to delete this wedding? All events and guests will be permanently removed.",
-                    icon: 'question',
+                    text: "Do you really want to delete this wedding? All associated events, variants, hosts, users, guests, and web invites will be permanently removed.",
+                    icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#dc2626',
                     cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Yes, delete it!'
+                    confirmButtonText: 'Yes, delete everything!'
                 });
 
                 if (result.isConfirmed) {
                     try {
+                        Swal.fire({
+                            title: 'Deleting Wedding...',
+                            text: 'Removing all associated data, please wait.',
+                            allowOutsideClick: false,
+                            didOpen: () => Swal.showLoading()
+                        });
+
+                        // 1. Delete all child records first
+                        await Promise.all([
+                            supabase.from('guests').delete().eq('wedding_id', wedding.id),
+                            supabase.from('wedding_events').delete().eq('wedding_id', wedding.id),
+                            supabase.from('invite_variants').delete().eq('wedding_id', wedding.id),
+                            supabase.from('wedding_hosts').delete().eq('wedding_id', wedding.id),
+                            supabase.from('wedding_users').delete().eq('wedding_id', wedding.id),
+                            supabase.from('wedding_web_invite').delete().eq('wedding_id', wedding.id)
+                        ]);
+
+                        // 2. Delete the wedding record
                         const { error } = await supabase.from('weddings').delete().eq('id', wedding.id);
                         if (error) throw error;
                         
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated'));
-                        showSweetAlert('success', 'Deleted!', 'The wedding has been removed.');
+                        window.dispatchEvent(new Event('weddingsDataUpdated'));
+                        
+                        showSweetAlert('success', 'Deleted!', 'The wedding and all related data have been removed.');
                     } catch (error) {
                         showSweetAlert('error', 'Database Error', error.message);
                     }

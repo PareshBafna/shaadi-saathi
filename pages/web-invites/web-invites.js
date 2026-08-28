@@ -1,7 +1,7 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
-import { getWebInvitePreviewUrl } from '../../global/js/env-config.js';
+import { getWebInvitePreviewUrl, getWebInvitePublicPreviewUrl } from '../../global/js/env-config.js';
 
 function startOfDay(date) {
     const copy = new Date(date);
@@ -79,7 +79,12 @@ export function renderWebInvites() {
             const query = e.target.value.toLowerCase();
             const filtered = (window.__invitesData || []).filter(inv => {
                 const w = inv.weddings || {};
-                return (w.bride_name || '').toLowerCase().includes(query) || 
+                const isGroom = (w.primary_side || '').toString().toLowerCase().includes('groom');
+                const displayNames = isGroom 
+                    ? `${w.groom_name} & ${w.bride_name}` 
+                    : `${w.bride_name} & ${w.groom_name}`;
+                return displayNames.toLowerCase().includes(query) ||
+                       (w.bride_name || '').toLowerCase().includes(query) || 
                        (w.groom_name || '').toLowerCase().includes(query) ||
                        (w.hashtag || '').toLowerCase().includes(query);
             });
@@ -195,14 +200,23 @@ function buildGallerySection(title, invites, isArchived) {
 
     const listItems = invites.map(inv => {
         const w = inv.weddings || {};
-        const displayNames = w.primary_side === 'groom' 
+        const isGroom = (w.primary_side || '').toString().toLowerCase().includes('groom');
+        const displayNames = isGroom 
             ? `${w.groom_name} & ${w.bride_name}` 
             : `${w.bride_name} & ${w.groom_name}`;
             
         const targetDate = w.end_date || w.start_date;
         const dateStr = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
         
-        const inviteUrl = getWebInvitePreviewUrl(w.id);
+        const isWebInviteOnly = w.invitation_type === 'web_invite_only';
+        const allowsVariants = isWebInviteOnly ? (w.allow_variants !== false) : true;
+        
+        let inviteUrl = getWebInvitePreviewUrl(w.id);
+        if (isWebInviteOnly) {
+            inviteUrl = allowsVariants && inv.variant_id
+                ? getWebInvitePublicPreviewUrl(w.id, inv.variant_id)
+                : getWebInvitePublicPreviewUrl(w.id);
+        }
 
         const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
         const t = themePalettes[inv.theme] || themePalettes.blue;
@@ -303,16 +317,24 @@ async function openInviteModal(existingInvite = null) {
     }
 
     const optionsHtml = eligibleWeddings.map(w => {
+        const isGroom = (w.primary_side || '').toString().toLowerCase().includes('groom');
+        const coupleName = isGroom ? `${w.groom_name} & ${w.bride_name}` : `${w.bride_name} & ${w.groom_name}`;
         const targetDate = w.end_date || w.start_date;
         const formattedDate = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
         const hashtagStr = w.hashtag ? ` (${w.hashtag})` : ''; 
-        return `<option value="${w.id}" data-side="${w.primary_side}">${w.bride_name} & ${w.groom_name}${hashtagStr} - ${formattedDate}</option>`;
+        return `<option value="${w.id}" data-side="${w.primary_side}">${coupleName}${hashtagStr} - ${formattedDate}</option>`;
     }).join('');
+
+    const existingWedding = existingInvite?.weddings || {};
+    const existingIsGroom = (existingInvite?.primary_side || existingWedding.primary_side || '').toString().toLowerCase().includes('groom');
+    const existingCoupleName = existingIsGroom 
+        ? `${existingWedding.groom_name || ''} & ${existingWedding.bride_name || ''}` 
+        : `${existingWedding.bride_name || ''} & ${existingWedding.groom_name || ''}`;
 
     const weddingSelectionHTML = existingInvite 
         ? `<div>
             <label class="invite-modal-label">Wedding</label>
-            <input type="text" value="${existingInvite.weddings?.bride_name || ''} & ${existingInvite.weddings?.groom_name || ''}" disabled class="invite-modal-input">
+            <input type="text" value="${existingCoupleName}" disabled class="invite-modal-input">
             <input type="hidden" id="inviteWeddingId" value="${existingInvite.wedding_id}">
            </div>`
         : `<div>

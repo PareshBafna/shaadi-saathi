@@ -107,23 +107,21 @@ const showSwalError = async (title, text, confirmBtnText = "Go Back", redirectUr
     });
 };
 
-async function initPublicVariantInvite(variantId) {
+async function initPublicVariantInvite(weddingId, variantId = null) {
     const dashboardWeddingsUrl = '#weddings'; 
-
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!variantId || !uuidRegex.test(variantId)) {
-        showSwalError("Invalid Link", "The invitation variant link is broken or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
+
+    if (!weddingId || (!uuidRegex.test(weddingId) && weddingId !== '00000000-0000-0000-0000-000000000000')) {
+        showSwalError("Invalid Link", "The invitation link is broken or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
         return;
     }
 
     try {
-        const { data: variant, error: varErr } = await supabase.from('invite_variants').select('*').eq('id', variantId).maybeSingle();
-        if (varErr || !variant) {
-            showSwalError("Error", "Invitation link not found or has expired.", "Go Back to Weddings", dashboardWeddingsUrl);
-            return;
+        let variant = null;
+        if (variantId && uuidRegex.test(variantId)) {
+            const { data: vData } = await supabase.from('invite_variants').select('*').eq('id', variantId).maybeSingle();
+            variant = vData;
         }
-
-        const weddingId = variant.wedding_id;
 
         const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', weddingId).maybeSingle();
         if (wErr || !wedding) {
@@ -181,7 +179,7 @@ async function initPublicVariantInvite(variantId) {
 
         let eventsQuery = supabase.from('wedding_events').select('*').eq('wedding_id', wedding.id).order('date', { ascending: true }).order('time', { ascending: true });
         
-        if (variant.selected_event_ids && variant.selected_event_ids.length > 0) {
+        if (variant && variant.selected_event_ids && variant.selected_event_ids.length > 0) {
             eventsQuery = eventsQuery.in('id', variant.selected_event_ids);
         }
 
@@ -676,25 +674,25 @@ function loadScript(id, src) {
     });
 }
 
-export async function renderWebInvitesPublicPreview(explicitVariantId = null) {
+export async function renderWebInvitesPublicPreview(explicitWeddingId = null, explicitVariantId = null) {
     await Promise.all([
         loadCSS('web-invite-splash-styles', '/global/css/splash.css'),
         loadCSS('web-invite-base-styles', '/global/css/invite.css'),
         loadScript('swal-cdn-script', 'https://cdn.jsdelivr.net/npm/sweetalert2@11')
     ]);
 
+    let weddingId = explicitWeddingId;
     let variantId = explicitVariantId;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashSplit = window.location.hash.split('?');
+    const hashParams = hashSplit.length > 1 ? new URLSearchParams(hashSplit[1]) : new URLSearchParams();
+
+    if (!weddingId) {
+        weddingId = hashParams.get('id') || hashParams.get('wedding_id') || urlParams.get('id') || urlParams.get('wedding_id');
+    }
     if (!variantId) {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('variant_id') || urlParams.get('variant')) {
-            variantId = urlParams.get('variant_id') || urlParams.get('variant');
-        } else {
-            const hashSplit = window.location.hash.split('?');
-            if (hashSplit.length > 1) {
-                const hashParams = new URLSearchParams(hashSplit[1]);
-                variantId = hashParams.get('variant_id') || hashParams.get('variant');
-            }
-        }
+        variantId = hashParams.get('variant_id') || hashParams.get('variant') || urlParams.get('variant_id') || urlParams.get('variant');
     }
 
     document.body.innerHTML = `
@@ -719,7 +717,7 @@ export async function renderWebInvitesPublicPreview(explicitVariantId = null) {
         <audio id="bgMusic" src="/global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
     `;
 
-    initPublicVariantInvite(variantId);
+    initPublicVariantInvite(weddingId, variantId);
     setTimeout(initParticles, 100);
 
     const seal = document.getElementById("seal-container");

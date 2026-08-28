@@ -318,12 +318,19 @@ function buildSpecificHeader(wedding, hasWebInvite = true, variants = []) {
     let webInviteHTML = '';
     if (hasWebInvite || wedding.id === '00000000-0000-0000-0000-000000000000') {
         const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+        const allowsVariants = isWebInviteOnly ? (wedding.allow_variants !== false) : true;
         const firstVariant = (variants && variants.length > 0) ? variants[0] : null;
 
         let inviteUrl = getWebInvitePreviewUrl(wedding.id);
         
         if (isWebInviteOnly) {
-            inviteUrl = firstVariant ? getWebInvitePublicPreviewUrl(firstVariant.id) : `javascript:void(0);`;
+            if (allowsVariants) {
+                inviteUrl = firstVariant 
+                    ? getWebInvitePublicPreviewUrl(wedding.id, firstVariant.id) 
+                    : `javascript:void(0);`;
+            } else {
+                inviteUrl = getWebInvitePublicPreviewUrl(wedding.id);
+            }
         }
 
         if (wedding.id === '00000000-0000-0000-0000-000000000000') {
@@ -331,7 +338,7 @@ function buildSpecificHeader(wedding, hasWebInvite = true, variants = []) {
         }
 
         webInviteHTML = `
-            <a href="${inviteUrl}" ${isWebInviteOnly && !firstVariant ? `onclick="showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Variants section.'); return false;"` : 'target="_blank"'} class="wedding-details-header__invite-btn">
+            <a href="${inviteUrl}" ${isWebInviteOnly && allowsVariants && !firstVariant ? `onclick="showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Variants section.'); return false;"` : 'target="_blank"'} class="wedding-details-header__invite-btn">
                 <i data-lucide="external-link"></i> Wedding Invitation
             </a>`;
     }
@@ -719,7 +726,7 @@ function buildVariantsSection(wedding, variants, allEvents = [], guests = [], ca
 
         let html = `<div class="variants-grid">`;
         filteredVariants.forEach(v => {
-            const variantUrl = getWebInvitePublicPreviewUrl(v.id);
+            const variantUrl = getWebInvitePublicPreviewUrl(wedding.id, v.id);
             const assignedGuests = (guests || []).filter(g => g.variant_id === v.id);
             const eventNames = (allEvents || [])
                 .filter(e => v.selected_event_ids?.includes(e.id))
@@ -1206,8 +1213,8 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig, isC
         if (guest.phone && hasInvitedEvents) {
             const displayNames = wedding.primary_side === 'groom' ? `${wedding.groom_name} & ${wedding.bride_name}` : `${wedding.bride_name} & ${wedding.groom_name}`;
             const weddingUrl = guest.variant_id 
-                ? getWebInvitePublicPreviewUrl(guest.variant_id)
-                : `https://shaadi-saathi.pages.dev/#wedding-details?id=${wedding.id}`;
+                ? getWebInvitePublicPreviewUrl(wedding.id, guest.variant_id)
+                : getWebInvitePublicPreviewUrl(wedding.id);
             
             const sortedGuestEvents = [...guestEvents].sort((a, b) => {
                 const timeA = a.time || '00:00:00';

@@ -20,12 +20,18 @@ export function getWebInvitePreviewUrl(inviteId) {
     return `${window.location.origin}/web-invites-preview-functions?id=${encodeURIComponent(inviteId)}`;
 }
 
-export function getWebInvitePublicPreviewUrl(variantId) {
-    if (!variantId) return '#';
-    if (ENV.isLocal) {
-        return `${window.location.origin}/#web-invites-public-preview?variant_id=${encodeURIComponent(variantId)}`;
+export function getWebInvitePublicPreviewUrl(weddingId, variantId = null) {
+    if (!weddingId) return '#';
+
+    let queryParams = `id=${encodeURIComponent(weddingId)}`;
+    if (variantId) {
+        queryParams += `&variant_id=${encodeURIComponent(variantId)}`;
     }
-    return `${window.location.origin}/web-invites-public-preview-functions?variant_id=${encodeURIComponent(variantId)}`;
+
+    if (ENV.isLocal) {
+        return `${window.location.origin}/#web-invites-public-preview?${queryParams}`;
+    }
+    return `${window.location.origin}/web-invites-public-preview-functions?${queryParams}`;
 }
 
 export function getSampleWebInvitePreviewUrl(sampleId = 'sample-upcoming') {
