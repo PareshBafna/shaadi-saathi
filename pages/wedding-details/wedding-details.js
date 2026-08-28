@@ -255,7 +255,7 @@ async function loadWeddingData(container, weddingId) {
         if (canViewAll && !isWebInviteOnly) {
             container.appendChild(buildHostListSection(wedding, hosts, canConfig, isCreator, curUser.id));
             container.appendChild(buildWeddingUserListSection(wedding, wUsers, canConfig));
-            const guestSection = buildGuestListSection(wedding, guests, allEvents, variants, canConfig);
+            const guestSection = buildGuestListSection(wedding, guests, allEvents, variants, canConfig, isCreator);
             if (guestSection) container.appendChild(guestSection);
         }
 
@@ -1158,7 +1158,7 @@ let currentGuestView = 'all'; // Preserves state across re-renders ('all' | 'gro
 // ==========================================
 // 7. GUEST LIST SECTION (BY VARIANT DEFAULT)
 // ==========================================
-function buildGuestListSection(wedding, guests, events, variants, canConfig) {
+function buildGuestListSection(wedding, guests, events, variants, canConfig, isCreator = false) {
     window.__currentEvents = events || [];
     window.__currentVariants = variants || [];
 
@@ -1171,11 +1171,11 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig) {
     const controlsRow = document.createElement("div");
     controlsRow.className = "wedding-details-section__control-bar";
     
-    let leftActions = canConfig ? `
+    let leftActions = isCreator ? `
         <button id="importSampleTriggerBtn" class="wedding-action-btn-primary" onclick="openImportModal('${wedding.id}')">
             <i data-lucide="upload"></i> Import / Sample
         </button>
-    ` : '<div></div>';
+    ` : '';
 
     let middleActions = canConfig ? `
         <button id="addGuestBtnTrigger" class="wedding-action-btn-primary">
@@ -1184,9 +1184,9 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig) {
     ` : '';
 
     controlsRow.innerHTML = `
-        <div class="wedding-details-section__left-actions">${leftActions}</div>
-        <div class="wedding-details-section__middle-actions">${middleActions}</div>
-        <div class="wedding-details-section__right-actions">
+        <div class="wedding-details-section__left-actions" style="flex: 1; display: flex; justify-content: flex-start;">${leftActions}</div>
+        <div class="wedding-details-section__middle-actions" style="flex: 1; display: flex; justify-content: center;">${middleActions}</div>
+        <div class="wedding-details-section__right-actions" style="flex: 1; display: flex; justify-content: flex-end;">
             <div class="wedding-details-search-wrapper">
                 <i data-lucide="search"></i>
                 <input type="text" id="guestSearchInput" placeholder="Search ..." class="wedding-details-search-input">
@@ -2582,6 +2582,12 @@ window.openEditGuestModal = async function(weddingId, guestId, variants = []) {
 // IMPORT & SAMPLE MODAL (WITH VARIANT MATCHING)
 // ==========================================
 window.openImportModal = function(weddingId) {
+    const userRole = window.currentUser?.role || 'guest';
+    if (userRole !== 'creator') {
+        showSweetAlert('error', 'Access Denied', 'Only creators have permission to import guests.');
+        return;
+    }
+
     const dialogHTML = `
         <div class="wedding-import-modal-wrap">
             <p class="wedding-import-modal-desc">
