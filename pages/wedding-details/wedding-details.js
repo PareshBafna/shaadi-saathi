@@ -335,8 +335,31 @@ function buildSpecificHeader(wedding, hasWebInvite = true, variants = []) {
     setTimeout(() => {
         const headerInviteBtn = header.querySelector('#details-header-invite-btn');
         if (headerInviteBtn) {
-            headerInviteBtn.addEventListener('click', (e) => {
+            headerInviteBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
+                const curUser = window.currentUser || { role: 'guest' };
+
+                if (curUser.role === 'guest') {
+                    const isWebInviteOnly = wedding?.invitation_type === 'web_invite_only';
+                    const allowsVariants = isWebInviteOnly ? (wedding?.allow_variants !== false) : true;
+
+                    let targetUrl = '';
+                    if (isWebInviteOnly) {
+                        if (allowsVariants) {
+                            const firstVariantId = variants?.[0]?.id;
+                            targetUrl = getWebInvitePublicPreviewUrl(wedding.id, firstVariantId);
+                        } else {
+                            targetUrl = getWebInvitePublicPreviewUrl(wedding.id);
+                        }
+                    } else {
+                        const firstVariantId = variants?.[0]?.id;
+                        targetUrl = getWebInvitePreviewUrl(wedding.id, firstVariantId);
+                    }
+
+                    window.open(targetUrl, '_blank');
+                    return;
+                }
+
                 showWeddingVariantsModal(wedding.id, displayNames);
             });
         }
@@ -354,6 +377,15 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
 
     const isWebInviteOnly = wedding?.invitation_type === 'web_invite_only';
     const allowsVariants = isWebInviteOnly ? (wedding?.allow_variants !== false) : true;
+
+    const getPreviewUrl = (variantId) => {
+        if (isWebInviteOnly) {
+            return allowsVariants 
+                ? getWebInvitePublicPreviewUrl(weddingId, variantId) 
+                : getWebInvitePublicPreviewUrl(weddingId);
+        }
+        return getWebInvitePreviewUrl(weddingId, variantId);
+    };
 
     let rowsHTML = '';
 
@@ -377,14 +409,14 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
     `;
 
     if (isWebInviteOnly && !allowsVariants) {
-        const directUrl = getWebInvitePublicPreviewUrl(weddingId);
+        const directUrl = getPreviewUrl();
         const eventCount = (allEvents || []).length;
         rowsHTML = buildVariantRowHTML("All Events", `${eventCount} event(s) included`, directUrl);
     } else if (!variants || variants.length === 0) {
-        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet.</div>`;
+        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Variants section.</div>`;
     } else {
         rowsHTML = variants.map(v => {
-            const variantUrl = getWebInvitePublicPreviewUrl(weddingId, v.id);
+            const variantUrl = getPreviewUrl(v.id);
             const count = v.selected_event_ids?.length || 0;
             return buildVariantRowHTML(v.variant_name, `${count} event(s) included`, variantUrl);
         }).join('');
@@ -798,7 +830,13 @@ function buildVariantsSection(wedding, variants, allEvents = [], guests = [], ca
 
         let html = `<div class="variants-grid">`;
         filteredVariants.forEach(v => {
-            const variantUrl = getWebInvitePublicPreviewUrl(wedding.id, v.id);
+            const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+            const allowsVariants = isWebInviteOnly ? (wedding.allow_variants !== false) : true;
+
+            const variantUrl = isWebInviteOnly 
+                ? (allowsVariants ? getWebInvitePublicPreviewUrl(wedding.id, v.id) : getWebInvitePublicPreviewUrl(wedding.id))
+                : getWebInvitePreviewUrl(wedding.id, v.id);
+
             const assignedGuests = (guests || []).filter(g => g.variant_id === v.id);
             const eventNames = (allEvents || [])
                 .filter(e => v.selected_event_ids?.includes(e.id))
@@ -826,7 +864,6 @@ function buildVariantsSection(wedding, variants, allEvents = [], guests = [], ca
                             <div class="variant-card__events-wrap">${eventsDisplay}</div>
                         </div>
                     </div>
-
                     <div class="variant-card__actions" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding-top: 12px; margin-top: 6px; border-top: 1px solid var(--color-border, #292524);">
                         ${canConfig ? `
                             <button class="assign-variant-btn wedding-action-btn-primary" data-id="${v.id}" data-name="${v.variant_name.replace(/"/g, '&quot;')}" style="padding: 0.45rem 0.75rem; font-size: 0.8rem; white-space: nowrap; flex: 1 1 auto; justify-content: center;">

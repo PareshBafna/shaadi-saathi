@@ -107,7 +107,7 @@ const showSwalError = async (title, text, confirmBtnText = "Go Back", redirectUr
     });
 };
 
-async function initDynamicInvite(inviteId) {
+async function initDynamicInvite(inviteId, targetVariantId = null) {
     const loginRedirectUrl = '#login';
     const dashboardWeddingsUrl = '#weddings'; 
 
@@ -118,6 +118,8 @@ async function initDynamicInvite(inviteId) {
     }
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    
+    // Validate ID Parameter
     if (!inviteId || (!uuidRegex.test(inviteId) && inviteId !== '00000000-0000-0000-0000-000000000000')) {
         showSwalError("Invalid Link", "The wedding link is broken or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
         return;
@@ -133,6 +135,47 @@ async function initDynamicInvite(inviteId) {
         const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', inviteId).maybeSingle();
         if (wErr || !wedding) {
             showSwalError("Error", "Incorrect wedding details. Please contact Admin.", "Go Back to Weddings", dashboardWeddingsUrl);
+            return;
+        }
+
+        const { data: rawHosts } = await supabase.from('wedding_hosts').select('user_id').eq('wedding_id', wedding.id);
+        const { data: rawWUsers } = await supabase.from('wedding_users').select('user_id').eq('wedding_id', wedding.id);
+
+        const isCreator = wedding.user_id === curUser.id || curUser.role === 'creator';
+        const isHost = (rawHosts || []).some(h => h.user_id === curUser.id);
+        const isWeddingUser = (rawWUsers || []).some(w => w.user_id === curUser.id);
+        const canViewAll = isCreator || isHost || isWeddingUser;
+
+        let activeVariantId = targetVariantId;
+
+        if (!canViewAll) {
+            const { data: guests } = await supabase.from('guests').select('*').eq('wedding_id', wedding.id);
+            const cleanPhone = (p) => (p || '').replace(/[^0-9]/g, '').slice(-10);
+            const curUserClean = cleanPhone(curUser.phone);
+            const currentGuest = (guests || []).find(g => cleanPhone(g.phone) === curUserClean);
+
+            if (!currentGuest) {
+                showSwalError(
+                    "Not Invited", 
+                    "Your account is not registered on the guest list for this wedding. Please contact the host if you believe this is a mistake.",
+                    "Go Back to Weddings",
+                    "#weddings"
+                );
+                return;
+            }
+
+            activeVariantId = currentGuest.variant_id || activeVariantId;
+        }
+
+        // Full Wedding and Full Wedding (Self) ALWAYS require a valid variant_id
+        if (!activeVariantId || !uuidRegex.test(activeVariantId)) {
+            showSwalError("Invalid Link", "The invite variant is missing or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
+            return;
+        }
+
+        const { data: variantData, error: variantErr } = await supabase.from('invite_variants').select('*').eq('id', activeVariantId).eq('wedding_id', wedding.id).maybeSingle();
+        if (variantErr || !variantData) {
+            showSwalError("Invalid Variant", "The requested invite variant does not exist.", "Go Back to Weddings", dashboardWeddingsUrl);
             return;
         }
 
@@ -184,47 +227,11 @@ async function initDynamicInvite(inviteId) {
         document.body.classList.add('theme-loaded');
         isThemeReady = true;
 
-        const { data: rawHosts } = await supabase.from('wedding_hosts').select('user_id').eq('wedding_id', wedding.id);
-        const { data: rawWUsers } = await supabase.from('wedding_users').select('user_id').eq('wedding_id', wedding.id);
-
-        const isCreator = wedding.user_id === curUser.id || curUser.role === 'creator';
-        const isHost = (rawHosts || []).some(h => h.user_id === curUser.id);
-        const isWeddingUser = (rawWUsers || []).some(w => w.user_id === curUser.id);
-        const canViewAll = isCreator || isHost || isWeddingUser;
-
         const { data: allEvents } = await supabase.from('wedding_events').select('*').eq('wedding_id', wedding.id).order('date', { ascending: true }).order('time', { ascending: true });
         
         let filteredEvents = [];
-
-        if (!canViewAll) {
-            const { data: guests } = await supabase.from('guests').select('*').eq('wedding_id', wedding.id);
-            
-            const cleanPhone = (p) => (p || '').replace(/[^0-9]/g, '').slice(-10);
-            const curUserClean = cleanPhone(curUser.phone);
-            
-            const currentGuest = (guests || []).find(g => cleanPhone(g.phone) === curUserClean);
-
-            if (!currentGuest) {
-                showSwalError(
-                    "Not Invited", 
-                    "Your account is not registered on the guest list for this wedding. Please contact the host if you believe this is a mistake.",
-                    "Go Back to Weddings",
-                    "#weddings"
-                );
-                return;
-            }
-
-            // Resolve events via variant_id
-            if (currentGuest.variant_id) {
-                const { data: variantData } = await supabase.from('invite_variants').select('*').eq('id', currentGuest.variant_id).maybeSingle();
-                if (variantData && variantData.selected_event_ids?.length > 0) {
-                    filteredEvents = (allEvents || []).filter(e => variantData.selected_event_ids.includes(e.id));
-                } else {
-                    filteredEvents = allEvents || [];
-                }
-            } else {
-                filteredEvents = allEvents || [];
-            }
+        if (variantData.selected_event_ids?.length > 0) {
+            filteredEvents = (allEvents || []).filter(e => variantData.selected_event_ids.includes(e.id));
         } else {
             filteredEvents = allEvents || [];
         }
@@ -717,12 +724,26 @@ function loadScript(id, src) {
     });
 }
 
-export async function renderWebInvitesPreview(inviteId) {
+export async function renderWebInvitesPreview(explicitWeddingId = null, explicitVariantId = null) {
     await Promise.all([
         loadCSS('web-invite-splash-styles', '/global/css/splash.css'),
         loadCSS('web-invite-base-styles', '/global/css/invite.css'),
         loadScript('swal-cdn-script', 'https://cdn.jsdelivr.net/npm/sweetalert2@11')
     ]);
+
+    let weddingId = explicitWeddingId;
+    let variantId = explicitVariantId;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashSplit = window.location.hash.split('?');
+    const hashParams = hashSplit.length > 1 ? new URLSearchParams(hashSplit[1]) : new URLSearchParams();
+
+    if (!weddingId) {
+        weddingId = hashParams.get('id') || hashParams.get('wedding_id') || urlParams.get('id') || urlParams.get('wedding_id');
+    }
+    if (!variantId) {
+        variantId = hashParams.get('variant_id') || hashParams.get('variant') || urlParams.get('variant_id') || urlParams.get('variant');
+    }
 
     document.body.innerHTML = `
         <div class="bg-image"></div>
@@ -746,7 +767,7 @@ export async function renderWebInvitesPreview(inviteId) {
         <audio id="bgMusic" src="/global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
     `;
 
-    initDynamicInvite(inviteId);
+    initDynamicInvite(weddingId, variantId);
     setTimeout(initParticles, 100);
 
     const seal = document.getElementById("seal-container");

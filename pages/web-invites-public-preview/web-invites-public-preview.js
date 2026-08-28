@@ -111,22 +111,37 @@ async function initPublicVariantInvite(weddingId, variantId = null) {
     const dashboardWeddingsUrl = '#weddings'; 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+    // Validate Wedding ID Parameter
     if (!weddingId || (!uuidRegex.test(weddingId) && weddingId !== '00000000-0000-0000-0000-000000000000')) {
         showSwalError("Invalid Link", "The invitation link is broken or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
         return;
     }
 
     try {
-        let variant = null;
-        if (variantId && uuidRegex.test(variantId)) {
-            const { data: vData } = await supabase.from('invite_variants').select('*').eq('id', variantId).maybeSingle();
-            variant = vData;
-        }
-
         const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', weddingId).maybeSingle();
         if (wErr || !wedding) {
             showSwalError("Error", "Incorrect wedding details. Please contact Admin.", "Go Back to Weddings", dashboardWeddingsUrl);
             return;
+        }
+
+        const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+        const allowsVariants = isWebInviteOnly ? (wedding.allow_variants !== false) : true;
+
+        let variant = null;
+
+        // Strict Variant Parameter Validation
+        if (allowsVariants) {
+            if (!variantId || !uuidRegex.test(variantId)) {
+                showSwalError("Invalid Link", "The invite variant is missing or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
+                return;
+            }
+
+            const { data: vData, error: vErr } = await supabase.from('invite_variants').select('*').eq('id', variantId).eq('wedding_id', wedding.id).maybeSingle();
+            if (vErr || !vData) {
+                showSwalError("Invalid Variant", "The requested invite variant does not exist.", "Go Back to Weddings", dashboardWeddingsUrl);
+                return;
+            }
+            variant = vData;
         }
 
         const { data: inviteDetails, error: iErr } = await supabase.from('wedding_web_invite').select('*').eq('wedding_id', wedding.id).maybeSingle();
@@ -179,7 +194,7 @@ async function initPublicVariantInvite(weddingId, variantId = null) {
 
         let eventsQuery = supabase.from('wedding_events').select('*').eq('wedding_id', wedding.id).order('date', { ascending: true }).order('time', { ascending: true });
         
-        if (variant && variant.selected_event_ids && variant.selected_event_ids.length > 0) {
+        if (allowsVariants && variant && variant.selected_event_ids && variant.selected_event_ids.length > 0) {
             eventsQuery = eventsQuery.in('id', variant.selected_event_ids);
         }
 

@@ -12,12 +12,18 @@ export const ENV = {
     isProd: window.location.hostname === 'shaadi-saathi.pages.dev' || (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1') && !window.location.hostname.includes('development.'))
 };
 
-export function getWebInvitePreviewUrl(inviteId) {
+export function getWebInvitePreviewUrl(inviteId, variantId = null) {
     if (!inviteId) return '#';
-    if (ENV.isLocal) {
-        return `${window.location.origin}/#web-invites-preview?id=${encodeURIComponent(inviteId)}`;
+
+    let queryParams = `id=${encodeURIComponent(inviteId)}`;
+    if (variantId) {
+        queryParams += `&variant_id=${encodeURIComponent(variantId)}`;
     }
-    return `${window.location.origin}/web-invites-preview-functions?id=${encodeURIComponent(inviteId)}`;
+
+    if (ENV.isLocal) {
+        return `${window.location.origin}/#web-invites-preview?${queryParams}`;
+    }
+    return `${window.location.origin}/web-invites-preview-functions?${queryParams}`;
 }
 
 export function getWebInvitePublicPreviewUrl(weddingId, variantId = null) {

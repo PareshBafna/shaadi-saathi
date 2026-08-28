@@ -172,10 +172,37 @@ function renderInviteGalleries(container, invites) {
     });
 
     container.querySelectorAll('.web-invite-open-links-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const weddingId = btn.getAttribute('data-wedding-id');
             const weddingTitle = btn.getAttribute('data-wedding-title');
+
+            const curUser = window.currentUser || { role: 'guest' };
+
+            // If user is a guest, directly route to preview/public-preview
+            if (curUser.role === 'guest') {
+                const { data: wData } = await supabase.from('weddings').select('invitation_type, allow_variants').eq('id', weddingId).single();
+                const isWebInviteOnly = wData?.invitation_type === 'web_invite_only';
+                const allowsVariants = isWebInviteOnly ? (wData?.allow_variants !== false) : true;
+
+                let targetUrl = '';
+                if (isWebInviteOnly) {
+                    if (allowsVariants) {
+                        const { data: vList } = await supabase.from('invite_variants').select('id').eq('wedding_id', weddingId).order('created_at', { ascending: true }).limit(1);
+                        targetUrl = getWebInvitePublicPreviewUrl(weddingId, vList?.[0]?.id || null);
+                    } else {
+                        targetUrl = getWebInvitePublicPreviewUrl(weddingId);
+                    }
+                } else {
+                    // Full wedding & Full wedding (self) always route to preview with variant_id
+                    const { data: vList } = await supabase.from('invite_variants').select('id').eq('wedding_id', weddingId).order('created_at', { ascending: true }).limit(1);
+                    targetUrl = getWebInvitePreviewUrl(weddingId, vList?.[0]?.id || null);
+                }
+
+                window.open(targetUrl, '_blank');
+                return;
+            }
+
             showWeddingVariantsModal(weddingId, weddingTitle);
         });
     });
@@ -303,6 +330,15 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
     const isWebInviteOnly = wedding?.invitation_type === 'web_invite_only';
     const allowsVariants = isWebInviteOnly ? (wedding?.allow_variants !== false) : true;
 
+    const getPreviewUrl = (variantId) => {
+        if (isWebInviteOnly) {
+            return allowsVariants 
+                ? getWebInvitePublicPreviewUrl(weddingId, variantId) 
+                : getWebInvitePublicPreviewUrl(weddingId);
+        }
+        return getWebInvitePreviewUrl(weddingId, variantId);
+    };
+
     let rowsHTML = '';
 
     const btnStyle = "background: var(--color-primary, #facc15) !important; color: #1c1917 !important; border: none !important; outline: none !important; font-weight: 600 !important; font-size: 0.8rem !important; padding: 0.5rem 0.85rem !important; border-radius: 4px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important; text-decoration: none !important; cursor: pointer !important; box-shadow: none !important; flex: 1 1 0;";
@@ -325,14 +361,14 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
     `;
 
     if (isWebInviteOnly && !allowsVariants) {
-        const directUrl = getWebInvitePublicPreviewUrl(weddingId);
+        const directUrl = getPreviewUrl();
         const eventCount = (allEvents || []).length;
         rowsHTML = buildVariantRowHTML("All Events", `${eventCount} event(s) included`, directUrl);
     } else if (!variants || variants.length === 0) {
-        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet.</div>`;
+        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Wedding Details page.</div>`;
     } else {
         rowsHTML = variants.map(v => {
-            const variantUrl = getWebInvitePublicPreviewUrl(weddingId, v.id);
+            const variantUrl = getPreviewUrl(v.id);
             const count = v.selected_event_ids?.length || 0;
             return buildVariantRowHTML(v.variant_name, `${count} event(s) included`, variantUrl);
         }).join('');
