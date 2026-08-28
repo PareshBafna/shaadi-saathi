@@ -277,7 +277,8 @@ function buildSpecificHeader(wedding, hasWebInvite = true, variants = []) {
     const leftSide = document.createElement("div");
     leftSide.className = "wedding-details-header__left";
     
-    const displayNames = wedding.primary_side === 'groom' 
+    const isGroom = (wedding.primary_side || '').toString().toLowerCase().includes('groom');
+    const displayNames = isGroom 
         ? `${wedding.groom_name} & ${wedding.bride_name}` 
         : `${wedding.bride_name} & ${wedding.groom_name}`;
 
@@ -317,30 +318,10 @@ function buildSpecificHeader(wedding, hasWebInvite = true, variants = []) {
 
     let webInviteHTML = '';
     if (hasWebInvite || wedding.id === '00000000-0000-0000-0000-000000000000') {
-        const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
-        const allowsVariants = isWebInviteOnly ? (wedding.allow_variants !== false) : true;
-        const firstVariant = (variants && variants.length > 0) ? variants[0] : null;
-
-        let inviteUrl = getWebInvitePreviewUrl(wedding.id);
-        
-        if (isWebInviteOnly) {
-            if (allowsVariants) {
-                inviteUrl = firstVariant 
-                    ? getWebInvitePublicPreviewUrl(wedding.id, firstVariant.id) 
-                    : `javascript:void(0);`;
-            } else {
-                inviteUrl = getWebInvitePublicPreviewUrl(wedding.id);
-            }
-        }
-
-        if (wedding.id === '00000000-0000-0000-0000-000000000000') {
-            inviteUrl = getSampleWebInvitePreviewUrl('sample-upcoming');
-        }
-
         webInviteHTML = `
-            <a href="${inviteUrl}" ${isWebInviteOnly && allowsVariants && !firstVariant ? `onclick="showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Variants section.'); return false;"` : 'target="_blank"'} class="wedding-details-header__invite-btn">
+            <button type="button" id="details-header-invite-btn" class="wedding-details-header__invite-btn" style="border: none; outline: none; box-shadow: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
                 <i data-lucide="external-link"></i> Wedding Invitation
-            </a>`;
+            </button>`;
     }
 
     rightSide.innerHTML = `
@@ -350,8 +331,99 @@ function buildSpecificHeader(wedding, hasWebInvite = true, variants = []) {
 
     header.appendChild(leftSide);
     header.appendChild(rightSide);
+
+    setTimeout(() => {
+        const headerInviteBtn = header.querySelector('#details-header-invite-btn');
+        if (headerInviteBtn) {
+            headerInviteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showWeddingVariantsModal(wedding.id, displayNames);
+            });
+        }
+    }, 0);
     
     return header;
+}
+
+async function showWeddingVariantsModal(weddingId, weddingTitle) {
+    const [{ data: wedding }, { data: variants }, { data: allEvents }] = await Promise.all([
+        supabase.from('weddings').select('invitation_type, allow_variants').eq('id', weddingId).single(),
+        supabase.from('invite_variants').select('*').eq('wedding_id', weddingId).order('created_at', { ascending: false }),
+        supabase.from('wedding_events').select('id, event_name, title').eq('wedding_id', weddingId)
+    ]);
+
+    const isWebInviteOnly = wedding?.invitation_type === 'web_invite_only';
+    const allowsVariants = isWebInviteOnly ? (wedding?.allow_variants !== false) : true;
+
+    let rowsHTML = '';
+
+    const btnStyle = "background: var(--color-primary, #facc15) !important; color: #1c1917 !important; border: none !important; outline: none !important; font-weight: 600 !important; font-size: 0.8rem !important; padding: 0.45rem 0.85rem !important; border-radius: 4px !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; text-decoration: none !important; cursor: pointer !important; box-shadow: none !important;";
+
+    const buildVariantRowHTML = (title, countText, url) => `
+        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 12px 14px; border-radius: 6px; margin-bottom: 10px; gap: 12px;">
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 0.95rem; color: var(--color-text-primary, #ffffff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${title}</div>
+                <div style="font-size: 0.75rem; color: var(--color-text-muted, #94a3b8); margin-top: 2px;">${countText}</div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+                <a href="${url}" target="_blank" style="${btnStyle}" title="Open Web Invite">
+                    <i data-lucide="external-link" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Web Invite
+                </a>
+                <button class="dash-copy-variant-btn" data-url="${url}" style="${btnStyle}" title="Copy Link" type="button">
+                    <i data-lucide="link" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Copy
+                </button>
+            </div>
+        </div>
+    `;
+
+    if (isWebInviteOnly && !allowsVariants) {
+        const directUrl = getWebInvitePublicPreviewUrl(weddingId);
+        const eventCount = (allEvents || []).length;
+        rowsHTML = buildVariantRowHTML("All Events", `${eventCount} event(s) included`, directUrl);
+    } else if (!variants || variants.length === 0) {
+        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Variants section.</div>`;
+    } else {
+        rowsHTML = variants.map(v => {
+            const variantUrl = getWebInvitePublicPreviewUrl(weddingId, v.id);
+            const count = v.selected_event_ids?.length || 0;
+            return buildVariantRowHTML(v.variant_name, `${count} event(s) included`, variantUrl);
+        }).join('');
+    }
+
+    const contentHTML = `
+        <div style="display: flex; flex-direction: column; gap: 12px; font-family: inherit;">
+            <div id="dashVariantsListContainer">
+                ${rowsHTML}
+            </div>
+        </div>
+    `;
+
+    openModal({
+        title: `Invite Links - ${weddingTitle}`,
+        content: contentHTML,
+        actions: [
+            { label: "Cancel", variant: "ghost" }
+        ]
+    });
+
+    setTimeout(() => {
+        const allBtns = Array.from(document.querySelectorAll('button'));
+        const cancelBtn = allBtns.find(b => b.textContent.trim() === 'Cancel');
+        if (cancelBtn) {
+            cancelBtn.classList.add('modal-btn-cancel');
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+
+        document.querySelectorAll('.dash-copy-variant-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const url = btn.getAttribute('data-url');
+                navigator.clipboard.writeText(url);
+                showSweetAlert('success', 'Copied!', 'Invite link copied to clipboard.');
+            });
+        });
+    }, 50);
 }
 
 // ==========================================
