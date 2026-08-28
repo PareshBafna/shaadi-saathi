@@ -247,9 +247,10 @@ function buildWeddingListSection(title, weddingsList) {
     const container = document.createElement("div");
     container.className = "dashboard-section";
 
+    const count = (weddingsList || []).length;
     const heading = document.createElement("h2");
     heading.className = "dashboard-section__heading";
-    heading.textContent = title;
+    heading.textContent = `${title} (${count})`;
     container.appendChild(heading);
 
     if (!weddingsList || weddingsList.length === 0) {
@@ -322,34 +323,13 @@ function buildWeddingListSection(title, weddingsList) {
 
             let webInviteHTML = '';
             if (hasWebInvite) {
-                const firstVariant = (wedding.variants && wedding.variants.length > 0) ? wedding.variants[0] : null;
-                let inviteUrl = getWebInvitePreviewUrl(wedding.id);
-
-                if (isWebInviteOnly) {
-                    if (allowsVariants) {
-                        inviteUrl = firstVariant ? getWebInvitePublicPreviewUrl(wedding.id, firstVariant.id) : `javascript:void(0);`;
-                    } else {
-                        inviteUrl = getWebInvitePublicPreviewUrl(wedding.id);
-                    }
-                }
-
-                if (wedding.id === '00000000-0000-0000-0000-000000000000') {
-                    inviteUrl = getSampleWebInvitePreviewUrl('sample-upcoming');
-                }
-
                 webInviteHTML = `
                 <div class="dashboard-wedding-card__invite-wrap">
-                    <a href="${inviteUrl}" ${isWebInviteOnly && allowsVariants && !firstVariant ? `onclick="event.stopPropagation(); showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Wedding Details page.'); return false;"` : 'target="_blank"'} class="dashboard-wedding-card__invite-btn" onclick="event.stopPropagation();">
+                    <button type="button" class="dashboard-wedding-card__invite-btn dashboard-open-invite-links-btn" data-wedding-id="${wedding.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" style="border: none; outline: none; box-shadow: none; cursor: pointer;">
                         <i data-lucide="external-link"></i> Wedding Invitation
-                    </a>
+                    </button>
                 </div>`;
             }
-
-            const variantsBadgeIcon = hasWebInvite ? `
-                <button class="dashboard-wedding-card__icon-badge dashboard-wedding-card__web-badge" data-wedding-id="${wedding.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" title="View Links" type="button">
-                    <i data-lucide="mail"></i>
-                </button>
-            ` : '';
 
             const cardEl = document.createElement("div");
             cardEl.className = "dashboard-wedding-card";
@@ -366,7 +346,6 @@ function buildWeddingListSection(title, weddingsList) {
                             <p class="dashboard-wedding-card__dates"><i data-lucide="calendar"></i> ${formatWeddingDateRange(wedding.start_date, wedding.end_date)}</p>
                         </div>
                     </div>
-                    ${variantsBadgeIcon}
                 </div>
                 
                 <div class="dashboard-wedding-card__details">
@@ -393,12 +372,12 @@ function buildWeddingListSection(title, weddingsList) {
 
             cardEl.innerHTML = cardHTML;
 
-            const webBadgeBtn = cardEl.querySelector('.dashboard-wedding-card__web-badge');
-            if (webBadgeBtn) {
-                webBadgeBtn.addEventListener('click', (e) => {
+            const inviteBtn = cardEl.querySelector('.dashboard-open-invite-links-btn');
+            if (inviteBtn) {
+                inviteBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const wId = webBadgeBtn.getAttribute('data-wedding-id');
-                    const wTitle = webBadgeBtn.getAttribute('data-wedding-title');
+                    const wId = inviteBtn.getAttribute('data-wedding-id');
+                    const wTitle = inviteBtn.getAttribute('data-wedding-title');
                     showWeddingVariantsModal(wId, wTitle);
                 });
             }
@@ -426,51 +405,40 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
     ]);
 
     const isWebInviteOnly = wedding?.invitation_type === 'web_invite_only';
-    const allowsVariants = wedding?.allow_variants !== false;
+    const allowsVariants = isWebInviteOnly ? (wedding?.allow_variants !== false) : true;
 
     let rowsHTML = '';
+
+    const btnStyle = "background: var(--color-primary, #facc15) !important; color: #1c1917 !important; border: none !important; outline: none !important; font-weight: 600 !important; font-size: 0.8rem !important; padding: 0.45rem 0.85rem !important; border-radius: 4px !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; text-decoration: none !important; cursor: pointer !important; box-shadow: none !important;";
+
+    const buildVariantRowHTML = (title, countText, url) => `
+        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 12px 14px; border-radius: 6px; margin-bottom: 10px; gap: 12px;">
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 0.95rem; color: var(--color-text-primary, #ffffff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${title}</div>
+                <div style="font-size: 0.75rem; color: var(--color-text-muted, #94a3b8); margin-top: 2px;">${countText}</div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+                <a href="${url}" target="_blank" style="${btnStyle}" title="Open Web Invite">
+                    <i data-lucide="external-link" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Web Invite
+                </a>
+                <button class="dash-copy-variant-btn" data-url="${url}" style="${btnStyle}" title="Copy Link" type="button">
+                    <i data-lucide="link" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Copy
+                </button>
+            </div>
+        </div>
+    `;
 
     if (isWebInviteOnly && !allowsVariants) {
         const directUrl = getWebInvitePublicPreviewUrl(weddingId);
         const eventCount = (allEvents || []).length;
-        rowsHTML = `
-            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 10px 14px; border-radius: 6px; margin-bottom: 8px;">
-                <div>
-                    <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-text-primary, #ffffff);">All Events</div>
-                    <div style="font-size: 0.75rem; color: var(--color-text-muted, #94a3b8);">${eventCount} event(s) included</div>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <a href="${directUrl}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 6px 10px; border-radius: 4px; text-decoration: none;" title="Open Link">
-                        <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
-                    </a>
-                    <button class="dash-copy-variant-btn" data-url="${directUrl}" style="background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Copy Link" type="button">
-                        <i data-lucide="link" style="width: 14px; height: 14px;"></i>
-                    </button>
-                </div>
-            </div>
-        `;
+        rowsHTML = buildVariantRowHTML("All Events", `${eventCount} event(s) included`, directUrl);
     } else if (!variants || variants.length === 0) {
         rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Wedding Details page.</div>`;
     } else {
         rowsHTML = variants.map(v => {
             const variantUrl = getWebInvitePublicPreviewUrl(weddingId, v.id);
             const count = v.selected_event_ids?.length || 0;
-            return `
-                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 10px 14px; border-radius: 6px; margin-bottom: 8px;">
-                    <div>
-                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-text-primary, #ffffff);">${v.variant_name}</div>
-                        <div style="font-size: 0.75rem; color: var(--color-text-muted, #94a3b8);">${count} event(s) included</div>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <a href="${variantUrl}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 6px 10px; border-radius: 4px; text-decoration: none;" title="Open Link">
-                            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
-                        </a>
-                        <button class="dash-copy-variant-btn" data-url="${variantUrl}" style="background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Copy Link" type="button">
-                            <i data-lucide="link" style="width: 14px; height: 14px;"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
+            return buildVariantRowHTML(v.variant_name, `${count} event(s) included`, variantUrl);
         }).join('');
     }
 
