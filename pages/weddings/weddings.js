@@ -230,15 +230,15 @@ async function loadWeddingsData(container) {
             const canViewAll = isCreator || isHost || isWUser;
 
             if (!canViewAll) {
-                const { data: weddingGuests } = await supabase.from('guests').select('id, phone').eq('wedding_id', wedding.id);
+                const { data: weddingGuests } = await supabase.from('guests').select('id, phone, variant_id').eq('wedding_id', wedding.id);
                 const guestData = (weddingGuests || []).find(g => {
                      const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
                      return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
                 });
 
-                if (guestData) {
-                    const { data: eventGuests } = await supabase.from('event_guests').select('event_id').eq('guest_id', guestData.id);
-                    const invitedEventIds = eventGuests ? eventGuests.map(eg => eg.event_id) : [];
+                if (guestData && guestData.variant_id) {
+                    const assignedVariant = wedding.variants.find(v => v.id === guestData.variant_id);
+                    const invitedEventIds = assignedVariant?.selected_event_ids || [];
                     if (invitedEventIds.length > 0) {
                         eventsQuery = eventsQuery.in('id', invitedEventIds);
                     } else {
@@ -336,21 +336,26 @@ function filterAndRenderGalleries() {
             const curUser = window.currentUser || { role: 'guest' };
 
             if (curUser.role === 'guest') {
-                const { data: wData } = await supabase.from('weddings').select('invitation_type, allow_variants').eq('id', weddingId).single();
+                const [{ data: wData }, { data: guests }] = await Promise.all([
+                    supabase.from('weddings').select('invitation_type, allow_variants').eq('id', weddingId).single(),
+                    supabase.from('guests').select('variant_id, phone').eq('wedding_id', weddingId)
+                ]);
+
+                const cleanPhone = (p) => (p || '').replace(/[^0-9]/g, '').slice(-10);
+                const curUserClean = cleanPhone(curUser.phone);
+                const guestRecord = (guests || []).find(g => cleanPhone(g.phone) === curUserClean);
+                const guestVariantId = guestRecord?.variant_id || null;
+
                 const isWebInviteOnly = wData?.invitation_type === 'web_invite_only';
                 const allowsVariants = isWebInviteOnly ? (wData?.allow_variants !== false) : true;
 
                 let targetUrl = '';
                 if (isWebInviteOnly) {
-                    if (allowsVariants) {
-                        const { data: vList } = await supabase.from('invite_variants').select('id').eq('wedding_id', weddingId).order('created_at', { ascending: true }).limit(1);
-                        targetUrl = getWebInvitePublicPreviewUrl(weddingId, vList?.[0]?.id);
-                    } else {
-                        targetUrl = getWebInvitePublicPreviewUrl(weddingId);
-                    }
+                    targetUrl = allowsVariants && guestVariantId
+                        ? getWebInvitePublicPreviewUrl(weddingId, guestVariantId)
+                        : getWebInvitePublicPreviewUrl(weddingId);
                 } else {
-                    const { data: vList } = await supabase.from('invite_variants').select('id').eq('wedding_id', weddingId).order('created_at', { ascending: true }).limit(1);
-                    targetUrl = getWebInvitePreviewUrl(weddingId, vList?.[0]?.id);
+                    targetUrl = getWebInvitePreviewUrl(weddingId, guestVariantId);
                 }
 
                 window.open(targetUrl, '_blank');

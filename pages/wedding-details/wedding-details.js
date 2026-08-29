@@ -340,20 +340,23 @@ function buildSpecificHeader(wedding, hasWebInvite = true, variants = []) {
                 const curUser = window.currentUser || { role: 'guest' };
 
                 if (curUser.role === 'guest') {
+                    const { data: guests } = await supabase.from('guests').select('variant_id, phone').eq('wedding_id', wedding.id);
+
+                    const cleanPhone = (p) => (p || '').replace(/[^0-9]/g, '').slice(-10);
+                    const curUserClean = cleanPhone(curUser.phone);
+                    const guestRecord = (guests || []).find(g => cleanPhone(g.phone) === curUserClean);
+                    const guestVariantId = guestRecord?.variant_id || null;
+
                     const isWebInviteOnly = wedding?.invitation_type === 'web_invite_only';
                     const allowsVariants = isWebInviteOnly ? (wedding?.allow_variants !== false) : true;
 
                     let targetUrl = '';
                     if (isWebInviteOnly) {
-                        if (allowsVariants) {
-                            const firstVariantId = variants?.[0]?.id;
-                            targetUrl = getWebInvitePublicPreviewUrl(wedding.id, firstVariantId);
-                        } else {
-                            targetUrl = getWebInvitePublicPreviewUrl(wedding.id);
-                        }
+                        targetUrl = allowsVariants && guestVariantId
+                            ? getWebInvitePublicPreviewUrl(wedding.id, guestVariantId)
+                            : getWebInvitePublicPreviewUrl(wedding.id);
                     } else {
-                        const firstVariantId = variants?.[0]?.id;
-                        targetUrl = getWebInvitePreviewUrl(wedding.id, firstVariantId);
+                        targetUrl = getWebInvitePreviewUrl(wedding.id, guestVariantId);
                     }
 
                     window.open(targetUrl, '_blank');

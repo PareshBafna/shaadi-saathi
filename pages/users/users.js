@@ -511,7 +511,6 @@ window.openUserModal = async function(userOrId = null) {
                                 }).map(g => g.id);
 
                                 if (matchingGuestIds.length > 0) {
-                                    await supabase.from('event_guests').delete().in('guest_id', matchingGuestIds);
                                     await supabase.from('guests').delete().in('id', matchingGuestIds);
                                 }
                             }
