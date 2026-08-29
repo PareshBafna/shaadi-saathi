@@ -374,11 +374,18 @@ function renderFilteredEvents() {
             filterEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
             titleText = 'Events for This Month';
         } else if (activeFilter === 'all-events') {
+            filterStart = new Date(now);
+            filterEnd = null; // No upper limit for future events
             titleText = 'All Scheduled Events';
         }
 
         if (activeFilter === 'all-events') {
-            displayEvents = [...allEvents];
+            // Only show events from today onwards
+            displayEvents = allEvents.filter(e => {
+                const ed = new Date(e.date || e.start_time);
+                ed.setHours(0, 0, 0, 0);
+                return ed >= filterStart;
+            });
         } else {
             displayEvents = allEvents.filter(e => {
                 const ed = new Date(e.date || e.start_time);
@@ -419,7 +426,7 @@ function renderFilteredEvents() {
     `;
 
     if (displayEvents.length === 0) {
-        html += `<div class="calendar-empty-state">No events scheduled.</div>`;
+        html += `<div class="calendar-empty-state">No upcoming events scheduled.</div>`;
     } else {
         const groupedByDate = displayEvents.reduce((acc, ev) => {
             const dateObj = new Date(ev.date || ev.start_time);
