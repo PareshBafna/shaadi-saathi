@@ -400,7 +400,7 @@ function renderFilteredEvents() {
             const ed = new Date(e.date || e.start_time);
             return ed.toDateString() === selectedDate.toDateString();
         });
-        titleHTML = `Events for ${selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`;
+        titleHTML = `${selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`;
     } else {
         listContainer.innerHTML = '';
         return;
