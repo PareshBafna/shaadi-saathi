@@ -109,36 +109,47 @@ const showSwalError = async (title, text, confirmBtnText = "Go Back", redirectUr
 
 async function initPublicVariantInvite(weddingId, variantId = null) {
     const dashboardWeddingsUrl = '#weddings'; 
+    const genericErrorMessage = "The wedding link parameter is missing or invalid";
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-    // Validate Wedding ID Parameter
+    // 1. Validate ID parameter: not empty and valid UUID format[cite: 8]
     if (!weddingId || (!uuidRegex.test(weddingId) && weddingId !== '00000000-0000-0000-0000-000000000000')) {
-        showSwalError("Invalid Link", "The invitation link is broken or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
+        showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
         return;
     }
 
     try {
         const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', weddingId).maybeSingle();
         if (wErr || !wedding) {
-            showSwalError("Error", "Incorrect wedding details. Please contact Admin.", "Go Back to Weddings", dashboardWeddingsUrl);
+            showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
             return;
         }
 
-        const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
-        const allowsVariants = isWebInviteOnly ? (wedding.allow_variants !== false) : true;
+        // 2. Validate invitation type: must be 'web_invite_only'
+        if (wedding.invitation_type !== 'web_invite_only') {
+            showSwalError("Invalid Link", "The invitation is not available for this wedding.", "Go Back to Weddings", dashboardWeddingsUrl);
+            return;
+        }
 
+        const allowsVariants = wedding.allow_variants !== false;
         let variant = null;
 
-        // Strict Variant Parameter Validation
+        // 3. Variant parameter validation: only when allow_variants is YES (true)
         if (allowsVariants) {
             if (!variantId || !uuidRegex.test(variantId)) {
-                showSwalError("Invalid Link", "The invite variant is missing or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
+                showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
                 return;
             }
 
-            const { data: vData, error: vErr } = await supabase.from('invite_variants').select('*').eq('id', variantId).eq('wedding_id', wedding.id).maybeSingle();
+            const { data: vData, error: vErr } = await supabase
+                .from('invite_variants')
+                .select('*')
+                .eq('id', variantId)
+                .eq('wedding_id', wedding.id)
+                .maybeSingle();
+
             if (vErr || !vData) {
-                showSwalError("Invalid Variant", "The requested invite variant does not exist.", "Go Back to Weddings", dashboardWeddingsUrl);
+                showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
                 return;
             }
             variant = vData;
@@ -146,7 +157,7 @@ async function initPublicVariantInvite(weddingId, variantId = null) {
 
         const { data: inviteDetails, error: iErr } = await supabase.from('wedding_web_invite').select('*').eq('wedding_id', wedding.id).maybeSingle();
         if (iErr || !inviteDetails) {
-            showSwalError("Error", "Incorrect web invite configuration.", "Go Back to Weddings", dashboardWeddingsUrl);
+            showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
             return;
         }
 
@@ -281,7 +292,7 @@ async function initPublicVariantInvite(weddingId, variantId = null) {
 
     } catch (err) {
         console.error("Error loading public variant invite:", err);
-        showSwalError("Error", err?.message || "An unexpected error occurred.", "Go Back to Weddings", dashboardWeddingsUrl);
+        showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
     }
 }
 

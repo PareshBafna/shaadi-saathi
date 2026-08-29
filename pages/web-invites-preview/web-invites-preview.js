@@ -111,6 +111,7 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
     const loginRedirectUrl = '#login';
     const dashboardWeddingsUrl = '#weddings'; 
 
+    // 1. Validate ss_user_id from localStorage
     const ssUserId = localStorage.getItem('ss_user_id');
     if (!ssUserId) {
         showSwalError("Authentication Required", "Please log in to view this invitation.", "Go Back To Login", loginRedirectUrl);
@@ -118,37 +119,62 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
     }
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    
-    // Validate ID Parameter
+
+    // 2. Validate id and variant_id parameters are not empty and valid
     if (!inviteId || (!uuidRegex.test(inviteId) && inviteId !== '00000000-0000-0000-0000-000000000000')) {
-        showSwalError("Invalid Link", "The wedding link is broken or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
+        showSwalError("Invalid Link", "The wedding link parameter is missing or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
+        return;
+    }
+
+    if (!targetVariantId || !uuidRegex.test(targetVariantId)) {
+        showSwalError("Invalid Link", "The invite variant parameter is missing or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
         return;
     }
 
     try {
+        // 3. Validate ss_user_id in database
         const { data: curUser, error: userErr } = await supabase.from('users').select('*').eq('id', ssUserId).maybeSingle();
         if (userErr || !curUser) {
             showSwalError("Authentication Required", "User session not found. Please log in again.", "Go Back To Login", loginRedirectUrl);
             return;
         }
 
+        // 4. Validate wedding id exists in database
         const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', inviteId).maybeSingle();
         if (wErr || !wedding) {
             showSwalError("Error", "Incorrect wedding details. Please contact Admin.", "Go Back to Weddings", dashboardWeddingsUrl);
             return;
         }
 
+        // Check if the invitation type is web_invite_only
+        if (wedding.invitation_type === 'web_invite_only') {
+            showSwalError("Invalid Invitation", "The invitation is not available for this wedding.", "Go Back to Weddings", dashboardWeddingsUrl);
+            return;
+        }
+
+        // 5. Validate both id and variant_id combination exists in database
+        const { data: variantData, error: variantErr } = await supabase
+            .from('invite_variants')
+            .select('*')
+            .eq('id', targetVariantId)
+            .eq('wedding_id', wedding.id)
+            .maybeSingle();
+
+        if (variantErr || !variantData) {
+            showSwalError("Invalid Variant", "The requested invite variant does not exist for this wedding.", "Go Back to Weddings", dashboardWeddingsUrl);
+            return;
+        }
+
+        // 6. User Wedding Check
         const { data: rawHosts } = await supabase.from('wedding_hosts').select('user_id').eq('wedding_id', wedding.id);
         const { data: rawWUsers } = await supabase.from('wedding_users').select('user_id').eq('wedding_id', wedding.id);
 
         const isCreator = wedding.user_id === curUser.id || curUser.role === 'creator';
         const isHost = (rawHosts || []).some(h => h.user_id === curUser.id);
         const isWeddingUser = (rawWUsers || []).some(w => w.user_id === curUser.id);
-        const canViewAll = isCreator || isHost || isWeddingUser;
+        const isPrivilegedUser = isCreator || isHost || isWeddingUser;
 
-        let activeVariantId = targetVariantId;
-
-        if (!canViewAll) {
+        if (!isPrivilegedUser) {
             const { data: guests } = await supabase.from('guests').select('*').eq('wedding_id', wedding.id);
             const cleanPhone = (p) => (p || '').replace(/[^0-9]/g, '').slice(-10);
             const curUserClean = cleanPhone(curUser.phone);
@@ -159,24 +185,20 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
                     "Not Invited", 
                     "Your account is not registered on the guest list for this wedding. Please contact the host if you believe this is a mistake.",
                     "Go Back to Weddings",
-                    "#weddings"
+                    dashboardWeddingsUrl
                 );
                 return;
             }
 
-            activeVariantId = currentGuest.variant_id || activeVariantId;
-        }
-
-        // Full Wedding and Full Wedding (Self) ALWAYS require a valid variant_id
-        if (!activeVariantId || !uuidRegex.test(activeVariantId)) {
-            showSwalError("Invalid Link", "The invite variant is missing or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
-            return;
-        }
-
-        const { data: variantData, error: variantErr } = await supabase.from('invite_variants').select('*').eq('id', activeVariantId).eq('wedding_id', wedding.id).maybeSingle();
-        if (variantErr || !variantData) {
-            showSwalError("Invalid Variant", "The requested invite variant does not exist.", "Go Back to Weddings", dashboardWeddingsUrl);
-            return;
+            if (currentGuest.variant_id !== targetVariantId) {
+                showSwalError(
+                    "Access Denied", 
+                    "You do not have access to this specific invitation link variant.",
+                    "Go Back to Weddings",
+                    dashboardWeddingsUrl
+                );
+                return;
+            }
         }
 
         const { data: inviteDetails, error: iErr } = await supabase.from('wedding_web_invite').select('*').eq('wedding_id', wedding.id).maybeSingle();
@@ -230,7 +252,7 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
         const { data: allEvents } = await supabase.from('wedding_events').select('*').eq('wedding_id', wedding.id).order('date', { ascending: true }).order('time', { ascending: true });
         
         let filteredEvents = [];
-        if (variantData.selected_event_ids?.length > 0) {
+        if (variantData.selected_event_ids && variantData.selected_event_ids.length > 0) {
             filteredEvents = (allEvents || []).filter(e => variantData.selected_event_ids.includes(e.id));
         } else {
             filteredEvents = allEvents || [];
@@ -316,7 +338,7 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
 
     } catch (err) {
         console.error("Error loading invite:", err);
-        showSwalError("Error", err?.message || "An unexpected error occurred.", "Go Back to Weddings", "#weddings");
+        showSwalError("Error", err?.message || "An unexpected error occurred.", "Go Back to Weddings", dashboardWeddingsUrl);
     }
 }
 
