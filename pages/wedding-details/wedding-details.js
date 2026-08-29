@@ -848,13 +848,16 @@ function buildVariantsSection(wedding, variants, allEvents = [], guests = [], ca
 
             const eventsDisplay = eventNames || `<span style="font-size: 0.8rem; color: var(--color-text-muted); font-style: italic;">All Wedding Events</span>`;
 
+            // Hide the guest count badge and "Assign Guests" button if web_invite_only
+            const showGuestFeatures = canConfig && !isWebInviteOnly;
+
             html += `
                 <div class="variant-card">
                     <div>
                         <div class="variant-card__header">
                             <div>
                                 <h4 class="variant-card__title">${v.variant_name}</h4>
-                                <div class="variant-card__count-badge">${assignedGuests.length} guest(s) assigned</div>
+                                ${!isWebInviteOnly ? `<div class="variant-card__count-badge">${assignedGuests.length} guest(s) assigned</div>` : ''}
                             </div>
                             ${canConfig ? `
                                 <button class="edit-variant-btn wedding-details-icon-btn" data-id="${v.id}" title="Edit Variant">
@@ -868,7 +871,7 @@ function buildVariantsSection(wedding, variants, allEvents = [], guests = [], ca
                         </div>
                     </div>
                     <div class="variant-card__actions" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding-top: 12px; margin-top: 6px; border-top: 1px solid var(--color-border, #292524);">
-                        ${canConfig ? `
+                        ${showGuestFeatures ? `
                             <button class="assign-variant-btn wedding-action-btn-primary" data-id="${v.id}" data-name="${v.variant_name.replace(/"/g, '&quot;')}" style="padding: 0.45rem 0.75rem; font-size: 0.8rem; white-space: nowrap; flex: 1 1 auto; justify-content: center;">
                                 <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i> Assign Guests
                             </button>
