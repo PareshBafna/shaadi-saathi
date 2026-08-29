@@ -8,6 +8,53 @@ let activeFilter = 'all-events';
 let currentDate = new Date();
 let selectedDate = null;
 
+function downloadAllEventsICS(events, weddings) {
+    if (!events || events.length === 0) return;
+
+    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Shaadi Saathi//My Calendar Events//EN\n";
+
+    events.forEach(ev => {
+        const startDate = new Date(`${ev.date}T${ev.time || '00:00'}`);
+        if (isNaN(startDate.getTime())) return; 
+
+        const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); 
+
+        const formatICSDate = (d) => {
+            return d.getFullYear().toString() +
+                   (d.getMonth() + 1).toString().padStart(2, '0') +
+                   d.getDate().toString().padStart(2, '0') + 'T' +
+                   d.getHours().toString().padStart(2, '0') +
+                   d.getMinutes().toString().padStart(2, '0') +
+                   d.getSeconds().toString().padStart(2, '0');
+        };
+
+        const wedding = (weddings || []).find(w => w.id === ev.wedding_id);
+        const displayNames = wedding ? (wedding.primary_side === 'groom' ? `${wedding.groom_name} & ${wedding.bride_name}` : `${wedding.bride_name} & ${wedding.groom_name}`) : 'Wedding';
+
+        const summary = `${ev.event_name || ev.title} - ${displayNames}`;
+        const description = ev.description || ev.one_liner || '';
+        const location = ev.venue || '';
+
+        icsContent += "BEGIN:VEVENT\n";
+        icsContent += `DTSTART:${formatICSDate(startDate)}\n`;
+        icsContent += `DTEND:${formatICSDate(endDate)}\n`;
+        icsContent += `SUMMARY:${summary}\n`;
+        icsContent += `DESCRIPTION:${description}\n`;
+        icsContent += `LOCATION:${location}\n`;
+        icsContent += "END:VEVENT\n";
+    });
+
+    icsContent += "END:VCALENDAR";
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', `Shaadi_Saathi_Calendar_Events.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 export function renderCalendar() {
     if (typeof window.checkSessionOrShowAlert === 'function' && !window.checkSessionOrShowAlert()) {
         const errSec = document.createElement("div");
@@ -234,8 +281,10 @@ function updateCalendarUI() {
     }
 
     calendarCard.innerHTML = `
-        <div class="calendar-controls">
-            <div>${viewToggleHTML}</div>
+        <div class="calendar-controls" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                ${viewToggleHTML}
+            </div>
             <div>${filterHTML}</div>
         </div>
         <div class="calendar-header">
@@ -352,10 +401,21 @@ function renderFilteredEvents() {
 
     displayEvents.sort((a, b) => new Date(`${a.date} ${a.time || '12:00 AM'}`).getTime() - new Date(`${b.date} ${b.time || '12:00 AM'}`).getTime());
 
+    const btnStyle = "background: var(--color-primary, #facc15) !important; color: #1c1917 !important; border: none !important; outline: none !important; font-weight: 600 !important; font-size: 0.85rem !important; padding: 0.45rem 0.85rem !important; border-radius: 4px !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; cursor: pointer !important; box-shadow: none !important; text-decoration: none !important; line-height: 1 !important;";
+
+    const calendarBtnHTML = displayEvents && displayEvents.length > 0 ? `
+        <button id="add-to-calendar-btn" style="${btnStyle}">
+            <i data-lucide="calendar" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Calendar
+        </button>
+    ` : '';
+
     let html = `
-        <h3 class="timeline-title">
-            ${titleHTML}
-        </h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 1.5rem 0 1rem 0; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1)); box-sizing: border-box;">
+            <h3 class="timeline-title" style="margin: 0; padding: 0; border: none; font-size: 1.15rem; font-weight: 600; color: var(--color-text-primary, #ffffff); line-height: 1.2;">
+                ${titleHTML}
+            </h3>
+            ${calendarBtnHTML}
+        </div>
     `;
 
     if (displayEvents.length === 0) {
@@ -427,5 +487,10 @@ function renderFilteredEvents() {
     }
 
     listContainer.innerHTML = html;
+    
+    document.getElementById("add-to-calendar-btn")?.addEventListener("click", () => {
+        downloadAllEventsICS(displayEvents, allWeddings);
+    });
+
     if (window.lucide) window.lucide.createIcons();
 }
