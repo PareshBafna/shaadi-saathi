@@ -467,7 +467,7 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
         const eventCount = (allEvents || []).length;
         rowsHTML = buildVariantRowHTML("All Events", `${eventCount} event(s) included`, directUrl);
     } else if (!variants || variants.length === 0) {
-        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Wedding Details page.</div>`;
+        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet.</div>`;
     } else {
         rowsHTML = variants.map(v => {
             const variantUrl = getPreviewUrl(v.id);
