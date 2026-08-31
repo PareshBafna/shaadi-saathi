@@ -161,15 +161,16 @@ function renderHostsList() {
             <div class="hosts-table-inner">
                 <div class="hosts-table-header">
                     <div></div> 
-                    <div></div> 
+                    <div class="hosts-sno-col">S.No</div> 
                     <div>Name</div>
                     <div>Phone Number</div>
+                    <div>Associated Weddings</div>
                     <div>Weddings Count</div>
-                    <div></div>
                 </div>
     `;
 
-    paginatedHosts.forEach((host) => {
+    paginatedHosts.forEach((host, index) => {
+        const globalIndex = startIndex + index + 1;
         const sortedWeddings = [...host.assigned_weddings].sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime());
         const weddingTags = sortedWeddings.length > 0 
             ? sortedWeddings.map(w => {
@@ -181,14 +182,11 @@ function renderHostsList() {
         listHTML += `
         <div class="hosts-table-row-wrapper">
             <div class="hosts-table-row">
-                
-                <button class="toggle-weddings-btn hosts-icon-btn hosts-toggle-btn" data-target="child-host-${host.id}">
-                    <i data-lucide="chevron-right"></i>
-                </button>
-
                 <button class="edit-host-btn hosts-icon-btn hosts-edit-btn" data-id="${host.id}" title="Edit Host">
                     <i data-lucide="edit-2"></i>
                 </button>
+                
+                <div class="hosts-sno-col">${globalIndex}</div>
                 
                 <div class="hosts-name-col">
                     <h4>${host.name}</h4>
@@ -198,16 +196,12 @@ function renderHostsList() {
                     <i data-lucide="phone"></i> <span>${host.phone}</span>
                 </div>
                 
+                <div class="hosts-weddings-col">
+                    ${weddingTags}
+                </div>
+
                 <div class="hosts-count-col">
                     ${host.assigned_weddings.length}
-                </div>
-                <div></div>
-            </div>
-
-            <div id="child-host-${host.id}" class="hosts-child-row">
-                <div class="hosts-child-title">Assigned Weddings:</div>
-                <div class="hosts-child-tags">
-                    ${weddingTags}
                 </div>
             </div>
         </div>`;
@@ -238,26 +232,6 @@ function renderHostsList() {
     container.innerHTML = listHTML;
 
     bindStaticListeners();
-
-    const toggleBtns = container.querySelectorAll('.toggle-weddings-btn');
-    toggleBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const targetId = btn.getAttribute('data-target');
-            const childRow = document.getElementById(targetId);
-            const icon = btn.querySelector('i, svg');
-            
-            if (childRow.style.display === 'none' || !childRow.style.display) {
-                childRow.style.display = 'block';
-                if (icon) icon.style.transform = 'rotate(90deg)';
-                btn.style.color = 'var(--color-primary)';
-            } else {
-                childRow.style.display = 'none';
-                if (icon) icon.style.transform = 'rotate(0deg)';
-                btn.style.color = 'var(--color-text-muted)';
-            }
-        });
-    });
 
     const editBtns = container.querySelectorAll('.edit-host-btn');
     editBtns.forEach(btn => {

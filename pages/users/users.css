@@ -2,7 +2,7 @@
    USERS PAGE CONTAINER & CONTROL BAR
    ============================================================ */
 :root {
-  --users-grid-template: 32px 32px minmax(130px, 1.3fr) 130px 75px 125px 85px 95px 110px 95px 40px;
+  --users-grid-template: 32px 45px minmax(130px, 1.2fr) minmax(120px, 1fr) 85px 130px 95px 110px minmax(180px, 1.6fr) 95px 100px;
 }
 
 .users-page-wrapper {
@@ -112,6 +112,7 @@
   color: var(--color-text-secondary);
 }
 
+.events-error-state,
 .users-error-state {
   color: var(--color-danger, #dc2626);
   text-align: center;
@@ -143,21 +144,21 @@
 
 .users-table-scroll-container {
   width: 100%;
-  overflow-x: auto;
+  overflow-x: auto !important;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 4px;
+  padding-bottom: 6px;
 }
 
 .users-table-inner {
-  min-width: 1060px;
-  padding-right: 16px;
+  min-width: 1180px;
+  padding-right: 12px;
   box-sizing: border-box;
 }
 
 /* Grid Table Layout */
 .users-table-header {
-  display: grid;
-  grid-template-columns: var(--users-grid-template);
+  display: grid !important;
+  grid-template-columns: var(--users-grid-template) !important;
   align-items: center;
   padding: 0 var(--space-4) var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border);
@@ -177,12 +178,11 @@
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-2);
   background: var(--color-bg);
-  overflow: hidden;
 }
 
 .users-table-row {
-  display: grid;
-  grid-template-columns: var(--users-grid-template);
+  display: grid !important;
+  grid-template-columns: var(--users-grid-template) !important;
   align-items: center;
   padding: var(--space-3) var(--space-4);
   transition: background var(--transition-fast, 0.2s ease);
@@ -222,6 +222,11 @@
   height: 16px;
 }
 
+.users-sno-col {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
 .users-name-col {
   display: flex;
   align-items: center;
@@ -239,7 +244,7 @@
   text-overflow: ellipsis;
 }
 
-.users-phone-col {
+.users-phone-cell {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -249,8 +254,8 @@
   min-width: 0;
 }
 
-.users-phone-col i,
-.users-phone-col svg {
+.users-phone-cell i,
+.users-phone-cell svg {
   width: 13px;
   height: 13px;
   flex-shrink: 0;
@@ -333,6 +338,7 @@
   text-align: right;
   display: flex;
   justify-content: flex-end;
+  min-width: 80px;
 }
 
 .users-btn-imitate {
@@ -349,48 +355,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 65px;
+  min-width: 75px;
 }
 
 .users-btn-imitate:hover {
   opacity: 0.85;
-}
-
-/* Child Expanded Accordion */
-.users-child-row {
-  display: none;
-  padding: var(--space-4) var(--space-4) var(--space-4) 74px;
-  background: var(--color-white);
-  border-top: 1px dashed var(--color-border);
-}
-
-.users-child-group {
-  margin-bottom: 12px;
-}
-
-.users-child-group__title {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: var(--font-weight-semibold);
-}
-
-.users-child-id-box {
-  font-family: monospace;
-  font-size: 0.8rem;
-  color: var(--color-text-primary);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  display: inline-block;
-}
-
-.users-child-group__list {
-  display: flex;
-  flex-wrap: wrap;
 }
 
 .users-wedding-tag {
@@ -548,10 +517,6 @@
    RESPONSIVE ADJUSTMENTS
    ============================================================ */
 @media (max-width: 768px) {
-  :root {
-    --users-grid-template: 32px 32px minmax(120px, 1.2fr) 120px 75px 115px 85px 90px 105px 95px 44px;
-  }
-
   .users-card-container {
     padding: var(--space-3);
   }
@@ -580,10 +545,6 @@
     width: 12px;
     height: 12px;
     left: 7px;
-  }
-
-  .users-child-row {
-    padding-left: var(--space-4);
   }
 
   .sys-user-form {

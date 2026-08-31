@@ -2,7 +2,7 @@
    HOSTS PAGE CONTAINER & CONTROL BAR
    ============================================================ */
 :root {
-  --hosts-grid-template: 32px 32px minmax(140px, 1.5fr) minmax(130px, 1fr) 130px 12px;
+  --hosts-grid-template: 32px 45px minmax(140px, 1.3fr) minmax(130px, 1.1fr) minmax(220px, 2.5fr) 130px;
 }
 
 .hosts-page-wrapper {
@@ -143,21 +143,21 @@
 
 .hosts-table-scroll-container {
   width: 100%;
-  overflow-x: auto;
+  overflow-x: auto !important;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 4px;
 }
 
 .hosts-table-inner {
-  min-width: 720px;
-  padding-right: 16px;
+  min-width: 950px;
+  padding-right: 8px;
   box-sizing: border-box;
 }
 
 /* Grid Table Layout */
 .hosts-table-header {
-  display: grid;
-  grid-template-columns: var(--hosts-grid-template);
+  display: grid !important;
+  grid-template-columns: var(--hosts-grid-template) !important;
   align-items: center;
   padding: 0 var(--space-4) var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border);
@@ -177,8 +177,8 @@
 }
 
 .hosts-table-row {
-  display: grid;
-  grid-template-columns: var(--hosts-grid-template);
+  display: grid !important;
+  grid-template-columns: var(--hosts-grid-template) !important;
   align-items: center;
   padding: var(--space-3) var(--space-4);
   transition: background var(--transition-fast, 0.2s ease);
@@ -205,17 +205,15 @@
   color: var(--color-primary);
 }
 
-.hosts-toggle-btn i,
-.hosts-toggle-btn svg {
-  width: 16px;
-  height: 16px;
-  transition: transform 0.2s ease;
-}
-
 .hosts-edit-btn i,
 .hosts-edit-btn svg {
   width: 16px;
   height: 16px;
+}
+
+.hosts-sno-col {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
 
 .hosts-name-col {
@@ -252,33 +250,11 @@
   flex-shrink: 0;
 }
 
-.hosts-count-col {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-}
-
-/* Expandable Child Row */
-.hosts-child-row {
-  display: none;
-  padding: var(--space-4) var(--space-4) var(--space-4) 150px;
-  background: var(--color-white);
-  border-top: 1px dashed var(--color-border);
-}
-
-.hosts-child-title {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: var(--font-weight-semibold);
-}
-
-.hosts-child-tags {
+.hosts-weddings-col {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
 }
 
 .hosts-wedding-tag {
@@ -298,6 +274,12 @@
   width: 12px;
   height: 12px;
   color: var(--color-primary);
+}
+
+.hosts-count-col {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
 }
 
 .hosts-child-empty {
@@ -484,7 +466,11 @@
 /* ============================================================
    RESPONSIVE ADJUSTMENTS
    ============================================================ */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .hosts-card-container {
+    padding: var(--space-3);
+  }
+
   .hosts-control-bar {
     padding: var(--space-2) var(--space-3);
     gap: 8px;
@@ -509,10 +495,6 @@
     width: 12px;
     height: 12px;
     left: 7px;
-  }
-
-  .hosts-child-row {
-    padding-left: var(--space-4);
   }
 
   .host-form {

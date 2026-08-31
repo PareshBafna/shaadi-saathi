@@ -207,26 +207,26 @@ function renderUsersList() {
         return;
     }
 
-const rowGridStyle = "grid-template-columns: 32px minmax(140px, 1.2fr) minmax(120px, 1fr) 90px 140px 100px 120px minmax(180px, 1.8fr) 100px 90px;";
+    let listHTML = `
+        <div class="users-table-scroll-container">
+            <div class="users-table-inner">
+                <div class="users-table-header">
+                    <div></div>
+                    <div class="users-sno-col">S.No</div>
+                    <div>Name</div>
+                    <div>Phone Number</div>
+                    <div>PIN</div>
+                    <div>Verification Code</div>
+                    <div>User Role</div>
+                    <div>Wedding Role</div>
+                    <div>Associated Weddings</div>
+                    <div>Verification</div>
+                    <div class="users-table-header__action">Action</div>
+                </div>
+    `;
 
-let listHTML = `
-    <div class="users-table-scroll-container">
-        <div class="users-table-inner" style="min-width: 1050px;">
-            <div class="users-table-header" style="display: grid; align-items: center; gap: 10px; ${rowGridStyle}">
-                <div></div>
-                <div>Name</div>
-                <div>Phone Number</div>
-                <div>PIN</div>
-                <div>Verification Code</div>
-                <div>User Role</div>
-                <div>Wedding Role</div>
-                <div>Associated Weddings</div>
-                <div>Verification</div>
-                <div class="users-table-header__action">Action</div>
-            </div>
-`;
-
-    paginatedUsers.forEach(u => {
+    paginatedUsers.forEach((u, index) => {
+        const globalIndex = startIndex + index + 1;
         const verifiedBadge = u.is_verified 
             ? `<span class="users-badge-verified">Verified</span>` 
             : `<button class="verify-user-btn users-btn-verify" data-id="${u.id}">Verify</button>`;
@@ -258,47 +258,49 @@ let listHTML = `
         const verificationCodeDisplay = u.verification_code || u.code || '-';
 
         listHTML += `
-<div class="users-table-row-wrapper" style="margin-bottom: 8px;">
-    <div class="users-table-row" style="display: grid; align-items: center; padding: 0.75rem 1rem; gap: 10px; ${rowGridStyle}">
-        ${editBtn}
+        <div class="users-table-row-wrapper">
+            <div class="users-table-row">
+                ${editBtn}
 
-        <div class="users-name-col">
-            <h4 style="margin: 0; font-size: 0.95rem;">${u.name || '-'}</h4>
-        </div>
+                <div class="users-sno-col">${globalIndex}</div>
 
-        <div class="users-phone-cell" style="display: flex; align-items: center; gap: 6px;">
-            <i data-lucide="phone" style="width: 13px; height: 13px;"></i> <span>${u.phone || '-'}</span>
-        </div>
+                <div class="users-name-col">
+                    <h4>${u.name || '-'}</h4>
+                </div>
 
-        <div>
-            <span class="users-pin-col" data-pin="${u.pin || '------'}" data-hidden="true" title="Click to reveal PIN" style="cursor: pointer;">
-                ••••••
-            </span>
-        </div>
+                <div class="users-phone-cell">
+                    <i data-lucide="phone"></i> <span>${u.phone || '-'}</span>
+                </div>
 
-        <div>
-            <span class="users-code-col" title="${verificationCodeDisplay}">
-                ${verificationCodeDisplay}
-            </span>
-        </div>
+                <div>
+                    <span class="users-pin-col" data-pin="${u.pin || '------'}" data-hidden="true" title="Click to reveal PIN">
+                        ••••••
+                    </span>
+                </div>
 
-        <div class="users-role-col">${u.role}</div>
+                <div>
+                    <span class="users-code-col" title="${verificationCodeDisplay}">
+                        ${verificationCodeDisplay}
+                    </span>
+                </div>
 
-        <div class="users-wedding-role-col">${u.wedding_role || '-'}</div>
+                <div class="users-role-col">${u.role}</div>
 
-        <div style="display: flex; flex-wrap: wrap; align-items: center;">
-            ${weddingsContent}
-        </div>
+                <div class="users-wedding-role-col">${u.wedding_role || '-'}</div>
 
-        <div class="users-status-col">${verifiedBadge}</div>
+                <div style="display: flex; flex-wrap: wrap; align-items: center;">
+                    ${weddingsContent}
+                </div>
 
-        <div class="users-action-col">
-            <button onclick="imitateUser('${u.id}', '${(u.name || '').replace(/'/g, "\\'")}')" class="users-btn-imitate">
-                Imitate
-            </button>
-        </div>
-    </div>
-</div>`;
+                <div class="users-status-col">${verifiedBadge}</div>
+
+                <div class="users-action-col">
+                    <button onclick="imitateUser('${u.id}', '${(u.name || '').replace(/'/g, "\\'")}')" class="users-btn-imitate">
+                        Imitate
+                    </button>
+                </div>
+            </div>
+        </div>`;
     });
 
     listHTML += `
@@ -314,7 +316,7 @@ let listHTML = `
         listHTML += `
             <div class="users-pagination-controls">
                 <button class="pagination-btn users-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
-                <span class="users-page-indicator">Page ${currentPage} of ${totalPages}</span>
+                <span class="events-page-indicator">Page ${currentPage} of ${totalPages}</span>
                 <button class="pagination-btn users-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
             </div>
         `;
@@ -487,7 +489,7 @@ window.openUserModal = async function(userOrId = null) {
                     icon: 'question', 
                     showCancelButton: true, 
                     confirmButtonColor: '#dc2626', 
-                    cancelButtonColor: '#6b7280',
+                    cancelButtonColor: '#6b7280', 
                     confirmButtonText: 'Yes, delete it!'
                 });
 

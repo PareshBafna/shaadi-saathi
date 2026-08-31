@@ -137,12 +137,14 @@ function renderEventsList() {
         return;
     }
 
+    const gridCols = "32px 50px minmax(130px, 1.2fr) minmax(140px, 1.2fr) minmax(160px, 1.5fr) minmax(240px, 2fr)";
+
     let listHTML = `
-        <div class="events-table-scroll-container">
-            <div class="events-table-inner">
-                <div class="events-table-header">
+        <div style="overflow-x: auto !important; width: 100% !important; -webkit-overflow-scrolling: touch; padding-bottom: 4px;">
+            <div style="min-width: 950px !important; width: 100%; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: grid !important; grid-template-columns: ${gridCols} !important; align-items: center; padding: 0.75rem 1rem; gap: 12px; font-size: 0.85rem; font-weight: 600; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border);">
                     <div></div>
-                    <div class="events-sno-col">S.No</div>
+                    <div>S.No</div>
                     <div>Event Name</div>
                     <div>Display Title</div>
                     <div>One Liner</div>
@@ -154,29 +156,21 @@ function renderEventsList() {
         const globalIndex = startIndex + index + 1;
         
         listHTML += `
-        <div class="events-table-row-wrapper">
-            <div class="events-table-row">
-                <button class="edit-master-event-btn events-edit-btn" data-id="${ev.id}" title="Edit">
-                    <i data-lucide="edit-2"></i>
+        <div style="background: var(--color-bg) !important; border: 1px solid var(--color-border) !important; border-radius: var(--radius-sm, 6px); overflow: hidden;">
+            <div style="display: grid !important; grid-template-columns: ${gridCols} !important; align-items: center; padding: 0.75rem 1rem; gap: 12px;">
+                <button class="edit-master-event-btn" data-id="${ev.id}" title="Edit" style="background: none; border: none; cursor: pointer; color: var(--color-primary, #facc15); display: flex; align-items: center; justify-content: center; padding: 0;">
+                    <i data-lucide="edit-2" style="width: 15px; height: 15px;"></i>
                 </button>
                 
-                <div class="events-sno-col">${globalIndex}</div>
+                <div style="font-size: 0.85rem; color: var(--color-text-secondary);">${globalIndex}</div>
                 
-                <div class="events-name-col events-text-clamp">
-                    ${ev.event_name || '-'}
-                </div>
+                <div style="font-weight: 600; color: var(--color-text-primary);">${ev.event_name || '-'}</div>
 
-                <div class="events-title-col events-text-clamp">
-                    ${ev.display_title || '-'}
-                </div>
+                <div style="color: var(--color-text-primary);">${ev.display_title || '-'}</div>
 
-                <div class="events-quote-col events-text-clamp">
-                    ${ev.one_liner || '-'}
-                </div>
+                <div style="font-style: italic; color: var(--color-text-secondary);">${ev.one_liner || '-'}</div>
 
-                <div class="events-desc-col">
-                    ${ev.description || '-'}
-                </div>
+                <div style="color: var(--color-text-secondary); line-height: 1.4;">${ev.description || '-'}</div>
             </div>
         </div>`;
     });
@@ -184,17 +178,17 @@ function renderEventsList() {
     listHTML += `
             </div>
         </div>
-        <div class="events-pagination-bar">
-            <div class="events-pagination-info">
+        <div class="events-pagination-bar" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+            <div class="events-pagination-info" style="font-size: 0.85rem; color: var(--color-text-secondary);">
                 Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, filteredEvents.length)} of ${filteredEvents.length} events
             </div>
     `;
 
     if (totalPages > 1) {
         listHTML += `
-            <div class="events-pagination-controls">
+            <div class="events-pagination-controls" style="display: flex; align-items: center; gap: 8px;">
                 <button class="pagination-btn events-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
-                <span class="events-page-indicator">Page ${currentPage} of ${totalPages}</span>
+                <span class="events-page-indicator" style="font-size: 0.85rem; color: var(--color-text-primary);">Page ${currentPage} of ${totalPages}</span>
                 <button class="pagination-btn events-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
             </div>
         `;
@@ -314,7 +308,7 @@ window.openMasterEventModal = async function(eventId = null) {
                     icon: 'question', 
                     showCancelButton: true, 
                     confirmButtonColor: '#dc2626', 
-                    cancelButtonColor: '#6b7280',
+                    cancelButtonColor: '#6b7280', 
                     confirmButtonText: 'Yes, delete!'
                 });
 
