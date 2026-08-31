@@ -820,7 +820,7 @@ function buildVariantsSection(wedding, variants, allEvents = [], guests = [], ca
             });
 
         if (!variants || variants.length === 0) {
-            content.innerHTML = `<div class="wedding-details-empty-state">No invite variants created yet. Create a variant to generate targeted invite links.</div>`;
+            content.innerHTML = `<div class="wedding-details-empty-state">No invite variants created yet. Add a variant to generate targeted invite links.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
@@ -952,8 +952,6 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
     const section = document.createElement("div");
     section.className = "wedding-details-section";
 
-    let currentPage = 1;
-    const itemsPerPage = 10;
     let searchQuery = '';
 
     const controlsRow = document.createElement("div");
@@ -989,19 +987,13 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
 
         const sortedHosts = filteredHosts.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
 
-        const totalPages = Math.ceil(sortedHosts.length / itemsPerPage) || 1;
-        if (currentPage > totalPages) currentPage = totalPages;
-
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginatedHosts = sortedHosts.slice(startIndex, startIndex + itemsPerPage);
-
         if (!hosts || hosts.length === 0) {
             content.innerHTML = `<div class="wedding-details-empty-state">No wedding hosts assigned yet.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
 
-        if (paginatedHosts.length === 0) {
+        if (sortedHosts.length === 0) {
             content.innerHTML = `<div class="wedding-details-empty-state">No hosts match your search.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
@@ -1018,8 +1010,7 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
                     </div>
         `;
         
-        paginatedHosts.forEach((host, index) => {
-            const globalIndex = startIndex + index + 1;
+        sortedHosts.forEach((host, index) => {
             const canEditThisHost = canConfig && (isCreator || host.user_id !== curUserId);
             
             const actionBtn = canEditThisHost ? `
@@ -1032,7 +1023,7 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
             <div class="wedding-details-table-row-wrap">
                 <div class="hosts-table-grid">
                     ${actionBtn}
-                    <div class="wedding-details-col-sno">${globalIndex}</div>
+                    <div class="wedding-details-col-sno">${index + 1}</div>
                     <div class="guest-name-cell">
                         <h4 class="guest-name-text">${host.name || '-'}</h4>
                     </div>
@@ -1046,24 +1037,7 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
         listHTML += `
                 </div>
             </div>
-            <div class="wedding-details-pagination-bar">
-                <div class="wedding-details-pagination-info">
-                    Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, sortedHosts.length)} of ${sortedHosts.length} hosts
-                </div>
         `;
-
-        if (totalPages > 1) {
-            listHTML += `
-                <div class="wedding-details-pagination-controls">
-                    <button class="host-pagination-btn wedding-details-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
-                    <span class="wedding-details-page-indicator">Page ${currentPage} of ${totalPages}</span>
-                    <button class="host-pagination-btn wedding-details-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
-                </div>
-            `;
-        } else {
-            listHTML += `<div></div>`; 
-        }
-        listHTML += `</div>`;
         
         content.innerHTML = listHTML;
 
@@ -1073,15 +1047,6 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     window.openSystemUserModal('host', btn.getAttribute('data-id'));
-                });
-            });
-
-            const pageBtns = content.querySelectorAll('.host-pagination-btn');
-            pageBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    if (btn.hasAttribute('disabled')) return;
-                    currentPage = parseInt(btn.getAttribute('data-page'));
-                    renderHosts();
                 });
             });
 
@@ -1095,7 +1060,6 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 searchQuery = e.target.value;
-                currentPage = 1; 
                 renderHosts();
             });
         }
@@ -1118,8 +1082,6 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
     const section = document.createElement("div");
     section.className = "wedding-details-section";
 
-    let currentPage = 1;
-    const itemsPerPage = 10;
     let searchQuery = '';
 
     const controlsRow = document.createElement("div");
@@ -1155,19 +1117,13 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
 
         const sortedUsers = filteredUsers.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
 
-        const totalPages = Math.ceil(sortedUsers.length / itemsPerPage) || 1;
-        if (currentPage > totalPages) currentPage = totalPages;
-
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginatedUsers = sortedUsers.slice(startIndex, startIndex + itemsPerPage);
-
         if (!wUsers || wUsers.length === 0) {
             content.innerHTML = `<div class="wedding-details-empty-state">No wedding users assigned yet.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
         }
 
-        if (paginatedUsers.length === 0) {
+        if (sortedUsers.length === 0) {
             content.innerHTML = `<div class="wedding-details-empty-state">No users match your search.</div>`;
             if (window.lucide) window.lucide.createIcons();
             return;
@@ -1184,9 +1140,7 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
                     </div>
         `;
         
-        paginatedUsers.forEach((u, index) => {
-            const globalIndex = startIndex + index + 1;
-            
+        sortedUsers.forEach((u, index) => {
             const actionBtn = canConfig ? `
                 <button class="edit-wedding-user-btn wedding-details-icon-btn" data-id="${u.id}" title="Edit">
                     <i data-lucide="edit-2" class="wedding-details-edit-icon"></i>
@@ -1197,7 +1151,7 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
             <div class="wedding-details-table-row-wrap">
                 <div class="users-table-grid">
                     ${actionBtn}
-                    <div class="wedding-details-col-sno">${globalIndex}</div>
+                    <div class="wedding-details-col-sno">${index + 1}</div>
                     <div class="guest-name-cell">
                         <h4 class="guest-name-text">${u.name || '-'}</h4>
                     </div>
@@ -1211,24 +1165,7 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
         listHTML += `
                 </div>
             </div>
-            <div class="wedding-details-pagination-bar">
-                <div class="wedding-details-pagination-info">
-                    Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, sortedUsers.length)} of ${sortedUsers.length} users
-                </div>
         `;
-
-        if (totalPages > 1) {
-            listHTML += `
-                <div class="wedding-details-pagination-controls">
-                    <button class="wedding-user-pagination-btn wedding-details-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
-                    <span class="wedding-details-page-indicator">Page ${currentPage} of ${totalPages}</span>
-                    <button class="wedding-user-pagination-btn wedding-details-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
-                </div>
-            `;
-        } else {
-            listHTML += `<div></div>`; 
-        }
-        listHTML += `</div>`;
         
         content.innerHTML = listHTML;
 
@@ -1238,15 +1175,6 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     window.openSystemUserModal('wedding_user', btn.getAttribute('data-id'));
-                });
-            });
-
-            const pageBtns = content.querySelectorAll('.wedding-user-pagination-btn');
-            pageBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    if (btn.hasAttribute('disabled')) return;
-                    currentPage = parseInt(btn.getAttribute('data-page'));
-                    renderWeddingUsers();
                 });
             });
 
@@ -1260,7 +1188,6 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 searchQuery = e.target.value;
-                currentPage = 1; 
                 renderWeddingUsers();
             });
         }
@@ -1275,8 +1202,6 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
 
     return section;
 }
-
-let currentGuestView = 'all'; // Preserves state across re-renders ('all' | 'grouped')
 
 // ==========================================
 // 7. GUEST LIST SECTION (BY VARIANT DEFAULT)
@@ -1379,7 +1304,6 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig, isC
             return;
         }
 
-        const gridClass = canConfig ? "guests-table-grid--config" : "guests-table-grid--readonly";
         const groupedGridStyle = canConfig 
             ? "grid-template-columns: 32px 45px minmax(160px, 1.5fr) minmax(130px, 1fr) 65px 40px;"
             : "grid-template-columns: 45px minmax(160px, 1.5fr) minmax(130px, 1fr) 65px;";
@@ -1419,7 +1343,7 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig, isC
                         </div>
                         <span class="variant-group-count">${gList.length} guest(s)</span>
                     </div>
-                    <div id="${bodyId}" class="variant-accordion-body wedding-details-table-container" style="padding: 12px 8px 4px 8px;">
+                    <div id="${bodyId}" class="variant-accordion-body wedding-details-table-container">
                         <div class="wedding-details-table-inner--guests">
                             <div class="wedding-details-table-header" style="display: grid; align-items: center; gap: 10px; ${groupedGridStyle}">
                                 ${canConfig ? '<div></div>' : ''}
@@ -1577,9 +1501,15 @@ function convertToSearchableDropdown(selectId, onSelectCallback = null) {
     const select = document.getElementById(selectId);
     if (!select) return;
 
+    const existingWrapper = select.parentElement?.querySelector('.searchable-dropdown-wrapper');
+    if (existingWrapper) {
+        existingWrapper.remove();
+    }
+
     select.style.display = 'none';
 
     const wrapper = document.createElement('div');
+    wrapper.className = 'searchable-dropdown-wrapper';
     wrapper.style.cssText = 'position: relative; width: 100%; text-align: left; font-family: inherit; box-sizing: border-box;';
     select.parentNode.insertBefore(wrapper, select);
 
@@ -1601,7 +1531,7 @@ function convertToSearchableDropdown(selectId, onSelectCallback = null) {
     wrapper.appendChild(chevron);
 
     const dropdownMenu = document.createElement('div');
-    dropdownMenu.style.cssText = 'width: 100%; background: var(--color-bg, #0c0a09); border: 1px solid var(--color-border, #292524); border-radius: var(--radius-sm, 4px); display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); margin-top: 6px; padding: 8px; flex-direction: column; gap: 8px; box-sizing: border-box; position: absolute; z-index: 9999; top: 100%; left: 0;';
+    dropdownMenu.style.cssText = 'width: 100%; background: var(--color-bg, #0c0a09); border: 1px solid var(--color-border, #292524); border-radius: var(--radius-sm, 4px); display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); margin-top: 6px; padding: 8px; flex-direction: column; gap: 8px; box-sizing: border-box; position: absolute; z-index: 10000; top: 100%; left: 0;';
     
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
@@ -1609,7 +1539,7 @@ function convertToSearchableDropdown(selectId, onSelectCallback = null) {
     searchInput.style.cssText = 'width: 100%; height: 34px; padding: 6px 10px; border: 1px solid var(--color-border, #292524); border-radius: var(--radius-sm, 4px); box-sizing: border-box; background: var(--color-white, #1c1917); color: var(--color-text-primary, #ffffff); outline: none; font-size: var(--font-size-sm, 0.875rem);';
     
     const optionsList = document.createElement('div');
-    optionsList.style.cssText = 'max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; scrollbar-gutter: stable; padding-right: 2px;';
+    optionsList.style.cssText = 'max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; scrollbar-gutter: stable; padding-right: 2px;';
 
     dropdownMenu.appendChild(searchInput);
     dropdownMenu.appendChild(optionsList);
@@ -1740,7 +1670,7 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
     }
 
     const formHTML = `
-        <form id="sysUserForm" novalidate class="wedding-details-modal-form" style="min-height: 220px; overflow: visible !important;">
+        <form id="sysUserForm" novalidate class="wedding-details-modal-form" style="min-height: 250px; overflow: visible !important;">
             <div style="position: relative; width: 100%;">
                 <label class="wedding-modal-label">Select ${titleType} *</label>
                 <select id="sysUserId" required class="wedding-modal-input">
@@ -1787,7 +1717,7 @@ window.openSystemUserModal = async function(type, existingRecordId = null) {
     }
 
     actions.push({ 
-        label: existingRecord ? "Update" : "Add", 
+        label: existingRecord ? "Edit" : "Add", 
         variant: "primary", 
         closesModal: false,
         onClick: async () => {
@@ -1885,7 +1815,7 @@ export function openVariantModal(weddingId, events = [], existingVariant = null)
             }
         }] : []),
         {
-            label: existingVariant ? "Update" : "Create",
+            label: existingVariant ? "Edit" : "Add",
             variant: "primary",
             closesModal: false,
             onClick: async () => {
@@ -1928,7 +1858,7 @@ export function openVariantModal(weddingId, events = [], existingVariant = null)
     ];
 
     const modal = openModal({
-        title: existingVariant ? "Edit Invite Variant" : "Create Invite Variant",
+        title: existingVariant ? "Edit Invite Variant" : "Add Invite Variant",
         content: formHTML,
         actions: actions
     });
@@ -2496,16 +2426,16 @@ window.openGuestModal = function(weddingId, variants = []) {
     const variantOptions = (variants || []).map(v => `<option value="${v.id}">${v.variant_name}</option>`).join('');
 
     const formHTML = `
-        <form id="createGuestForm" novalidate class="wedding-details-modal-form">
+        <form id="createGuestForm" novalidate class="wedding-details-modal-form" style="min-height:400px;">
             <div>
                 <label class="wedding-modal-label">Guest Name *</label>
-                <input type="text" id="guestName" required class="wedding-modal-input wedding-modal-input--invalid">
+                <input type="text" id="guestName" required placeholder="Enter guest name" class="wedding-modal-input wedding-modal-input--invalid">
             </div>
             <div>
                 <label class="wedding-modal-label">Phone Number *</label>
-                <input type="text" id="guestPhone" required class="wedding-modal-input wedding-modal-input--invalid">
+                <input type="tel" id="guestPhone" required placeholder="Enter phone number" oninput="this.value = this.value.replace(/[^0-9]/g, '');" class="wedding-modal-input wedding-modal-input--invalid">
             </div>
-            <div>
+            <div style="position: relative;">
                 <label class="wedding-modal-label">Assign Variant (Optional)</label>
                 <select id="guestVariantId" class="wedding-modal-input">
                     <option value="">-- No Variant (Default) --</option>
@@ -2578,6 +2508,7 @@ window.openGuestModal = function(weddingId, variants = []) {
     setTimeout(() => {
         layoutDetailsModalFooter(false);
         convertToSearchableDropdown('guestVariantId');
+
         ['guestName', 'guestPhone'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -2608,16 +2539,16 @@ window.openEditGuestModal = async function(weddingId, guestId, variants = []) {
     ).join('');
 
     const formHTML = `
-        <form id="editGuestForm" novalidate class="wedding-details-modal-form">
+        <form id="editGuestForm" novalidate class="wedding-details-modal-form" style="min-height:400px;">
             <div>
                 <label class="wedding-modal-label">Guest Name *</label>
                 <input type="text" id="editGuestName" value="${(guest.name || '').replace(/"/g, '&quot;')}" required class="wedding-modal-input wedding-modal-input--valid">
             </div>
             <div>
                 <label class="wedding-modal-label">Phone Number *</label>
-                <input type="text" id="editGuestPhone" value="${guest.phone || ''}" required class="wedding-modal-input wedding-modal-input--valid">
+                <input type="tel" id="editGuestPhone" value="${guest.phone || ''}" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required class="wedding-modal-input wedding-modal-input--valid">
             </div>
-            <div>
+            <div style="position: relative;">
                 <label class="wedding-modal-label">Assign Variant</label>
                 <select id="editGuestVariantId" class="wedding-modal-input">
                     <option value="">-- No Variant (Default) --</option>
