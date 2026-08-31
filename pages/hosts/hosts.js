@@ -7,8 +7,6 @@ let allWeddings = [];
 let allWeddingHosts = [];
 let hostUsersData = []; 
 
-let currentPage = 1;
-const itemsPerPage = 10;
 let searchQuery = '';
 
 export function renderHosts() {
@@ -138,19 +136,13 @@ function renderHostsList() {
 
     const sortedHosts = filteredHosts.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
 
-    const totalPages = Math.ceil(sortedHosts.length / itemsPerPage) || 1;
-    if (currentPage > totalPages) currentPage = totalPages;
-
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedHosts = sortedHosts.slice(startIndex, startIndex + itemsPerPage);
-
     if (hostUsersData.length === 0) {
         container.innerHTML = `<div class="hosts-empty-state">No hosts have been assigned to any weddings yet.</div>`;
         bindStaticListeners();
         return;
     }
 
-    if (paginatedHosts.length === 0) {
+    if (sortedHosts.length === 0) {
         container.innerHTML = `<div class="hosts-empty-state">No hosts match your search criteria.</div>`;
         bindStaticListeners();
         return;
@@ -161,15 +153,17 @@ function renderHostsList() {
             <div class="hosts-table-inner">
                 <div class="hosts-table-header">
                     <div></div> 
-                    <div></div> 
+                    <div class="hosts-sno-col">S.No</div> 
                     <div>Name</div>
                     <div>Phone Number</div>
+                    <div>Associated Weddings</div>
                     <div>Weddings Count</div>
-                    <div></div>
                 </div>
+                <div class="hosts-table-body-scroll">
     `;
 
-    paginatedHosts.forEach((host) => {
+    sortedHosts.forEach((host, index) => {
+        const globalIndex = index + 1;
         const sortedWeddings = [...host.assigned_weddings].sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime());
         const weddingTags = sortedWeddings.length > 0 
             ? sortedWeddings.map(w => {
@@ -181,14 +175,11 @@ function renderHostsList() {
         listHTML += `
         <div class="hosts-table-row-wrapper">
             <div class="hosts-table-row">
-                
-                <button class="toggle-weddings-btn hosts-icon-btn hosts-toggle-btn" data-target="child-host-${host.id}">
-                    <i data-lucide="chevron-right"></i>
-                </button>
-
                 <button class="edit-host-btn hosts-icon-btn hosts-edit-btn" data-id="${host.id}" title="Edit Host">
                     <i data-lucide="edit-2"></i>
                 </button>
+                
+                <div class="hosts-sno-col">${globalIndex}</div>
                 
                 <div class="hosts-name-col">
                     <h4>${host.name}</h4>
@@ -198,66 +189,25 @@ function renderHostsList() {
                     <i data-lucide="phone"></i> <span>${host.phone}</span>
                 </div>
                 
+                <div class="hosts-weddings-col">
+                    ${weddingTags}
+                </div>
+
                 <div class="hosts-count-col">
                     ${host.assigned_weddings.length}
-                </div>
-                <div></div>
-            </div>
-
-            <div id="child-host-${host.id}" class="hosts-child-row">
-                <div class="hosts-child-title">Assigned Weddings:</div>
-                <div class="hosts-child-tags">
-                    ${weddingTags}
                 </div>
             </div>
         </div>`;
     });
 
     listHTML += `
+                </div>
             </div>
         </div>
-        <div class="hosts-pagination-bar">
-            <div class="hosts-pagination-info">
-                Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, sortedHosts.length)} of ${sortedHosts.length} hosts
-            </div>
     `;
-
-    if (totalPages > 1) {
-        listHTML += `
-            <div class="hosts-pagination-controls">
-                <button class="pagination-btn hosts-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
-                <span class="hosts-page-indicator">Page ${currentPage} of ${totalPages}</span>
-                <button class="pagination-btn hosts-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
-            </div>
-        `;
-    } else {
-        listHTML += `<div></div>`; 
-    }
-
-    listHTML += `</div>`;
     container.innerHTML = listHTML;
 
     bindStaticListeners();
-
-    const toggleBtns = container.querySelectorAll('.toggle-weddings-btn');
-    toggleBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const targetId = btn.getAttribute('data-target');
-            const childRow = document.getElementById(targetId);
-            const icon = btn.querySelector('i, svg');
-            
-            if (childRow.style.display === 'none' || !childRow.style.display) {
-                childRow.style.display = 'block';
-                if (icon) icon.style.transform = 'rotate(90deg)';
-                btn.style.color = 'var(--color-primary)';
-            } else {
-                childRow.style.display = 'none';
-                if (icon) icon.style.transform = 'rotate(0deg)';
-                btn.style.color = 'var(--color-text-muted)';
-            }
-        });
-    });
 
     const editBtns = container.querySelectorAll('.edit-host-btn');
     editBtns.forEach(btn => {
@@ -277,15 +227,6 @@ function renderHostsList() {
         });
     });
 
-    const pageBtns = container.querySelectorAll('.pagination-btn');
-    pageBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (btn.hasAttribute('disabled')) return;
-            currentPage = parseInt(btn.getAttribute('data-page'));
-            renderHostsList();
-        });
-    });
-
     if (window.lucide) window.lucide.createIcons();
 }
 
@@ -294,7 +235,6 @@ function bindStaticListeners() {
     if (searchInput && !searchInput.hasAttribute('data-bound')) {
         searchInput.addEventListener('input', (e) => {
             searchQuery = e.target.value;
-            currentPage = 1; 
             renderHostsList();
         });
         searchInput.setAttribute('data-bound', 'true');
@@ -370,7 +310,7 @@ function openHostModal(existingHost = null) {
         return `
         <label class="host-checkbox-item">
             <input type="checkbox" name="host_weddings" value="${w.id}" ${preSelectedWeddingIds.includes(w.id) ? 'checked' : ''}>
-            ${displayNames} (${new Date(w.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}) ${pastLabel}
+            ${displayNames} (${new Date(w.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}) ${pastLabel}
         </label>
     `}).join('') : `<div class="hosts-child-empty">No upcoming weddings available.</div>`;
 

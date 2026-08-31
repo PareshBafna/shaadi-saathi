@@ -2,8 +2,6 @@ import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
-let currentPage = 1;
-const itemsPerPage = 10;
 let searchQuery = '';
 let allEventsData = [];
 
@@ -66,7 +64,6 @@ export function renderEvents() {
             searchInput.replaceWith(searchInput.cloneNode(true));
             section.querySelector('#eventSearchInput').addEventListener('input', (e) => {
                 searchQuery = e.target.value;
-                currentPage = 1;
                 renderEventsList();
             });
         }
@@ -123,13 +120,7 @@ function renderEventsList() {
         return nameMatch || titleMatch;
     });
 
-    filteredEvents.sort((a, b) => (a.event_name || '').toLowerCase().localeCompare((b.event_name || '').toLowerCase()));
-
-    const totalPages = Math.ceil(filteredEvents.length / itemsPerPage) || 1;
-    if (currentPage > totalPages) currentPage = totalPages;
-
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedEvents = filteredEvents.slice(startIndex, startIndex + itemsPerPage);
+    filteredEvents.sort((a, b) => (a.event_name || '').localeCompare((b.event_name || '').toLowerCase()));
 
     if (filteredEvents.length === 0) {
         content.innerHTML = `<div class="events-empty-state">No events match your search.</div>`;
@@ -148,11 +139,10 @@ function renderEventsList() {
                     <div>One Liner</div>
                     <div>Description</div>
                 </div>
+                <div class="events-table-body-scroll">
     `;
 
-    paginatedEvents.forEach((ev, index) => {
-        const globalIndex = startIndex + index + 1;
-        
+    filteredEvents.forEach((ev, index) => {
         listHTML += `
         <div class="events-table-row-wrapper">
             <div class="events-table-row">
@@ -160,49 +150,24 @@ function renderEventsList() {
                     <i data-lucide="edit-2"></i>
                 </button>
                 
-                <div class="events-sno-col">${globalIndex}</div>
+                <div class="events-sno-col">${index + 1}</div>
                 
-                <div class="events-name-col events-text-clamp">
-                    ${ev.event_name || '-'}
-                </div>
+                <div class="events-name-col">${ev.event_name || '-'}</div>
 
-                <div class="events-title-col events-text-clamp">
-                    ${ev.display_title || '-'}
-                </div>
+                <div class="events-title-col">${ev.display_title || '-'}</div>
 
-                <div class="events-quote-col events-text-clamp">
-                    ${ev.one_liner || '-'}
-                </div>
+                <div class="events-quote-col">${ev.one_liner || '-'}</div>
 
-                <div class="events-desc-col">
-                    ${ev.description || '-'}
-                </div>
+                <div class="events-desc-col">${ev.description || '-'}</div>
             </div>
         </div>`;
     });
 
     listHTML += `
+                </div>
             </div>
         </div>
-        <div class="events-pagination-bar">
-            <div class="events-pagination-info">
-                Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, filteredEvents.length)} of ${filteredEvents.length} events
-            </div>
     `;
-
-    if (totalPages > 1) {
-        listHTML += `
-            <div class="events-pagination-controls">
-                <button class="pagination-btn events-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
-                <span class="events-page-indicator">Page ${currentPage} of ${totalPages}</span>
-                <button class="pagination-btn events-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
-            </div>
-        `;
-    } else {
-        listHTML += `<div></div>`; 
-    }
-
-    listHTML += `</div>`;
     content.innerHTML = listHTML;
 
     setTimeout(() => {
@@ -210,15 +175,6 @@ function renderEventsList() {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 openMasterEventModal(btn.getAttribute('data-id'));
-            });
-        });
-
-        const pageBtns = content.querySelectorAll('.pagination-btn');
-        pageBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (btn.hasAttribute('disabled')) return;
-                currentPage = parseInt(btn.getAttribute('data-page'));
-                renderEventsList();
             });
         });
 
@@ -314,7 +270,7 @@ window.openMasterEventModal = async function(eventId = null) {
                     icon: 'question', 
                     showCancelButton: true, 
                     confirmButtonColor: '#dc2626', 
-                    cancelButtonColor: '#6b7280',
+                    cancelButtonColor: '#6b7280', 
                     confirmButtonText: 'Yes, delete!'
                 });
 

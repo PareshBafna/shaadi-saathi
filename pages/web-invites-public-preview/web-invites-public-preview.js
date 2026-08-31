@@ -22,7 +22,51 @@ function generateInitialsLogo(name1, name2, colors) {
     return 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><circle cx="100" cy="100" r="90" fill="none" stroke="${strokeColor}" stroke-width="4" stroke-dasharray="10 5"/><circle cx="100" cy="100" r="80" fill="none" stroke="${strokeColor}" stroke-width="1"/><text x="75" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${name1.charAt(0).toUpperCase()}</text><text x="125" y="125" font-family="'Lucida Handwriting', cursive, serif" font-size="70" fill="#ffffff" text-anchor="middle">${name2.charAt(0).toUpperCase()}</text></svg>`);
 }
 
-const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
+function updateSocialMetaTags(title, description, imageUrl) {
+    document.title = title;
+
+    const metaTags = [
+        { name: 'description', content: description },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:title', content: title },
+        { property: 'og:description', content: description },
+        { property: 'og:url', content: window.location.href },
+        { property: 'og:image', content: imageUrl },
+        { property: 'og:image:secure_url', content: imageUrl },
+        { property: 'og:image:type', content: imageUrl.startsWith('data:image/svg') ? 'image/svg+xml' : 'image/png' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: title },
+        { name: 'twitter:description', content: description },
+        { name: 'twitter:image', content: imageUrl }
+    ];
+
+    metaTags.forEach(tag => {
+        const selector = tag.name ? `meta[name="${tag.name}"]` : `meta[property="${tag.property}"]`;
+        let el = document.querySelector(selector);
+        if (!el) {
+            el = document.createElement('meta');
+            if (tag.name) el.setAttribute('name', tag.name);
+            if (tag.property) el.setAttribute('property', tag.property);
+            document.head.appendChild(el);
+        }
+        el.setAttribute('content', tag.content);
+    });
+
+    document.querySelectorAll("link[rel*='icon'], link[rel='image_src'], link[rel='apple-touch-icon']").forEach(el => el.remove());
+
+    const iconLink = document.createElement('link');
+    iconLink.rel = 'icon';
+    iconLink.type = imageUrl.startsWith('data:image/svg') ? 'image/svg+xml' : 'image/png';
+    iconLink.href = imageUrl;
+    document.head.appendChild(iconLink);
+
+    const imageSrcLink = document.createElement('link');
+    imageSrcLink.rel = 'image_src';
+    imageSrcLink.href = imageUrl;
+    document.head.appendChild(imageSrcLink);
+}
+
+const showSwalError = async (title, text, confirmBtnText = "Go Back", redirectUrl = "#weddings") => {
     document.body.innerHTML = '';
     document.body.style.setProperty('background-image', 'none', 'important');
     document.body.style.setProperty('background-color', '#0f172a', 'important');
@@ -41,51 +85,79 @@ const showSwalError = (title, text, confirmBtnText, redirectUrl) => {
         window.location.reload();
     };
 
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            icon: 'error',
-            title: title,
-            text: text,
-            confirmButtonText: confirmBtnText,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            confirmButtonColor: '#eab308'
-        }).then(() => {
-            navigateTo();
+    if (typeof Swal === 'undefined') {
+        await new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+            script.onload = resolve;
+            document.head.appendChild(script);
         });
-    } else {
-        alert(`${title}\n\n${text}`);
-        navigateTo();
     }
+
+    Swal.fire({
+        icon: 'error',
+        title: title,
+        text: text,
+        confirmButtonText: confirmBtnText,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        confirmButtonColor: '#eab308'
+    }).then(() => {
+        navigateTo();
+    });
 };
 
-async function initPublicVariantInvite(variantId) {
+async function initPublicVariantInvite(weddingId, variantId = null) {
     const dashboardWeddingsUrl = '#weddings'; 
-
+    const genericErrorMessage = "The wedding link parameter is missing or invalid";
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!variantId || !uuidRegex.test(variantId)) {
-        showSwalError("Invalid Link", "The invitation variant link is broken or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
+
+    // 1. Validate ID parameter: not empty and valid UUID format[cite: 8]
+    if (!weddingId || (!uuidRegex.test(weddingId) && weddingId !== '00000000-0000-0000-0000-000000000000')) {
+        showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
         return;
     }
 
     try {
-        const { data: variant, error: varErr } = await supabase.from('invite_variants').select('*').eq('id', variantId).maybeSingle();
-        if (varErr || !variant) {
-            showSwalError("Error", "Invitation link not found or has expired.", "Go Back to Weddings", dashboardWeddingsUrl);
+        const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', weddingId).maybeSingle();
+        if (wErr || !wedding) {
+            showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
             return;
         }
 
-        const weddingId = variant.wedding_id;
-
-        const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', weddingId).maybeSingle();
-        if (wErr || !wedding) {
-            showSwalError("Error", "Incorrect wedding details. Please contact Admin.", "Go Back to Weddings", dashboardWeddingsUrl);
+        // 2. Validate invitation type: must be 'web_invite_only'
+        if (wedding.invitation_type !== 'web_invite_only') {
+            showSwalError("Invalid Link", "The invitation is not available for this wedding.", "Go Back to Weddings", dashboardWeddingsUrl);
             return;
+        }
+
+        const allowsVariants = wedding.allow_variants !== false;
+        let variant = null;
+
+        // 3. Variant parameter validation: only when allow_variants is YES (true)
+        if (allowsVariants) {
+            if (!variantId || !uuidRegex.test(variantId)) {
+                showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
+                return;
+            }
+
+            const { data: vData, error: vErr } = await supabase
+                .from('invite_variants')
+                .select('*')
+                .eq('id', variantId)
+                .eq('wedding_id', wedding.id)
+                .maybeSingle();
+
+            if (vErr || !vData) {
+                showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
+                return;
+            }
+            variant = vData;
         }
 
         const { data: inviteDetails, error: iErr } = await supabase.from('wedding_web_invite').select('*').eq('wedding_id', wedding.id).maybeSingle();
         if (iErr || !inviteDetails) {
-            showSwalError("Error", "Incorrect web invite configuration.", "Go Back to Weddings", dashboardWeddingsUrl);
+            showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
             return;
         }
 
@@ -133,7 +205,7 @@ async function initPublicVariantInvite(variantId) {
 
         let eventsQuery = supabase.from('wedding_events').select('*').eq('wedding_id', wedding.id).order('date', { ascending: true }).order('time', { ascending: true });
         
-        if (variant.selected_event_ids && variant.selected_event_ids.length > 0) {
+        if (allowsVariants && variant && variant.selected_event_ids && variant.selected_event_ids.length > 0) {
             eventsQuery = eventsQuery.in('id', variant.selected_event_ids);
         }
 
@@ -148,20 +220,19 @@ async function initPublicVariantInvite(variantId) {
         const dynamicLogoUri = generateDynamicLogo(primaryFirstName, secondaryFirstName, colors);
         const initialsLogoUri = generateInitialsLogo(primaryFirstName, secondaryFirstName, colors);
         
-        document.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
-        const link = document.createElement('link');
-        link.rel = 'icon';
-        link.type = 'image/svg+xml';
-        link.href = initialsLogoUri;
-        document.head.appendChild(link);
-
         const sealImg = document.getElementById('seal-logo-img');
         if (sealImg) {
             sealImg.src = dynamicLogoUri;
             sealImg.style.opacity = "1";
         }
         
-        document.title = `Invitation - ${primaryFirstName} & ${secondaryFirstName}`;
+        const familyPrefix = wedding.family_name ? `${wedding.family_name.trim()}'s ` : '';
+        const hashtagSuffix = wedding.hashtag ? ` - ${wedding.hashtag.replace(/^#/, '').trim()}` : '';
+        const dynamicTitle = `${familyPrefix}Invitation - ${primaryFirstName} Weds ${secondaryFirstName}${hashtagSuffix}`;
+        const dynamicDesc = `You are cordially invited to celebrate the wedding of ${primaryFirstName} & ${secondaryFirstName}. Join us on our special day!`;
+        const dynamicThumbnail = inviteDetails.thumbnail_url || initialsLogoUri;
+
+        updateSocialMetaTags(dynamicTitle, dynamicDesc, dynamicThumbnail);
 
         weddingConfig = {
             familyLastName: wedding.family_name ? `${wedding.family_name.toUpperCase()}'S` : "WEDDING",
@@ -202,7 +273,7 @@ async function initPublicVariantInvite(variantId) {
                 id: `event-${ev.id}`,
                 label: ev.event_name || 'Untitled Event',
                 title: ev.title || "",
-                subtitle: ev.subtitle || "", 
+                subtitle: "", 
                 quote: ev.one_liner || "", 
                 description: ev.description || "",
                 month: evDate.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
@@ -221,7 +292,7 @@ async function initPublicVariantInvite(variantId) {
 
     } catch (err) {
         console.error("Error loading public variant invite:", err);
-        showSwalError("Error", err?.message || "An unexpected error occurred.", "Go Back to Weddings", dashboardWeddingsUrl);
+        showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
     }
 }
 
@@ -451,7 +522,7 @@ const generateAboutUsHTML = () => {
                         <strong class="creator-heading">Created By</strong>
                         <br/><br/>
                         <div class="signature-glow">
-                            Paresh Bafna
+                            Shaadi Saathi
                         </div>
                         <div class="creator-social-links">
                             <a href="https://pareshbafna-portfolio.pages.dev/" target="_blank">
@@ -629,25 +700,25 @@ function loadScript(id, src) {
     });
 }
 
-export async function renderWebInvitesPublicPreview(explicitVariantId = null) {
+export async function renderWebInvitesPublicPreview(explicitWeddingId = null, explicitVariantId = null) {
     await Promise.all([
         loadCSS('web-invite-splash-styles', '/global/css/splash.css'),
         loadCSS('web-invite-base-styles', '/global/css/invite.css'),
         loadScript('swal-cdn-script', 'https://cdn.jsdelivr.net/npm/sweetalert2@11')
     ]);
 
+    let weddingId = explicitWeddingId;
     let variantId = explicitVariantId;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashSplit = window.location.hash.split('?');
+    const hashParams = hashSplit.length > 1 ? new URLSearchParams(hashSplit[1]) : new URLSearchParams();
+
+    if (!weddingId) {
+        weddingId = hashParams.get('id') || hashParams.get('wedding_id') || urlParams.get('id') || urlParams.get('wedding_id');
+    }
     if (!variantId) {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('variant_id') || urlParams.get('variant')) {
-            variantId = urlParams.get('variant_id') || urlParams.get('variant');
-        } else {
-            const hashSplit = window.location.hash.split('?');
-            if (hashSplit.length > 1) {
-                const hashParams = new URLSearchParams(hashSplit[1]);
-                variantId = hashParams.get('variant_id') || hashParams.get('variant');
-            }
-        }
+        variantId = hashParams.get('variant_id') || hashParams.get('variant') || urlParams.get('variant_id') || urlParams.get('variant');
     }
 
     document.body.innerHTML = `
@@ -672,7 +743,7 @@ export async function renderWebInvitesPublicPreview(explicitVariantId = null) {
         <audio id="bgMusic" src="/global/audio/jashn-e-bahara-instrumental.mp3" loop preload="auto"></audio>
     `;
 
-    initPublicVariantInvite(variantId);
+    initPublicVariantInvite(weddingId, variantId);
     setTimeout(initParticles, 100);
 
     const seal = document.getElementById("seal-container");

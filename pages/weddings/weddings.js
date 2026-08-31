@@ -230,15 +230,15 @@ async function loadWeddingsData(container) {
             const canViewAll = isCreator || isHost || isWUser;
 
             if (!canViewAll) {
-                const { data: weddingGuests } = await supabase.from('guests').select('id, phone').eq('wedding_id', wedding.id);
+                const { data: weddingGuests } = await supabase.from('guests').select('id, phone, variant_id').eq('wedding_id', wedding.id);
                 const guestData = (weddingGuests || []).find(g => {
                      const cleanedGuestPhone = g.phone ? g.phone.replace(/[^0-9]/g, '') : null;
                      return baseUserPhone && cleanedGuestPhone && cleanedGuestPhone.endsWith(baseUserPhone);
                 });
 
-                if (guestData) {
-                    const { data: eventGuests } = await supabase.from('event_guests').select('event_id').eq('guest_id', guestData.id);
-                    const invitedEventIds = eventGuests ? eventGuests.map(eg => eg.event_id) : [];
+                if (guestData && guestData.variant_id) {
+                    const assignedVariant = wedding.variants.find(v => v.id === guestData.variant_id);
+                    const invitedEventIds = assignedVariant?.selected_event_ids || [];
                     if (invitedEventIds.length > 0) {
                         eventsQuery = eventsQuery.in('id', invitedEventIds);
                     } else {
@@ -270,9 +270,14 @@ function filterAndRenderGalleries() {
     const searchTerm = document.getElementById('weddingSearchInput')?.value.toLowerCase() || '';
     
     let filtered = allWeddings.filter(w => {
-        const side = w.primary_side || 'bride';
-        const full = side === 'groom' ? `${w.groom_name} & ${w.bride_name}`.toLowerCase() : `${w.bride_name} & ${w.groom_name}`.toLowerCase();
-        return full.includes(searchTerm.replace(/\s+/g, '')) || w.bride_name.toLowerCase().includes(searchTerm) || w.groom_name.toLowerCase().includes(searchTerm);
+        const isGroom = (w.primary_side || '').toString().toLowerCase().includes('groom');
+        const displayNames = isGroom 
+            ? `${w.groom_name} & ${w.bride_name}` 
+            : `${w.bride_name} & ${w.groom_name}`;
+        return displayNames.toLowerCase().includes(searchTerm.replace(/\s+/g, '')) || 
+               w.bride_name.toLowerCase().includes(searchTerm) || 
+               w.groom_name.toLowerCase().includes(searchTerm) ||
+               (w.hashtag && w.hashtag.toLowerCase().includes(searchTerm));
     });
 
     filtered.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
@@ -290,11 +295,6 @@ function filterAndRenderGalleries() {
     const container = document.getElementById('weddings-galleries-container');
     if (!container) return;
 
-    if (filtered.length === 0) {
-        container.innerHTML = `<div class="weddings-empty-state">No weddings match your search.</div>`;
-        return;
-    }
-
     container.innerHTML = `
         <div class="weddings-galleries-grid">
             ${buildGallerySection("In Progress", inProgress)}
@@ -305,7 +305,7 @@ function filterAndRenderGalleries() {
 
     container.querySelectorAll('.dashboard-wedding-card').forEach(card => {
         card.addEventListener('click', (e) => {
-            if (!e.target.closest('.dashboard-wedding-card__edit-btn') && !e.target.closest('.dashboard-wedding-card__web-badge') && !e.target.closest('a')) {
+            if (!e.target.closest('.dashboard-wedding-card__edit-btn') && !e.target.closest('.dashboard-open-invite-links-btn') && !e.target.closest('a')) {
                 const id = card.getAttribute('data-wedding-id');
                 window.location.hash = `#wedding-details?id=${id}`;
             }
@@ -327,11 +327,41 @@ function filterAndRenderGalleries() {
         });
     });
 
-    container.querySelectorAll('.dashboard-wedding-card__web-badge').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    container.querySelectorAll('.dashboard-open-invite-links-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const weddingId = btn.getAttribute('data-wedding-id');
             const weddingTitle = btn.getAttribute('data-wedding-title');
+
+            const curUser = window.currentUser || { role: 'guest' };
+
+            if (curUser.role === 'guest') {
+                const [{ data: wData }, { data: guests }] = await Promise.all([
+                    supabase.from('weddings').select('invitation_type, allow_variants').eq('id', weddingId).single(),
+                    supabase.from('guests').select('variant_id, phone').eq('wedding_id', weddingId)
+                ]);
+
+                const cleanPhone = (p) => (p || '').replace(/[^0-9]/g, '').slice(-10);
+                const curUserClean = cleanPhone(curUser.phone);
+                const guestRecord = (guests || []).find(g => cleanPhone(g.phone) === curUserClean);
+                const guestVariantId = guestRecord?.variant_id || null;
+
+                const isWebInviteOnly = wData?.invitation_type === 'web_invite_only';
+                const allowsVariants = isWebInviteOnly ? (wData?.allow_variants !== false) : true;
+
+                let targetUrl = '';
+                if (isWebInviteOnly) {
+                    targetUrl = allowsVariants && guestVariantId
+                        ? getWebInvitePublicPreviewUrl(weddingId, guestVariantId)
+                        : getWebInvitePublicPreviewUrl(weddingId);
+                } else {
+                    targetUrl = getWebInvitePreviewUrl(weddingId, guestVariantId);
+                }
+
+                window.open(targetUrl, '_blank');
+                return;
+            }
+
             showWeddingVariantsModal(weddingId, weddingTitle);
         });
     });
@@ -340,34 +370,50 @@ function filterAndRenderGalleries() {
 }
 
 function buildGallerySection(title, weddings) {
-    if (!weddings || weddings.length === 0) return '';
-    
+    const count = (weddings || []).length;
+
+    if (!weddings || weddings.length === 0) {
+        return `
+            <div class="dashboard-section">
+                <h2 class="dashboard-section__heading">${title} (${count})</h2>
+                <div class="weddings-empty-state" style="padding: 1.5rem; text-align: center; color: var(--color-text-muted);">
+                    No ${title.toLowerCase()} weddings found.
+                </div>
+            </div>
+        `;
+    }
+
     const listItems = weddings.map(wedding => {
         let editBtnHTML = '';
 
         if (canEditWedding(wedding)) {
             editBtnHTML = `
-                <button class="dashboard-wedding-card__edit-btn" title="Edit Wedding" type="button">
+                <button class="dashboard-wedding-card__icon-badge dashboard-wedding-card__edit-btn" title="Edit Wedding" type="button" style="cursor: pointer; border: none; outline: none;">
                     <i data-lucide="edit-2"></i>
                 </button>
             `;
         }
 
-        const displayNames = wedding.primary_side === 'groom' 
+        const isGroom = (wedding.primary_side || '').toString().toLowerCase().includes('groom');
+        const displayNames = isGroom 
             ? `${wedding.groom_name} & ${wedding.bride_name}` 
             : `${wedding.bride_name} & ${wedding.groom_name}`;
 
         const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+        const hasWebInvite = wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000';
 
         let hostsHTML = '';
         if (!isWebInviteOnly) {
             if (wedding.hosts && wedding.hosts.length > 0) {
                 const sortedHosts = [...wedding.hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
-                const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
+                const hostLines = sortedHosts.map(h => `<div>${h.name} - ${h.phone}</div>`).join('');
                 
                 hostsHTML = `
-                <div class="dashboard-wedding-card__row">
-                    <i data-lucide="phone"></i> <span>${inlineHosts}</span>
+                <div class="dashboard-wedding-card__row" style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="phone" style="flex-shrink: 0;"></i>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        ${hostLines}
+                    </div>
                 </div>`;
             } else {
                 hostsHTML = `
@@ -378,31 +424,14 @@ function buildGallerySection(title, weddings) {
         }
 
         let webInviteHTML = '';
-        if (wedding.has_web_invite || wedding.id === '00000000-0000-0000-0000-000000000000') {
-            const firstVariant = (wedding.variants && wedding.variants.length > 0) ? wedding.variants[0] : null;
-            let inviteUrl = getWebInvitePreviewUrl(wedding.id);
-            
-            if (isWebInviteOnly) {
-                inviteUrl = firstVariant ? getWebInvitePublicPreviewUrl(firstVariant.id) : `javascript:void(0);`;
-            }
-
-            if (wedding.id === '00000000-0000-0000-0000-000000000000') {
-                inviteUrl = getSampleWebInvitePreviewUrl('sample-upcoming');
-            }
-
+        if (hasWebInvite) {
             webInviteHTML = `
             <div class="dashboard-wedding-card__invite-wrap">
-                <a href="${inviteUrl}" ${isWebInviteOnly && !firstVariant ? `onclick="event.stopPropagation(); showSweetAlert('info', 'Variant Required', 'Please create at least one variant in the Web Invites tab.'); return false;"` : 'target="_blank"'} onclick="event.stopPropagation();" class="dashboard-wedding-card__invite-btn">
+                <button type="button" class="dashboard-wedding-card__invite-btn dashboard-open-invite-links-btn" data-wedding-id="${wedding.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" style="border: none; outline: none; box-shadow: none; cursor: pointer;">
                     <i data-lucide="external-link"></i> Wedding Invitation
-                </a>
+                </button>
             </div>`;
         }
-
-        const webInviteOnlyIcon = isWebInviteOnly ? `
-            <button class="dashboard-wedding-card__icon-badge dashboard-wedding-card__web-badge" data-wedding-id="${wedding.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" title="View Links" type="button">
-                <i data-lucide="mail"></i>
-            </button>
-        ` : '';
 
         return `
         <div class="dashboard-wedding-card" data-wedding-id="${wedding.id}">
@@ -418,7 +447,6 @@ function buildGallerySection(title, weddings) {
                 </div>
                 <div class="dashboard-wedding-card__header-actions">
                     ${editBtnHTML}
-                    ${webInviteOnlyIcon}
                 </div>
             </div>
 
@@ -435,7 +463,7 @@ function buildGallerySection(title, weddings) {
 
     return `
         <div class="dashboard-section">
-            <h2 class="dashboard-section__heading">${title}</h2>
+            <h2 class="dashboard-section__heading">${title} (${count})</h2>
             <div class="dashboard-section__list">
                 ${listItems}
             </div>
@@ -444,35 +472,56 @@ function buildGallerySection(title, weddings) {
 }
 
 async function showWeddingVariantsModal(weddingId, weddingTitle) {
-    const { data: variants } = await supabase
-        .from('invite_variants')
-        .select('*')
-        .eq('wedding_id', weddingId)
-        .order('created_at', { ascending: false });
+    const [{ data: wedding }, { data: variants }, { data: allEvents }] = await Promise.all([
+        supabase.from('weddings').select('invitation_type, allow_variants').eq('id', weddingId).single(),
+        supabase.from('invite_variants').select('*').eq('wedding_id', weddingId).order('created_at', { ascending: false }),
+        supabase.from('wedding_events').select('id, event_name, title').eq('wedding_id', weddingId)
+    ]);
+
+    const isWebInviteOnly = wedding?.invitation_type === 'web_invite_only';
+    const allowsVariants = isWebInviteOnly ? (wedding?.allow_variants !== false) : true;
+
+    const getPreviewUrl = (variantId) => {
+        if (isWebInviteOnly) {
+            return allowsVariants 
+                ? getWebInvitePublicPreviewUrl(weddingId, variantId) 
+                : getWebInvitePublicPreviewUrl(weddingId);
+        }
+        return getWebInvitePreviewUrl(weddingId, variantId);
+    };
 
     let rowsHTML = '';
-    if (!variants || variants.length === 0) {
-        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet. Please create variants in the Web Invites tab.</div>`;
+
+    const btnStyle = "background: var(--color-primary, #facc15) !important; color: #1c1917 !important; border: none !important; outline: none !important; font-weight: 600 !important; font-size: 0.8rem !important; padding: 0.5rem 0.85rem !important; border-radius: 4px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important; text-decoration: none !important; cursor: pointer !important; box-shadow: none !important; flex: 1 1 0;";
+
+    const buildVariantRowHTML = (title, countText, url) => `
+        <div style="display: flex; flex-direction: column; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 12px 14px; border-radius: 6px; margin-bottom: 10px; gap: 10px;">
+            <div>
+                <div style="font-weight: 600; font-size: 1rem; color: var(--color-text-primary, #ffffff); line-height: 1.3;">${title}</div>
+                <div style="font-size: 0.85rem; font-weight: 500; color: #cbd5e1; margin-top: 4px;">${countText}</div>
+            </div>
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <a href="${url}" target="_blank" style="${btnStyle}" title="Open Web Invite">
+                    <i data-lucide="external-link" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Web Invite
+                </a>
+                <button class="dash-copy-variant-btn" data-url="${url}" style="${btnStyle}" title="Copy Link" type="button">
+                    <i data-lucide="link" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Copy
+                </button>
+            </div>
+        </div>
+    `;
+
+    if (isWebInviteOnly && !allowsVariants) {
+        const directUrl = getPreviewUrl();
+        const eventCount = (allEvents || []).length;
+        rowsHTML = buildVariantRowHTML("All Events", `${eventCount} event(s) included`, directUrl);
+    } else if (!variants || variants.length === 0) {
+        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet.</div>`;
     } else {
         rowsHTML = variants.map(v => {
-            const variantUrl = getWebInvitePublicPreviewUrl(v.id);
+            const variantUrl = getPreviewUrl(v.id);
             const count = v.selected_event_ids?.length || 0;
-            return `
-                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 10px 14px; border-radius: 6px; margin-bottom: 8px;">
-                    <div>
-                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-text-primary, #ffffff);">${v.variant_name}</div>
-                        <div style="font-size: 0.75rem; color: var(--color-text-muted, #94a3b8);">${count} event(s) included</div>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <a href="${variantUrl}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 6px 10px; border-radius: 4px; text-decoration: none;" title="Open Link">
-                            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
-                        </a>
-                        <button class="dash-copy-variant-btn" data-url="${variantUrl}" style="background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 6px 10px; border-radius: 4px; cursor: pointer;" title="Copy Link" type="button">
-                            <i data-lucide="link" style="width: 14px; height: 14px;"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
+            return buildVariantRowHTML(v.variant_name, `${count} event(s) included`, variantUrl);
         }).join('');
     }
 
@@ -506,7 +555,7 @@ async function showWeddingVariantsModal(weddingId, weddingTitle) {
                 e.stopPropagation();
                 const url = btn.getAttribute('data-url');
                 navigator.clipboard.writeText(url);
-                showSweetAlert('success', 'Copied!', 'Variant link copied to clipboard.');
+                showSweetAlert('success', 'Copied!', 'Invite link copied to clipboard.');
             });
         });
     }, 50);
@@ -582,14 +631,33 @@ export function openCreateWeddingModal() {
             <!-- Row 2: Invitation Type -->
             <div style="margin-bottom: 18px;">
                 <label class="wedding-modal-label">Invitation Type</label>
-                <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px;">
+                <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px; flex-wrap: wrap;">
                     <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
                         <input type="radio" name="invitationType" value="full" checked style="accent-color: var(--color-primary, #facc15);">
                         <span>Full Wedding</span>
                     </label>
                     <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="invitationType" value="full_self" style="accent-color: var(--color-primary, #facc15);">
+                        <span>Full Wedding (Self)</span>
+                    </label>
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
                         <input type="radio" name="invitationType" value="web_invite_only" style="accent-color: var(--color-primary, #facc15);">
                         <span>Web Invite Only</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Row 3: Allow Variants -->
+            <div style="margin-bottom: 18px;">
+                <label class="wedding-modal-label">Allow Variants</label>
+                <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px;">
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="allowVariants" value="true" checked disabled style="accent-color: var(--color-primary, #facc15);">
+                        <span>Yes</span>
+                    </label>
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+                        <input type="radio" name="allowVariants" value="false" disabled style="accent-color: var(--color-primary, #facc15);">
+                        <span>No</span>
                     </label>
                 </div>
             </div>
@@ -702,6 +770,9 @@ export function openCreateWeddingModal() {
 
                     const primarySide = document.querySelector('input[name="primarySide"]:checked').value;
                     const invitationType = document.querySelector('input[name="invitationType"]:checked').value;
+                    const isWebOnly = invitationType === 'web_invite_only';
+                    const allowVariants = isWebOnly ? (document.querySelector('input[name="allowVariants"]:checked')?.value === 'true') : true;
+
                     const brideName = document.getElementById('brideName').value.trim();
                     const groomName = document.getElementById('groomName').value.trim();
                     const familyName = document.getElementById('familyName').value.trim();
@@ -714,6 +785,7 @@ export function openCreateWeddingModal() {
                         const { error } = await supabase.from('weddings').insert([{ 
                             primary_side: primarySide,
                             invitation_type: invitationType,
+                            allow_variants: allowVariants,
                             bride_name: brideName,
                             groom_name: groomName, 
                             start_date: startDate,
@@ -740,6 +812,22 @@ export function openCreateWeddingModal() {
 
     setTimeout(() => {
         layoutModalFooter(false);
+
+        const invTypeRadios = document.querySelectorAll('input[name="invitationType"]');
+        const variantRadios = document.querySelectorAll('input[name="allowVariants"]');
+        
+        invTypeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const isWebOnly = e.target.value === 'web_invite_only';
+                variantRadios.forEach(vr => {
+                    vr.disabled = !isWebOnly;
+                    if (!isWebOnly && vr.value === 'true') {
+                        vr.checked = true;
+                    }
+                });
+            });
+        });
+
         const requiredIds = ['brideName', 'groomName', 'startDate', 'endDate', 'familyName', 'familyDetails'];
         requiredIds.forEach(id => {
             const el = document.getElementById(id);
@@ -796,7 +884,12 @@ export function openEditWeddingModal(wedding) {
     }
 
     const todayStr = getLocalTodayString();
-    const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+    
+    let inviteTypeLabel = 'Full Wedding';
+    if (wedding.invitation_type === 'full_self') inviteTypeLabel = 'Full Wedding (Self)';
+    else if (wedding.invitation_type === 'web_invite_only') inviteTypeLabel = 'Web Invite Only';
+
+    const allowsVariants = wedding.allow_variants !== false;
 
     const formHTML = `
         <form id="editWeddingForm" novalidate class="wedding-modal-form">
@@ -818,7 +911,22 @@ export function openEditWeddingModal(wedding) {
             <!-- Row 2: Invitation Type (Read-Only) -->
             <div style="margin-bottom: 18px;">
                 <label class="wedding-modal-label">Invitation Type</label>
-                <input type="text" value="${isWebInviteOnly ? 'Web Invite Only' : 'Full Wedding'}" disabled class="wedding-modal-input" style="opacity: 0.6; cursor: not-allowed; margin-top: 6px;">
+                <input type="text" value="${inviteTypeLabel}" disabled class="wedding-modal-input" style="opacity: 0.6; cursor: not-allowed; margin-top: 6px;">
+            </div>
+
+            <!-- Row 3: Allow Variants (Read-Only / Fixed) -->
+            <div style="margin-bottom: 18px;">
+                <label class="wedding-modal-label">Allow Variants</label>
+                <div class="wedding-modal-radios" style="display: flex; gap: 24px; margin-top: 8px;">
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: not-allowed; opacity: 0.7; white-space: nowrap;">
+                        <input type="radio" name="editAllowVariants" value="true" ${allowsVariants ? 'checked' : ''} disabled style="accent-color: var(--color-primary, #facc15);">
+                        <span>Yes</span>
+                    </label>
+                    <label class="wedding-modal-radio-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: not-allowed; opacity: 0.7; white-space: nowrap;">
+                        <input type="radio" name="editAllowVariants" value="false" ${!allowsVariants ? 'checked' : ''} disabled style="accent-color: var(--color-primary, #facc15);">
+                        <span>No</span>
+                    </label>
+                </div>
             </div>
 
             <div class="wedding-modal-row">
@@ -880,22 +988,42 @@ export function openEditWeddingModal(wedding) {
             onClick: async () => {
                 const result = await Swal.fire({
                     title: 'Are you sure?',
-                    text: "Do you really want to delete this wedding? All events and guests will be permanently removed.",
-                    icon: 'question',
+                    text: "Do you really want to delete this wedding? All associated events, variants, hosts, users, guests, and web invites will be permanently removed.",
+                    icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#dc2626',
                     cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Yes, delete it!'
+                    confirmButtonText: 'Yes, delete everything!'
                 });
 
                 if (result.isConfirmed) {
                     try {
+                        Swal.fire({
+                            title: 'Deleting Wedding...',
+                            text: 'Removing all associated data, please wait.',
+                            allowOutsideClick: false,
+                            didOpen: () => Swal.showLoading()
+                        });
+
+                        // 1. Delete all child records first
+                        await Promise.all([
+                            supabase.from('guests').delete().eq('wedding_id', wedding.id),
+                            supabase.from('wedding_events').delete().eq('wedding_id', wedding.id),
+                            supabase.from('invite_variants').delete().eq('wedding_id', wedding.id),
+                            supabase.from('wedding_hosts').delete().eq('wedding_id', wedding.id),
+                            supabase.from('wedding_users').delete().eq('wedding_id', wedding.id),
+                            supabase.from('wedding_web_invite').delete().eq('wedding_id', wedding.id)
+                        ]);
+
+                        // 2. Delete the wedding record
                         const { error } = await supabase.from('weddings').delete().eq('id', wedding.id);
                         if (error) throw error;
                         
                         modal.close();
                         window.dispatchEvent(new Event('weddingDataUpdated'));
-                        showSweetAlert('success', 'Deleted!', 'The wedding has been removed.');
+                        window.dispatchEvent(new Event('weddingsDataUpdated'));
+                        
+                        showSweetAlert('success', 'Deleted!', 'The wedding and all related data have been removed.');
                     } catch (error) {
                         showSweetAlert('error', 'Database Error', error.message);
                     }

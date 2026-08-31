@@ -12,20 +12,32 @@ export const ENV = {
     isProd: window.location.hostname === 'shaadi-saathi.pages.dev' || (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1') && !window.location.hostname.includes('development.'))
 };
 
-export function getWebInvitePreviewUrl(inviteId) {
+export function getWebInvitePreviewUrl(inviteId, variantId = null) {
     if (!inviteId) return '#';
-    if (ENV.isLocal) {
-        return `${window.location.origin}/#web-invites-preview?id=${encodeURIComponent(inviteId)}`;
+
+    let queryParams = `id=${encodeURIComponent(inviteId)}`;
+    if (variantId) {
+        queryParams += `&variant_id=${encodeURIComponent(variantId)}`;
     }
-    return `${window.location.origin}/web-invites-preview-functions?id=${encodeURIComponent(inviteId)}`;
+
+    if (ENV.isLocal) {
+        return `${window.location.origin}/#web-invites-preview?${queryParams}`;
+    }
+    return `${window.location.origin}/web-invites-preview-functions?${queryParams}`;
 }
 
-export function getWebInvitePublicPreviewUrl(variantId) {
-    if (!variantId) return '#';
-    if (ENV.isLocal) {
-        return `${window.location.origin}/#web-invites-public-preview?variant_id=${encodeURIComponent(variantId)}`;
+export function getWebInvitePublicPreviewUrl(weddingId, variantId = null) {
+    if (!weddingId) return '#';
+
+    let queryParams = `id=${encodeURIComponent(weddingId)}`;
+    if (variantId) {
+        queryParams += `&variant_id=${encodeURIComponent(variantId)}`;
     }
-    return `${window.location.origin}/web-invites-public-preview-functions?variant_id=${encodeURIComponent(variantId)}`;
+
+    if (ENV.isLocal) {
+        return `${window.location.origin}/#web-invites-public-preview?${queryParams}`;
+    }
+    return `${window.location.origin}/web-invites-public-preview-functions?${queryParams}`;
 }
 
 export function getSampleWebInvitePreviewUrl(sampleId = 'sample-upcoming') {

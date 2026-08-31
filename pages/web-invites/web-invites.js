@@ -3,9 +3,6 @@ import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 import { getWebInvitePreviewUrl, getWebInvitePublicPreviewUrl } from '../../global/js/env-config.js';
 
-const INVITE_BASE_URL = "/web-invites-preview-functions";
-const PUBLIC_INVITE_BASE_URL = "/#web-invites-public-preview";
-
 function startOfDay(date) {
     const copy = new Date(date);
     copy.setHours(0, 0, 0, 0);
@@ -82,7 +79,12 @@ export function renderWebInvites() {
             const query = e.target.value.toLowerCase();
             const filtered = (window.__invitesData || []).filter(inv => {
                 const w = inv.weddings || {};
-                return (w.bride_name || '').toLowerCase().includes(query) || 
+                const isGroom = (w.primary_side || '').toString().toLowerCase().includes('groom');
+                const displayNames = isGroom 
+                    ? `${w.groom_name} & ${w.bride_name}` 
+                    : `${w.bride_name} & ${w.groom_name}`;
+                return displayNames.toLowerCase().includes(query) ||
+                       (w.bride_name || '').toLowerCase().includes(query) || 
                        (w.groom_name || '').toLowerCase().includes(query) ||
                        (w.hashtag || '').toLowerCase().includes(query);
             });
@@ -106,18 +108,12 @@ async function loadInvitesData(container) {
             .from('wedding_web_invite')
             .select(`
                 *,
-                weddings ( id, bride_name, groom_name, start_date, end_date, hashtag, primary_side, invitation_type )
+                weddings ( id, bride_name, groom_name, start_date, end_date, hashtag, primary_side, invitation_type, allow_variants )
             `);
             
         if (error) throw error;
 
-        const { data: variantsData } = await supabase.from('invite_variants').select('*');
-
-        window.__invitesData = (invites || []).map(inv => {
-            const vars = (variantsData || []).filter(v => v.wedding_id === inv.wedding_id);
-            return { ...inv, variants: vars };
-        });
-
+        window.__invitesData = invites || [];
         renderInviteGalleries(container, window.__invitesData);
     } catch (err) {
         container.innerHTML = `
@@ -129,22 +125,13 @@ async function loadInvitesData(container) {
 }
 
 function renderInviteGalleries(container, invites) {
-    if (!invites || invites.length === 0) {
-        container.innerHTML = `
-            <div class="web-invites-section">
-                <div class="web-invites-empty-state">No web invitations found.</div>
-            </div>
-        `;
-        return;
-    }
-
     const todayTime = startOfDay(new Date()).getTime();
 
     const inProgress = [];
     const upcoming = [];
     const archived = [];
 
-    invites.forEach(inv => {
+    (invites || []).forEach(inv => {
         const w = inv.weddings || {};
         const start = w.start_date ? startOfDay(new Date(w.start_date)).getTime() : todayTime;
         const end = w.end_date ? startOfDay(new Date(w.end_date)).getTime() : start;
@@ -184,12 +171,39 @@ function renderInviteGalleries(container, invites) {
         });
     });
 
-    container.querySelectorAll('.manage-variants-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    container.querySelectorAll('.web-invite-open-links-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const weddingId = btn.getAttribute('data-wedding-id');
             const weddingTitle = btn.getAttribute('data-wedding-title');
-            openVariantsModal(weddingId, weddingTitle);
+
+            const curUser = window.currentUser || { role: 'guest' };
+
+            // If user is a guest, directly route to preview/public-preview
+            if (curUser.role === 'guest') {
+                const { data: wData } = await supabase.from('weddings').select('invitation_type, allow_variants').eq('id', weddingId).single();
+                const isWebInviteOnly = wData?.invitation_type === 'web_invite_only';
+                const allowsVariants = isWebInviteOnly ? (wData?.allow_variants !== false) : true;
+
+                let targetUrl = '';
+                if (isWebInviteOnly) {
+                    if (allowsVariants) {
+                        const { data: vList } = await supabase.from('invite_variants').select('id').eq('wedding_id', weddingId).order('created_at', { ascending: true }).limit(1);
+                        targetUrl = getWebInvitePublicPreviewUrl(weddingId, vList?.[0]?.id || null);
+                    } else {
+                        targetUrl = getWebInvitePublicPreviewUrl(weddingId);
+                    }
+                } else {
+                    // Full wedding & Full wedding (self) always route to preview with variant_id
+                    const { data: vList } = await supabase.from('invite_variants').select('id').eq('wedding_id', weddingId).order('created_at', { ascending: true }).limit(1);
+                    targetUrl = getWebInvitePreviewUrl(weddingId, vList?.[0]?.id || null);
+                }
+
+                window.open(targetUrl, '_blank');
+                return;
+            }
+
+            showWeddingVariantsModal(weddingId, weddingTitle);
         });
     });
 
@@ -197,7 +211,18 @@ function renderInviteGalleries(container, invites) {
 }
 
 function buildGallerySection(title, invites, isArchived) {
-    if (!invites || invites.length === 0) return '';
+    const count = (invites || []).length;
+
+    if (!invites || invites.length === 0) {
+        return `
+            <div class="web-invites-section">
+                <h2 class="web-invites-section__heading">${title} (${count})</h2>
+                <div class="web-invites-empty-state" style="padding: 1.5rem; text-align: center; color: var(--color-text-muted);">
+                    No ${title.toLowerCase()} web invitations found.
+                </div>
+            </div>
+        `;
+    }
     
     const themePalettes = {
         blue:   { bgDark: '#0f172a', accent: '#60a5fa' },
@@ -211,248 +236,177 @@ function buildGallerySection(title, invites, isArchived) {
         pink:   { bgDark: '#500724', accent: '#f472b6' }
     };
 
-    const listItems = invites.map(inv => {
-        const w = inv.weddings || {};
-        const displayNames = w.primary_side === 'groom' 
-            ? `${w.groom_name} & ${w.bride_name}` 
-            : `${w.bride_name} & ${w.groom_name}`;
-            
-        const targetDate = w.end_date || w.start_date;
-        const dateStr = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
-        
-        const isWebInviteOnly = w.invitation_type === 'web_invite_only';
-        const defaultVariant = (inv.variants && inv.variants.length > 0) ? inv.variants[0] : null;
+    const invitationTypeCategories = [
+        { type: 'full', label: 'Full Wedding' },
+        { type: 'full_self', label: 'Full Wedding (Self)' },
+        { type: 'web_invite_only', label: 'Web Invite Only' }
+    ];
 
-        let inviteUrl = getWebInvitePreviewUrl(w.id);
-if (isWebInviteOnly) {
-    inviteUrl = defaultVariant ? getWebInvitePublicPreviewUrl(defaultVariant.id) : `javascript:void(0);`;
-}
+    let categoryGroupsHTML = '';
 
-const fullShareUrl = defaultVariant 
-    ? getWebInvitePublicPreviewUrl(defaultVariant.id) 
-    : getWebInvitePreviewUrl(w.id);
+    invitationTypeCategories.forEach(category => {
+        const categoryInvites = invites.filter(inv => {
+            const type = inv.weddings?.invitation_type;
+            if (category.type === 'full') return !type || type === 'full';
+            return type === category.type;
+        });
 
-        const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-        const t = themePalettes[inv.theme] || themePalettes.blue;
+        if (categoryInvites.length === 0) return;
 
-        const editButtonHtml = isArchived ? '' : `
-            <button class="web-invite-card__edit-btn edit-invite-btn" data-invite='${invJson}' title="Edit Invite" type="button">
-                <i data-lucide="edit-2" class="web-invite-card__edit-icon"></i>
-            </button>
-        `;
+        const listItems = categoryInvites.map(inv => {
+            const w = inv.weddings || {};
+            const isGroom = (w.primary_side || '').toString().toLowerCase().includes('groom');
+            const displayNames = isGroom 
+                ? `${w.groom_name} & ${w.bride_name}` 
+                : `${w.bride_name} & ${w.groom_name}`;
+                
+            const targetDate = w.end_date || w.start_date;
+            const dateStr = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
 
-        const variantsBtnHtml = isWebInviteOnly ? `
-            <button class="manage-variants-btn web-invite-card__copy-btn" data-wedding-id="${w.id}" data-wedding-title="${displayNames}" title="Manage Invite Variants" type="button">
-                <i data-lucide="layers"></i>
-            </button>
-        ` : '';
+            const invJson = JSON.stringify(inv).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            const t = themePalettes[inv.theme] || themePalettes.blue;
 
-        // For Web Invite Only cards, clicking View Invite will open the variants modal
-        const viewInviteAction = isWebInviteOnly ? `
-            <button class="manage-variants-btn web-invite-card__view-btn" data-wedding-id="${w.id}" data-wedding-title="${displayNames}" style="background: ${t.accent}; color: ${t.bgDark}; border: none; cursor: pointer;" type="button">
-                View Links
-            </button>
-        ` : `
-            <a href="${inviteUrl}" target="_blank" class="web-invite-card__view-btn" style="background: ${t.accent}; color: ${t.bgDark};">
-                View Invite
-            </a>
-        `;
+            const editButtonHtml = isArchived ? '' : `
+                <button class="edit-invite-btn" data-invite='${invJson}' title="Edit Invite" type="button" style="background: ${t.accent}; border: none; outline: none; cursor: pointer; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0;">
+                    <i data-lucide="edit-2" style="color: ${t.bgDark}; width: 18px; height: 18px;"></i>
+                </button>
+            `;
 
-        return `
-        <div class="web-invite-card" style="background: ${t.bgDark}; border-color: ${t.accent};">
-            <div class="web-invite-card__header">
-                ${editButtonHtml}
-                <div class="web-invite-card__icon-wrap" style="background: ${t.accent};">
-                    <i data-lucide="mail" style="color: ${t.bgDark};"></i>
+            return `
+            <div class="web-invite-card" style="background: ${t.bgDark}; border-color: ${t.accent}; position: relative;">
+                <div class="web-invite-card__header" style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%;">
+                    <div class="web-invite-card__icon-wrap" style="background: ${t.accent}; margin: 0 auto;">
+                        <i data-lucide="mail" style="color: ${t.bgDark};"></i>
+                    </div>
+                    <div style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%);">
+                        ${editButtonHtml}
+                    </div>
+                </div>
+                <div class="web-invite-card__body">
+                    <h3 class="web-invite-card__names">${displayNames}</h3>
+                    
+                    <p class="web-invite-card__meta">
+                        ${w.hashtag ? `<span class="web-invite-card__hashtag" style="color: ${t.accent};">${w.hashtag}</span><br/>` : ''}
+                        <span class="web-invite-card__date">${dateStr}</span>
+                    </p>
+                    
+                    <div class="web-invite-card__actions" style="margin-top: 10px;">
+                        <button type="button" class="web-invite-open-links-btn" data-wedding-id="${w.id}" data-wedding-title="${displayNames.replace(/"/g, '&quot;')}" style="width: 100%; border: none; outline: none; box-shadow: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0.6rem 1rem; border-radius: 4px; font-weight: 600; font-size: 0.85rem; background: ${t.accent}; color: ${t.bgDark};">
+                            <i data-lucide="external-link" style="width: 15px; height: 15px; stroke: ${t.bgDark};"></i> Wedding Invitation
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="web-invite-card__body">
-                <h3 class="web-invite-card__names">${displayNames}</h3>
-                
-                <p class="web-invite-card__meta">
-                    ${w.hashtag ? `<span class="web-invite-card__hashtag" style="color: ${t.accent};">${w.hashtag}</span><br/>` : ''}
-                    <span class="web-invite-card__date">${dateStr}</span>
-                </p>
-                
-                <div class="web-invite-card__actions">
-                    ${viewInviteAction}
-                    <button onclick="navigator.clipboard.writeText('${fullShareUrl}'); showSweetAlert('success', 'Copied!', 'Link copied to clipboard');" class="web-invite-card__copy-btn" title="Copy Link" type="button">
-                        <i data-lucide="link"></i>
-                    </button>
-                    ${variantsBtnHtml}
+            `;
+        }).join('');
+
+        categoryGroupsHTML += `
+            <div class="dashboard-invitation-type-group" style="margin-bottom: 1.25rem;">
+                <h3 class="dashboard-invitation-type-heading" style="font-size: 0.9rem; font-weight: 600; color: var(--color-primary, #facc15); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                    ${category.label} (${categoryInvites.length})
+                </h3>
+                <div class="web-invites-section__list">
+                    ${listItems}
                 </div>
             </div>
-        </div>
         `;
-    }).join('');
+    });
 
     return `
         <div class="web-invites-section">
-            <h2 class="web-invites-section__heading">${title}</h2>
-            <div class="web-invites-section__list">
-                ${listItems}
-            </div>
+            <h2 class="web-invites-section__heading">${title} (${count})</h2>
+            ${categoryGroupsHTML}
         </div>
     `;
 }
 
-export async function openVariantsModal(weddingId, weddingTitle) {
-    const { data: events } = await supabase
-        .from('wedding_events')
-        .select('*')
-        .eq('wedding_id', weddingId)
-        .order('date', { ascending: true });
+async function showWeddingVariantsModal(weddingId, weddingTitle) {
+    const [{ data: wedding }, { data: variants }, { data: allEvents }] = await Promise.all([
+        supabase.from('weddings').select('invitation_type, allow_variants').eq('id', weddingId).single(),
+        supabase.from('invite_variants').select('*').eq('wedding_id', weddingId).order('created_at', { ascending: false }),
+        supabase.from('wedding_events').select('id, event_name, title').eq('wedding_id', weddingId)
+    ]);
 
-    const eventCheckboxes = (events || []).map(ev => `
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--color-text-primary, #ffffff); cursor: pointer; margin-bottom: 6px;">
-            <input type="checkbox" name="variant_event" value="${ev.id}" style="accent-color: var(--color-primary, #facc15);">
-            <span>${ev.event_name || ev.title} (${new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})</span>
-        </label>
-    `).join('') || `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.85rem;">No events added to this wedding yet.</div>`;
+    const isWebInviteOnly = wedding?.invitation_type === 'web_invite_only';
+    const allowsVariants = isWebInviteOnly ? (wedding?.allow_variants !== false) : true;
 
-    const contentHTML = `
-        <div style="display: flex; flex-direction: column; gap: 16px; font-family: inherit;">
+    const getPreviewUrl = (variantId) => {
+        if (isWebInviteOnly) {
+            return allowsVariants 
+                ? getWebInvitePublicPreviewUrl(weddingId, variantId) 
+                : getWebInvitePublicPreviewUrl(weddingId);
+        }
+        return getWebInvitePreviewUrl(weddingId, variantId);
+    };
+
+    let rowsHTML = '';
+
+    const btnStyle = "background: var(--color-primary, #facc15) !important; color: #1c1917 !important; border: none !important; outline: none !important; font-weight: 600 !important; font-size: 0.8rem !important; padding: 0.5rem 0.85rem !important; border-radius: 4px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important; text-decoration: none !important; cursor: pointer !important; box-shadow: none !important; flex: 1 1 0;";
+
+    const buildVariantRowHTML = (title, countText, url) => `
+        <div style="display: flex; flex-direction: column; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 12px 14px; border-radius: 6px; margin-bottom: 10px; gap: 10px;">
             <div>
-                <h4 style="margin: 0 0 4px 0; font-size: 0.95rem; color: var(--color-primary, #facc15);">Create New Variant</h4>
-                <p style="margin: 0 0 10px 0; font-size: 0.8rem; color: var(--color-text-muted, #94a3b8);">Create a custom link for specific events (e.g. "Reception Only").</p>
-                <div style="margin-bottom: 8px;">
-                    <label class="invite-modal-label">Variant Name *</label>
-                    <input type="text" id="newVariantName" placeholder="e.g., Reception Only, Close Family" class="invite-modal-input">
-                </div>
-                <div>
-                    <label class="invite-modal-label">Include Events *</label>
-                    <div style="max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; border: 1px solid var(--color-border, rgba(255,255,255,0.1));">
-                        ${eventCheckboxes}
-                    </div>
-                </div>
-                <button id="saveVariantBtn" style="margin-top: 10px; width: 100%; height: 36px; background: var(--color-primary, #facc15); color: #000; font-weight: 600; border: none; border-radius: 6px; cursor: pointer;" type="button">
-                    + Create Variant Link
-                </button>
+                <div style="font-weight: 600; font-size: 1rem; color: var(--color-text-primary, #ffffff); line-height: 1.3;">${title}</div>
+                <div style="font-size: 0.85rem; font-weight: 500; color: #cbd5e1; margin-top: 4px;">${countText}</div>
             </div>
-
-            <hr style="border: 0; border-top: 1px solid var(--color-border, rgba(255,255,255,0.1)); margin: 4px 0;" />
-
-            <div>
-                <h4 style="margin: 0 0 8px 0; font-size: 0.95rem; color: var(--color-text-primary, #ffffff);">Existing Link Variants</h4>
-                <div id="variantsListContainer">
-                    <div style="color: var(--color-text-muted, #94a3b8); font-size: 0.85rem; text-align: center; padding: 12px 0;">Loading variants...</div>
-                </div>
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <a href="${url}" target="_blank" style="${btnStyle}" title="Open Web Invite">
+                    <i data-lucide="external-link" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Web Invite
+                </a>
+                <button class="dash-copy-variant-btn" data-url="${url}" style="${btnStyle}" title="Copy Link" type="button">
+                    <i data-lucide="link" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Copy
+                </button>
             </div>
         </div>
     `;
 
-    const modal = openModal({
-        title: `Invite Variants - ${weddingTitle}`,
+    if (isWebInviteOnly && !allowsVariants) {
+        const directUrl = getPreviewUrl();
+        const eventCount = (allEvents || []).length;
+        rowsHTML = buildVariantRowHTML("All Events", `${eventCount} event(s) included`, directUrl);
+    } else if (!variants || variants.length === 0) {
+        rowsHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 18px 0;">No link variants created yet.</div>`;
+    } else {
+        rowsHTML = variants.map(v => {
+            const variantUrl = getPreviewUrl(v.id);
+            const count = v.selected_event_ids?.length || 0;
+            return buildVariantRowHTML(v.variant_name, `${count} event(s) included`, variantUrl);
+        }).join('');
+    }
+
+    const contentHTML = `
+        <div style="display: flex; flex-direction: column; gap: 12px; font-family: inherit;">
+            <div id="dashVariantsListContainer">
+                ${rowsHTML}
+            </div>
+        </div>
+    `;
+
+    openModal({
+        title: `Invite Links - ${weddingTitle}`,
         content: contentHTML,
         actions: [
             { label: "Cancel", variant: "ghost" }
         ]
     });
 
-    async function refreshVariantsList() {
-        const container = document.getElementById('variantsListContainer');
-        if (!container) return;
-
-        const { data: variants } = await supabase
-            .from('invite_variants')
-            .select('*')
-            .eq('wedding_id', weddingId)
-            .order('created_at', { ascending: false });
-
-        if (!variants || variants.length === 0) {
-            container.innerHTML = `<div style="color: var(--color-text-muted, #94a3b8); font-size: 0.85rem; text-align: center; padding: 12px 0;">No link variants created yet.</div>`;
-            return;
+    setTimeout(() => {
+        const allBtns = Array.from(document.querySelectorAll('button'));
+        const cancelBtn = allBtns.find(b => b.textContent.trim() === 'Cancel');
+        if (cancelBtn) {
+            cancelBtn.classList.add('modal-btn-cancel');
         }
-
-        container.innerHTML = variants.map(v => {
-            const variantUrl = getWebInvitePublicPreviewUrl(v.id);
-            const count = v.selected_event_ids?.length || 0;
-            return `
-                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--color-border, rgba(255,255,255,0.1)); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;">
-                    <div>
-                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--color-text-primary, #ffffff);">${v.variant_name}</div>
-                        <div style="font-size: 0.75rem; color: var(--color-text-muted, #94a3b8);">${count} event(s) included</div>
-                    </div>
-                    <div style="display: flex; gap: 6px;">
-                        <a href="${variantUrl}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 5px 8px; border-radius: 4px; text-decoration: none;" title="Open Link">
-                            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
-                        </a>
-                        <button class="copy-variant-btn" data-url="${variantUrl}" style="background: transparent; border: 1px solid var(--color-border, rgba(255,255,255,0.2)); color: var(--color-primary, #facc15); padding: 5px 8px; border-radius: 4px; cursor: pointer;" title="Copy Link" type="button">
-                            <i data-lucide="link" style="width: 14px; height: 14px;"></i>
-                        </button>
-                        <button class="delete-variant-btn" data-id="${v.id}" style="background: transparent; border: 1px solid rgba(239,68,68,0.3); color: #ef4444; padding: 5px 8px; border-radius: 4px; cursor: pointer;" title="Delete Variant" type="button">
-                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
 
         if (window.lucide) window.lucide.createIcons();
 
-        container.querySelectorAll('.copy-variant-btn').forEach(b => {
-            b.addEventListener('click', (e) => {
+        document.querySelectorAll('.dash-copy-variant-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const url = b.getAttribute('data-url');
+                const url = btn.getAttribute('data-url');
                 navigator.clipboard.writeText(url);
-                showSweetAlert('success', 'Copied!', 'Variant link copied to clipboard.');
+                showSweetAlert('success', 'Copied!', 'Invite link copied to clipboard.');
             });
         });
-
-        container.querySelectorAll('.delete-variant-btn').forEach(b => {
-            b.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const id = b.getAttribute('data-id');
-                const { error } = await supabase.from('invite_variants').delete().eq('id', id);
-                if (error) {
-                    showSweetAlert('error', 'Error', error.message);
-                } else {
-                    refreshVariantsList();
-                    window.dispatchEvent(new Event('invitesDataUpdated'));
-                }
-            });
-        });
-    }
-
-    setTimeout(() => {
-        layoutInviteModalFooter(false);
-        refreshVariantsList();
-
-        const saveBtn = document.getElementById('saveVariantBtn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', async () => {
-                const nameInput = document.getElementById('newVariantName');
-                const variantName = nameInput.value.trim();
-                const selected = Array.from(document.querySelectorAll('input[name="variant_event"]:checked')).map(cb => cb.value);
-
-                if (!variantName) {
-                    showSweetAlert('error', 'Missing Information', 'Please provide a variant name.');
-                    return;
-                }
-                if (selected.length === 0) {
-                    showSweetAlert('error', 'Missing Events', 'Please select at least one event.');
-                    return;
-                }
-
-                try {
-                    const { error } = await supabase.from('invite_variants').insert([{
-                        wedding_id: weddingId,
-                        variant_name: variantName,
-                        selected_event_ids: selected
-                    }]);
-                    if (error) throw error;
-
-                    nameInput.value = '';
-                    document.querySelectorAll('input[name="variant_event"]').forEach(cb => cb.checked = false);
-
-                    await refreshVariantsList();
-                    window.dispatchEvent(new Event('invitesDataUpdated'));
-                    showSweetAlert('success', 'Created!', 'Variant link created successfully.');
-                } catch (err) {
-                    showSweetAlert('error', 'Database Error', err.message);
-                }
-            });
-        }
     }, 50);
 }
 
@@ -507,16 +461,24 @@ async function openInviteModal(existingInvite = null) {
     }
 
     const optionsHtml = eligibleWeddings.map(w => {
+        const isGroom = (w.primary_side || '').toString().toLowerCase().includes('groom');
+        const coupleName = isGroom ? `${w.groom_name} & ${w.bride_name}` : `${w.bride_name} & ${w.groom_name}`;
         const targetDate = w.end_date || w.start_date;
         const formattedDate = targetDate ? new Date(targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD';
         const hashtagStr = w.hashtag ? ` (${w.hashtag})` : ''; 
-        return `<option value="${w.id}" data-side="${w.primary_side}">${w.bride_name} & ${w.groom_name}${hashtagStr} - ${formattedDate}</option>`;
+        return `<option value="${w.id}" data-side="${w.primary_side}">${coupleName}${hashtagStr} - ${formattedDate}</option>`;
     }).join('');
+
+    const existingWedding = existingInvite?.weddings || {};
+    const existingIsGroom = (existingInvite?.primary_side || existingWedding.primary_side || '').toString().toLowerCase().includes('groom');
+    const existingCoupleName = existingIsGroom 
+        ? `${existingWedding.groom_name || ''} & ${existingWedding.bride_name || ''}` 
+        : `${existingWedding.bride_name || ''} & ${existingWedding.groom_name || ''}`;
 
     const weddingSelectionHTML = existingInvite 
         ? `<div>
             <label class="invite-modal-label">Wedding</label>
-            <input type="text" value="${existingInvite.weddings?.bride_name || ''} & ${existingInvite.weddings?.groom_name || ''}" disabled class="invite-modal-input">
+            <input type="text" value="${existingCoupleName}" disabled class="invite-modal-input">
             <input type="hidden" id="inviteWeddingId" value="${existingInvite.wedding_id}">
            </div>`
         : `<div>

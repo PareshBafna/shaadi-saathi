@@ -2,8 +2,6 @@ import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
-let currentPage = 1;
-const usersPerPage = 10;
 let searchQuery = '';
 let allUsersData = [];
 
@@ -80,7 +78,6 @@ export function renderUsers() {
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 searchQuery = e.target.value;
-                currentPage = 1;
                 renderUsersList();
             });
         }
@@ -189,16 +186,11 @@ function renderUsersList() {
         const nameMatch = (u.name || '').toLowerCase().includes(query);
         const phoneMatch = (u.phone || '').toLowerCase().includes(query);
         const codeMatch = (u.verification_code || u.code || '').toLowerCase().includes(query);
-        return nameMatch || phoneMatch || codeMatch;
+        const idMatch = (u.id || '').toLowerCase().includes(query);
+        return nameMatch || phoneMatch || codeMatch || idMatch;
     });
 
     filteredUsers.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
-
-    const totalPages = Math.ceil(filteredUsers.length / usersPerPage) || 1;
-    if (currentPage > totalPages) currentPage = totalPages;
-
-    const startIndex = (currentPage - 1) * usersPerPage;
-    const paginatedUsers = filteredUsers.slice(startIndex, startIndex + usersPerPage);
 
     if (filteredUsers.length === 0) {
         content.innerHTML = `<div class="users-empty-state">No users match your search.</div>`;
@@ -211,29 +203,25 @@ function renderUsersList() {
             <div class="users-table-inner">
                 <div class="users-table-header">
                     <div></div>
-                    <div></div>
+                    <div class="users-sno-col">S.No</div>
                     <div>Name</div>
                     <div>Phone Number</div>
                     <div>PIN</div>
                     <div>Verification Code</div>
                     <div>User Role</div>
                     <div>Wedding Role</div>
+                    <div>Associated Weddings</div>
                     <div>Verification</div>
                     <div class="users-table-header__action">Action</div>
-                    <div></div>
                 </div>
+                <div class="users-table-body-scroll">
     `;
 
-    paginatedUsers.forEach(u => {
+    filteredUsers.forEach((u, index) => {
+        const globalIndex = index + 1;
         const verifiedBadge = u.is_verified 
             ? `<span class="users-badge-verified">Verified</span>` 
             : `<button class="verify-user-btn users-btn-verify" data-id="${u.id}">Verify</button>`;
-
-        const toggleBtn = `
-            <button class="toggle-weddings-btn users-icon-btn users-toggle-btn" data-target="child-user-${u.id}">
-                <i data-lucide="chevron-right"></i>
-            </button>
-        `;
 
         const editBtn = !u.is_verified ? `
             <button class="edit-sys-user-btn users-icon-btn users-edit-btn" data-id="${u.id}" title="Edit">
@@ -241,48 +229,38 @@ function renderUsersList() {
             </button>
         ` : `<div></div>`;
         
-        const renderWeddingsList = (title, weds) => {
-            if (!weds || weds.length === 0) return '';
-            const uniqueWeds = [];
-            const seenIds = new Set();
-            for (const w of weds) {
-                if (!seenIds.has(w.id)) { seenIds.add(w.id); uniqueWeds.push(w); }
+        const allAssociated = [...(u.host_weddings || []), ...(u.user_weddings || []), ...(u.guest_weddings || [])];
+        const uniqueWeds = [];
+        const seenIds = new Set();
+        for (const w of allAssociated) {
+            if (!seenIds.has(w.id)) {
+                seenIds.add(w.id);
+                uniqueWeds.push(w);
             }
-            const wNames = uniqueWeds.map(w => {
+        }
+
+        let weddingsContent = '-';
+        if (uniqueWeds.length > 0) {
+            weddingsContent = uniqueWeds.map(w => {
                 const names = w.primary_side === 'groom' ? `${w.groom_name} & ${w.bride_name}` : `${w.bride_name} & ${w.groom_name}`;
-                return `<span class="users-wedding-tag"><i data-lucide="heart"></i> ${names}</span>`;
+                return `<span class="users-wedding-tag" style="display: inline-flex; margin: 2px 4px 2px 0;"><i data-lucide="heart" style="width: 12px; height: 12px; margin-right: 4px;"></i> ${names}</span>`;
             }).join('');
-            return `<div class="users-child-group">
-                        <div class="users-child-group__title">${title}:</div>
-                        <div class="users-child-group__list">${wNames}</div>
-                    </div>`;
-        };
+        }
 
-        const idHTML = `
-            <div class="users-child-group">
-                <div class="users-child-group__title">User ID:</div>
-                <div class="users-child-id-box">${u.id}</div>
-            </div>
-        `;
-
-        const hostHTML = renderWeddingsList('Host', u.host_weddings);
-        const userHTML = renderWeddingsList('User', u.user_weddings);
-        const guestHTML = renderWeddingsList('Guest', u.guest_weddings);
-
-        let childContent = idHTML + hostHTML + userHTML + guestHTML;
         const verificationCodeDisplay = u.verification_code || u.code || '-';
 
         listHTML += `
         <div class="users-table-row-wrapper">
             <div class="users-table-row">
-                ${toggleBtn}
                 ${editBtn}
-                
+
+                <div class="users-sno-col">${globalIndex}</div>
+
                 <div class="users-name-col">
                     <h4>${u.name || '-'}</h4>
                 </div>
 
-                <div class="users-phone-col">
+                <div class="users-phone-cell">
                     <i data-lucide="phone"></i> <span>${u.phone || '-'}</span>
                 </div>
 
@@ -302,6 +280,10 @@ function renderUsersList() {
 
                 <div class="users-wedding-role-col">${u.wedding_role || '-'}</div>
 
+                <div style="display: flex; flex-wrap: wrap; align-items: center;">
+                    ${weddingsContent}
+                </div>
+
                 <div class="users-status-col">${verifiedBadge}</div>
 
                 <div class="users-action-col">
@@ -309,37 +291,15 @@ function renderUsersList() {
                         Imitate
                     </button>
                 </div>
-                <div></div>
-            </div>
-
-            <div id="child-user-${u.id}" class="users-child-row">
-                ${childContent}
             </div>
         </div>`;
     });
 
     listHTML += `
+                </div>
             </div>
         </div>
-        <div class="users-pagination-bar">
-            <div class="users-pagination-info">
-                Showing ${startIndex + 1} to ${Math.min(startIndex + usersPerPage, filteredUsers.length)} of ${filteredUsers.length} users
-            </div>
     `;
-
-    if (totalPages > 1) {
-        listHTML += `
-            <div class="users-pagination-controls">
-                <button class="pagination-btn users-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
-                <span class="users-page-indicator">Page ${currentPage} of ${totalPages}</span>
-                <button class="pagination-btn users-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
-            </div>
-        `;
-    } else {
-        listHTML += `<div></div>`; 
-    }
-
-    listHTML += `</div>`;
     content.innerHTML = listHTML;
 
     setTimeout(() => {
@@ -370,33 +330,6 @@ function renderUsersList() {
                     openUserModal(userData);
                 } catch (err) {
                     showSweetAlert('error', 'Error', 'Could not fetch user details.');
-                }
-            });
-        });
-
-        const pageBtns = content.querySelectorAll('.pagination-btn');
-        pageBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (btn.hasAttribute('disabled')) return;
-                currentPage = parseInt(btn.getAttribute('data-page'));
-                renderUsersList();
-            });
-        });
-
-        const toggleBtns = content.querySelectorAll('.toggle-weddings-btn');
-        toggleBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const targetId = btn.getAttribute('data-target');
-                const childRow = document.getElementById(targetId);
-                const icon = btn.querySelector('i, svg');
-                
-                if (childRow.style.display === 'none' || !childRow.style.display) {
-                    childRow.style.display = 'block';
-                    if (icon) icon.style.transform = 'rotate(90deg)';
-                } else {
-                    childRow.style.display = 'none';
-                    if (icon) icon.style.transform = 'rotate(0deg)';
                 }
             });
         });
@@ -444,7 +377,7 @@ function layoutUserModalFooter(isEditModal = false) {
         cancelBtn.classList.add('modal-btn-cancel');
         cancelBtn.style.order = '1';
         cancelBtn.style.flexShrink = '0';
-        cancelBtn.style.marginRight = isEditModal ? '0' : '0';
+        cancelBtn.style.margin = '0';
     }
 
     if (deleteBtn) {
@@ -457,7 +390,7 @@ function layoutUserModalFooter(isEditModal = false) {
     if (primaryBtn) {
         primaryBtn.style.order = '3';
         primaryBtn.style.flexShrink = '0';
-        primaryBtn.style.marginLeft = isEditModal ? '0' : 'auto';
+        primaryBtn.style.marginLeft = (isEditModal && deleteBtn) ? '0' : 'auto';
         primaryBtn.style.whiteSpace = 'nowrap';
     }
 
@@ -522,7 +455,7 @@ window.openUserModal = async function(userOrId = null) {
                     icon: 'question', 
                     showCancelButton: true, 
                     confirmButtonColor: '#dc2626', 
-                    cancelButtonColor: '#6b7280',
+                    cancelButtonColor: '#6b7280', 
                     confirmButtonText: 'Yes, delete it!'
                 });
 
@@ -546,7 +479,6 @@ window.openUserModal = async function(userOrId = null) {
                                 }).map(g => g.id);
 
                                 if (matchingGuestIds.length > 0) {
-                                    await supabase.from('event_guests').delete().in('guest_id', matchingGuestIds);
                                     await supabase.from('guests').delete().in('id', matchingGuestIds);
                                 }
                             }
