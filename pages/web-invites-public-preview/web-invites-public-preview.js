@@ -522,7 +522,7 @@ const generateAboutUsHTML = () => {
                         <strong class="creator-heading">Created By</strong>
                         <br/><br/>
                         <div class="signature-glow">
-                            Paresh Bafna
+                            Shaadi Saathi
                         </div>
                         <div class="creator-social-links">
                             <a href="https://pareshbafna-portfolio.pages.dev/" target="_blank">
