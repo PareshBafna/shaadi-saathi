@@ -144,25 +144,34 @@
 
 .users-table-scroll-container {
   width: 100%;
+  max-height: 480px;
+  overflow-y: auto !important;
   overflow-x: auto !important;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 6px;
+  scrollbar-gutter: stable;
+  padding: 0 !important;
+  box-sizing: border-box;
 }
 
 .users-table-inner {
   min-width: 1180px;
-  padding-right: 12px;
+  width: 100%;
+  padding-right: 8px;
   box-sizing: border-box;
 }
 
 /* Grid Table Layout */
 .users-table-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--color-white) !important;
   display: grid !important;
   grid-template-columns: var(--users-grid-template) !important;
   align-items: center;
-  padding: 0 var(--space-4) var(--space-2) var(--space-4);
+  padding: 0.75rem var(--space-4);
   border-bottom: 1px solid var(--color-border);
-  margin-bottom: var(--space-2);
+  margin: 0 0 var(--space-2) 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
@@ -178,6 +187,7 @@
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-2);
   background: var(--color-bg);
+  flex-shrink: 0;
 }
 
 .users-table-row {
@@ -380,56 +390,6 @@
   width: 12px;
   height: 12px;
   margin-right: 4px;
-}
-
-/* Pagination Footer */
-.users-pagination-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: var(--space-4);
-  margin-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
-}
-
-.users-pagination-info {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.users-pagination-controls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.users-page-indicator {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  font-weight: var(--font-weight-medium);
-  padding: 0 8px;
-}
-
-.users-page-btn {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  color: var(--color-text-primary);
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
-
-.users-page-btn i,
-.users-page-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.users-page-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
 }
 
 /* ============================================================

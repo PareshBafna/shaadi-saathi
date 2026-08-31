@@ -2,8 +2,6 @@ import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
-let currentPage = 1;
-const usersPerPage = 10;
 let searchQuery = '';
 let allUsersData = [];
 
@@ -80,7 +78,6 @@ export function renderUsers() {
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 searchQuery = e.target.value;
-                currentPage = 1;
                 renderUsersList();
             });
         }
@@ -195,12 +192,6 @@ function renderUsersList() {
 
     filteredUsers.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
 
-    const totalPages = Math.ceil(filteredUsers.length / usersPerPage) || 1;
-    if (currentPage > totalPages) currentPage = totalPages;
-
-    const startIndex = (currentPage - 1) * usersPerPage;
-    const paginatedUsers = filteredUsers.slice(startIndex, startIndex + usersPerPage);
-
     if (filteredUsers.length === 0) {
         content.innerHTML = `<div class="users-empty-state">No users match your search.</div>`;
         if (window.lucide) window.lucide.createIcons();
@@ -225,8 +216,8 @@ function renderUsersList() {
                 </div>
     `;
 
-    paginatedUsers.forEach((u, index) => {
-        const globalIndex = startIndex + index + 1;
+    filteredUsers.forEach((u, index) => {
+        const globalIndex = index + 1;
         const verifiedBadge = u.is_verified 
             ? `<span class="users-badge-verified">Verified</span>` 
             : `<button class="verify-user-btn users-btn-verify" data-id="${u.id}">Verify</button>`;
@@ -306,25 +297,7 @@ function renderUsersList() {
     listHTML += `
             </div>
         </div>
-        <div class="users-pagination-bar">
-            <div class="users-pagination-info">
-                Showing ${startIndex + 1} to ${Math.min(startIndex + usersPerPage, filteredUsers.length)} of ${filteredUsers.length} users
-            </div>
     `;
-
-    if (totalPages > 1) {
-        listHTML += `
-            <div class="users-pagination-controls">
-                <button class="pagination-btn users-page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
-                <span class="events-page-indicator">Page ${currentPage} of ${totalPages}</span>
-                <button class="pagination-btn users-page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
-            </div>
-        `;
-    } else {
-        listHTML += `<div></div>`; 
-    }
-
-    listHTML += `</div>`;
     content.innerHTML = listHTML;
 
     setTimeout(() => {
@@ -356,15 +329,6 @@ function renderUsersList() {
                 } catch (err) {
                     showSweetAlert('error', 'Error', 'Could not fetch user details.');
                 }
-            });
-        });
-
-        const pageBtns = content.querySelectorAll('.pagination-btn');
-        pageBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (btn.hasAttribute('disabled')) return;
-                currentPage = parseInt(btn.getAttribute('data-page'));
-                renderUsersList();
             });
         });
 

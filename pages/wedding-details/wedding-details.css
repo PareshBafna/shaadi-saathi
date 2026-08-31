@@ -689,7 +689,7 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--color-bg, #0c0a09) !important;
+  background: var(--color-white) !important;
   padding: 0.75rem var(--space-4, 1rem);
   border-bottom: 1px solid var(--color-border, #292524);
   margin-top: 0;
