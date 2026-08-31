@@ -214,6 +214,7 @@ function renderUsersList() {
                     <div>Verification</div>
                     <div class="users-table-header__action">Action</div>
                 </div>
+                <div class="users-table-body-scroll">
     `;
 
     filteredUsers.forEach((u, index) => {
@@ -295,6 +296,7 @@ function renderUsersList() {
     });
 
     listHTML += `
+                </div>
             </div>
         </div>
     `;

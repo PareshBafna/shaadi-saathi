@@ -141,30 +141,27 @@
   overflow: hidden;
 }
 
+/* Horizontal scroller */
 .hosts-table-scroll-container {
   width: 100%;
-  max-height: 480px;
-  overflow-y: auto !important;
   overflow-x: auto !important;
+  overflow-y: visible !important;
   -webkit-overflow-scrolling: touch;
-  scrollbar-gutter: stable;
-  padding: 0 !important;
+  padding: 0 0 4px 0 !important;
   box-sizing: border-box;
 }
 
+/* Expands dynamically so no columns or buttons are clipped */
 .hosts-table-inner {
-  min-width: 950px;
-  width: 100%;
-  padding-right: 8px;
+  width: max-content;
+  min-width: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Grid Table Layout */
+/* Fixed Header: sits directly above the data rows */
 .hosts-table-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: var(--color-white) !important;
   display: grid !important;
   grid-template-columns: var(--hosts-grid-template) !important;
   align-items: center;
@@ -175,6 +172,19 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Vertical scroll strictly for the data rows */
+.hosts-table-body-scroll {
+  max-height: 480px;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding: 0 0 6px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .hosts-table-row-wrapper {
@@ -182,8 +192,8 @@
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-2);
   background: var(--color-bg);
-  overflow: hidden;
-  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .hosts-table-row {
@@ -193,6 +203,8 @@
   padding: var(--space-3) var(--space-4);
   transition: background var(--transition-fast, 0.2s ease);
   gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .hosts-table-row:hover {

@@ -120,7 +120,7 @@ function renderEventsList() {
         return nameMatch || titleMatch;
     });
 
-    filteredEvents.sort((a, b) => (a.event_name || '').toLowerCase().localeCompare((b.event_name || '').toLowerCase()));
+    filteredEvents.sort((a, b) => (a.event_name || '').localeCompare((b.event_name || '').toLowerCase()));
 
     if (filteredEvents.length === 0) {
         content.innerHTML = `<div class="events-empty-state">No events match your search.</div>`;
@@ -139,6 +139,7 @@ function renderEventsList() {
                     <div>One Liner</div>
                     <div>Description</div>
                 </div>
+                <div class="events-table-body-scroll">
     `;
 
     filteredEvents.forEach((ev, index) => {
@@ -163,6 +164,7 @@ function renderEventsList() {
     });
 
     listHTML += `
+                </div>
             </div>
         </div>
     `;

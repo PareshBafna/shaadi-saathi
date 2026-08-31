@@ -2,7 +2,7 @@
    USERS PAGE CONTAINER & CONTROL BAR
    ============================================================ */
 :root {
-  --users-grid-template: 32px 45px minmax(130px, 1.2fr) minmax(120px, 1fr) 85px 130px 95px 110px minmax(180px, 1.6fr) 95px 100px;
+  --users-grid-template: 32px 45px minmax(130px, 1.2fr) minmax(120px, 1fr) 85px 130px 95px 110px minmax(180px, 1.6fr) 95px 110px;
 }
 
 .users-page-wrapper {
@@ -142,30 +142,27 @@
   overflow: hidden;
 }
 
+/* Horizontal scroller */
 .users-table-scroll-container {
   width: 100%;
-  max-height: 480px;
-  overflow-y: auto !important;
   overflow-x: auto !important;
+  overflow-y: visible !important;
   -webkit-overflow-scrolling: touch;
-  scrollbar-gutter: stable;
-  padding: 0 !important;
+  padding: 0 0 4px 0 !important;
   box-sizing: border-box;
 }
 
+/* Expands dynamically so no columns or buttons are clipped */
 .users-table-inner {
-  min-width: 1180px;
-  width: 100%;
-  padding-right: 8px;
+  width: max-content;
+  min-width: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Grid Table Layout */
+/* Fixed Header: sits directly above the data rows */
 .users-table-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: var(--color-white) !important;
   display: grid !important;
   grid-template-columns: var(--users-grid-template) !important;
   align-items: center;
@@ -176,10 +173,24 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .users-table-header__action {
   text-align: right;
+  padding-right: 4px;
+}
+
+/* Vertical scroll strictly for the data rows */
+.users-table-body-scroll {
+  max-height: 480px;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding: 0 0 6px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .users-table-row-wrapper {
@@ -187,7 +198,8 @@
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-2);
   background: var(--color-bg);
-  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .users-table-row {
@@ -197,6 +209,8 @@
   padding: var(--space-3) var(--space-4);
   transition: background var(--transition-fast, 0.2s ease);
   gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .users-table-row:hover {
@@ -348,14 +362,14 @@
   text-align: right;
   display: flex;
   justify-content: flex-end;
-  min-width: 80px;
+  min-width: 90px;
 }
 
 .users-btn-imitate {
   background: var(--color-primary);
   color: var(--color-text-on-accent);
   border: none;
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: var(--font-weight-semibold);

@@ -291,7 +291,29 @@
   border-bottom: 1px solid var(--color-border, #292524);
   padding-bottom: var(--space-4, 1rem);
   gap: 12px;
-  flex-wrap: wrap !important;
+  flex-wrap: nowrap !important;
+}
+
+.guest-control-left {
+  flex: 1 1 0;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+}
+
+.guest-control-center {
+  flex: 1 1 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.guest-control-right {
+  flex: 1 1 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .wedding-details-section__left-actions,
@@ -301,10 +323,6 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-}
-
-.wedding-details-section__right-actions {
-  justify-content: flex-end;
 }
 
 .wedding-details-empty-state {
@@ -659,37 +677,34 @@
 /* ============================================================
    TABLES & GRIDS (SCROLLABLE & CLEAN)
    ============================================================ */
+/* Outer horizontal scroller holding header + body */
 .wedding-details-table-container {
   width: 100% !important;
   max-width: 100% !important;
-  max-height: 420px;
-  overflow-y: auto !important;
   overflow-x: auto !important;
+  overflow-y: visible !important;
   -webkit-overflow-scrolling: touch;
-  scrollbar-gutter: stable;
-  padding-bottom: 4px;
+  padding: 0 0 4px 0 !important;
   box-sizing: border-box;
   display: block;
 }
 
+/* Dynamically expanding container so no action column is clipped */
 .wedding-details-table-inner--hosts,
-.wedding-details-table-inner--users {
-  min-width: 520px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
+.wedding-details-table-inner--users,
 .wedding-details-table-inner--guests {
-  min-width: 650px;
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Static Fixed Table Headers */
 .wedding-details-table-header {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: var(--color-white) !important;
+  display: grid !important;
+  align-items: center;
+  background: transparent !important;
   padding: 0.75rem var(--space-4, 1rem);
   border-bottom: 1px solid var(--color-border, #292524);
   margin-top: 0;
@@ -697,6 +712,19 @@
   color: var(--color-text-secondary, #a1a1aa);
   font-size: var(--font-size-sm, 0.875rem);
   font-weight: var(--font-weight-semibold, 600);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Vertical Scroll Strictly for Table Row Bodies */
+.wedding-details-table-body-scroll {
+  max-height: 400px;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-gutter: stable;
+  padding: 0 0 6px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .wedding-details-table-row-wrap {
@@ -704,7 +732,6 @@
   border-radius: var(--radius-sm, 4px);
   margin-bottom: var(--space-2, 0.5rem);
   background: var(--color-bg, #0c0a09);
-  overflow: hidden;
   width: 100%;
   box-sizing: border-box;
   min-height: 50px;
@@ -714,12 +741,13 @@
 .hosts-table-grid,
 .users-table-grid {
   display: grid !important;
-  grid-template-columns: 32px 45px minmax(160px, 1.5fr) minmax(140px, 1fr) !important;
+  grid-template-columns: 32px 45px minmax(160px, 1.5fr) minmax(140px, 1.2fr) !important;
   align-items: center;
   padding: 0.75rem var(--space-4, 1rem);
   gap: 12px;
   min-height: 50px;
   box-sizing: border-box;
+  width: 100%;
   transition: background 0.2s ease;
 }
 
@@ -730,23 +758,25 @@
 
 .guests-table-grid--config {
   display: grid !important;
-  grid-template-columns: 32px 32px 45px minmax(160px, 1.5fr) minmax(130px, 1fr) 65px 40px !important;
+  grid-template-columns: 32px 45px minmax(160px, 1.5fr) minmax(130px, 1fr) 65px 40px !important;
   align-items: center;
   padding: 0.75rem var(--space-4, 1rem);
   gap: 10px;
   min-height: 50px;
   box-sizing: border-box;
+  width: 100%;
   transition: background 0.2s ease;
 }
 
 .guests-table-grid--readonly {
   display: grid !important;
-  grid-template-columns: 32px 45px minmax(160px, 1.5fr) minmax(130px, 1fr) 65px !important;
+  grid-template-columns: 45px minmax(160px, 1.5fr) minmax(130px, 1fr) 65px !important;
   align-items: center;
   padding: 0.75rem var(--space-4, 1rem);
   gap: 10px;
   min-height: 50px;
   box-sizing: border-box;
+  width: 100%;
   transition: background 0.2s ease;
 }
 
@@ -1071,7 +1101,6 @@ textarea.wedding-modal-input {
     align-items: flex-start;
   }
 
-  @media (max-width: 600px) {
   .wedding-details-section__control-bar {
     display: flex;
     flex-direction: row !important;
@@ -1080,6 +1109,20 @@ textarea.wedding-modal-input {
     padding: var(--space-2, 0.5rem) 0;
     gap: 6px;
     flex-wrap: nowrap !important;
+  }
+
+  .guest-control-left,
+  .guest-control-center,
+  .guest-control-right {
+    flex: 0 0 auto;
+    width: auto;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+
+  .guest-control-right {
+    margin-left: auto;
+    justify-content: flex-end;
   }
 
   .wedding-action-btn-primary {
@@ -1105,7 +1148,6 @@ textarea.wedding-modal-input {
     height: 11px;
     left: 6px;
   }
-}
 
   .wedding-modal-row {
     flex-direction: column !important;

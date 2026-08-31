@@ -1008,6 +1008,7 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
                         <div>Name</div>
                         <div>Phone Number</div>
                     </div>
+                    <div class="wedding-details-table-body-scroll">
         `;
         
         sortedHosts.forEach((host, index) => {
@@ -1035,6 +1036,7 @@ function buildHostListSection(wedding, hosts, canConfig, isCreator, curUserId) {
         });
 
         listHTML += `
+                    </div>
                 </div>
             </div>
         `;
@@ -1138,6 +1140,7 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
                         <div>Name</div>
                         <div>Phone Number</div>
                     </div>
+                    <div class="wedding-details-table-body-scroll">
         `;
         
         sortedUsers.forEach((u, index) => {
@@ -1163,6 +1166,7 @@ function buildWeddingUserListSection(wedding, wUsers, canConfig) {
         });
 
         listHTML += `
+                    </div>
                 </div>
             </div>
         `;
@@ -1232,11 +1236,13 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig, isC
     ` : '';
 
     controlsRow.innerHTML = `
-        <div class="wedding-details-section__left-actions" style="display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;">
+        <div class="wedding-details-section__left-actions guest-control-left">
             ${leftActions}
+        </div>
+        <div class="wedding-details-section__middle-actions guest-control-center">
             ${middleActions}
         </div>
-        <div class="wedding-details-section__right-actions" style="display: flex; align-items: center; justify-content: flex-end;">
+        <div class="wedding-details-section__right-actions guest-control-right">
             <div class="wedding-details-search-wrapper">
                 <i data-lucide="search"></i>
                 <input type="text" id="guestSearchInput" placeholder="Search ..." class="wedding-details-search-input">
@@ -1355,6 +1361,7 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig, isC
                                 <div class="guest-events-count">Events</div>
                                 ${canConfig ? '<div class="guest-events-count">WA</div>' : ''}
                             </div>
+                            <div class="wedding-details-table-body-scroll">
             `;
 
             gList.forEach((guest, index) => {
@@ -1385,6 +1392,7 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig, isC
             });
 
             groupHTML += `
+                            </div>
                         </div>
                     </div>
                 </div>

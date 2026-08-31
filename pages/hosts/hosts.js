@@ -159,6 +159,7 @@ function renderHostsList() {
                     <div>Associated Weddings</div>
                     <div>Weddings Count</div>
                 </div>
+                <div class="hosts-table-body-scroll">
     `;
 
     sortedHosts.forEach((host, index) => {
@@ -200,6 +201,7 @@ function renderHostsList() {
     });
 
     listHTML += `
+                </div>
             </div>
         </div>
     `;
