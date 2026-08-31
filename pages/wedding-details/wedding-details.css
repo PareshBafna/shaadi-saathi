@@ -1071,24 +1071,31 @@ textarea.wedding-modal-input {
     align-items: flex-start;
   }
 
+  @media (max-width: 600px) {
   .wedding-details-section__control-bar {
+    display: flex;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
     padding: var(--space-2, 0.5rem) 0;
-    gap: 8px;
+    gap: 6px;
+    flex-wrap: nowrap !important;
   }
 
   .wedding-action-btn-primary {
-    padding: 0.35rem 0.55rem;
-    font-size: var(--font-size-xs, 0.75rem);
-    gap: 2px;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.72rem;
+    gap: 3px;
+    white-space: nowrap;
   }
 
   .wedding-details-search-wrapper {
-    width: 125px;
-    max-width: 125px;
+    width: 120px;
+    max-width: 120px;
   }
 
   .wedding-details-search-input {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     padding: 0.3rem 0.3rem 0.3rem 22px;
   }
 
@@ -1098,6 +1105,7 @@ textarea.wedding-modal-input {
     height: 11px;
     left: 6px;
   }
+}
 
   .wedding-modal-row {
     flex-direction: column !important;

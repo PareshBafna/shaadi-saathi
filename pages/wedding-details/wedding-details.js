@@ -1232,9 +1232,11 @@ function buildGuestListSection(wedding, guests, events, variants, canConfig, isC
     ` : '';
 
     controlsRow.innerHTML = `
-        <div class="wedding-details-section__left-actions" style="flex: 1; display: flex; justify-content: flex-start;">${leftActions}</div>
-        <div class="wedding-details-section__middle-actions" style="flex: 1; display: flex; justify-content: center;">${middleActions}</div>
-        <div class="wedding-details-section__right-actions" style="flex: 1; display: flex; justify-content: flex-end;">
+        <div class="wedding-details-section__left-actions" style="display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;">
+            ${leftActions}
+            ${middleActions}
+        </div>
+        <div class="wedding-details-section__right-actions" style="display: flex; align-items: center; justify-content: flex-end;">
             <div class="wedding-details-search-wrapper">
                 <i data-lucide="search"></i>
                 <input type="text" id="guestSearchInput" placeholder="Search ..." class="wedding-details-search-input">
