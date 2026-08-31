@@ -406,11 +406,14 @@ function buildGallerySection(title, weddings) {
         if (!isWebInviteOnly) {
             if (wedding.hosts && wedding.hosts.length > 0) {
                 const sortedHosts = [...wedding.hosts].sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
-                const inlineHosts = sortedHosts.map(h => `${h.name} - ${h.phone}`).join(', ');
+                const hostLines = sortedHosts.map(h => `<div>${h.name} - ${h.phone}</div>`).join('');
                 
                 hostsHTML = `
-                <div class="dashboard-wedding-card__row">
-                    <i data-lucide="phone"></i> <span>${inlineHosts}</span>
+                <div class="dashboard-wedding-card__row" style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="phone" style="flex-shrink: 0;"></i>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        ${hostLines}
+                    </div>
                 </div>`;
             } else {
                 hostsHTML = `
