@@ -10,7 +10,8 @@ export function createHeader(options = {}) {
     user = {},
     isVerified = false,
     verifyLink = "",
-    notificationCount = 0
+    notificationCount = 0,
+    onNavigate = () => {}
   } = options;
 
   const header = document.createElement("header");
@@ -23,7 +24,6 @@ export function createHeader(options = {}) {
   if (!isVerified) {
     const userName = user.name || 'User';
     
-    // Extract existing verification code or fallback to id
     let userCode = user.id || localStorage.getItem('ss_user_id') || 'N/A';
     if (verifyLink && verifyLink.includes('VERIFY-')) {
       const match = decodeURIComponent(verifyLink).match(/VERIFY-[A-Za-z0-9]+/);
@@ -55,7 +55,7 @@ _(Note: Do not change Name and Code as it's used to verify your account)_`;
     leftDiv.appendChild(verifyBtn);
   }
 
-  // 2. Center Section: Create Wedding on WhatsApp
+  // 2. Center Section: Desktop WhatsApp Button + Mobile Center Logo
   const centerDiv = document.createElement("div");
   centerDiv.classList.add("global-header__center");
 
@@ -72,6 +72,22 @@ _(Note: Do not change Name and Code as it's used to verify your account)_`;
     <span>Create Wedding</span>
   `;
   centerDiv.appendChild(createWeddingBtn);
+
+  const mobileBrand = document.createElement("a");
+  mobileBrand.href = "#";
+  mobileBrand.classList.add("global-header__mobile-brand");
+  mobileBrand.setAttribute("aria-label", "Shaadi Saathi Home");
+  mobileBrand.innerHTML = `
+    <div class="global-header__logo-badge">
+      <img src="/global/logos/logo.png" alt="Shaadi Saathi Logo" />
+    </div>
+  `;
+  mobileBrand.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (onNavigate) onNavigate("home");
+    window.location.hash = "";
+  });
+  centerDiv.appendChild(mobileBrand);
 
   // 3. Right Section: Profile Info
   const rightDiv = document.createElement("div");

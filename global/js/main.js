@@ -7,30 +7,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Scaffold DOM containers in case index.html is blank
     ensureDomLayout();
 
+    const rawHash = window.location.hash || '';
+    const [route] = rawHash.split('?');
+
+    const isRoot = !route || route === '' || route === '#' || route === '#/' || route === '#home';
+
     document.body.style.opacity = '0.5';
     let user = await validateSession();
     document.body.style.opacity = '1';
 
-    const rawHash = window.location.hash || '#login';
-    const [route] = rawHash.split('?');
+    const isPublic = isRoot || route === '#login' || publicRoutes.includes(route);
 
-    if (!user && !publicRoutes.includes(route)) {
+    if (!user && !isPublic) {
         checkSessionOrShowAlert();
         initApp(null);
         return;
     }
 
-    user = await resolveDynamicUserRole(user);
+    if (user) {
+        user = await resolveDynamicUserRole(user);
+    }
     window.currentUser = user || null;
 
-    if (route === '#login' || route === '#/') {
-        if (user) {
-            window.location.hash = user.role === 'creator' ? '#dashboard' : (user.role === 'host' || user.role === 'wedding_user' ? '#weddings' : '#calendar');
-        } else {
-            window.location.hash = '#login';
-        }
+    // ONLY redirect to dashboard when user explicitly visits #login while logged in
+    // Root / landing stays on landing page even if user is logged in
+    if (user && route === '#login') {
+        window.location.hash = user.role === 'creator' ? '#dashboard' : (user.role === 'host' || user.role === 'wedding_user' ? '#weddings' : '#calendar');
+        return;
     } else if (route === '#web-invites-preview') {
-        // Allow standalone invite preview without forcing dashboard redirect
         initApp(user);
         return;
     }
@@ -39,7 +43,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function initApp(user) {
-    if (user) {
+    const rawHash = window.location.hash || '';
+    const [route] = rawHash.split('?');
+    const isRoot = !route || route === '' || route === '#' || route === '#/' || route === '#home';
+
+    // Do not mount sidebar/header shell if on public root landing page
+    if (user && !isRoot) {
         mountNavigation(user);
     }
 

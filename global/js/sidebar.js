@@ -73,7 +73,7 @@ export function createSidebar(options = {}) {
   aside.classList.add("sidebar");
   if (collapsed) aside.classList.add("sidebar--collapsed");
 
-  aside.appendChild(buildSidebarBrand());
+  aside.appendChild(buildSidebarBrand({ onNavigate }));
   aside.appendChild(buildSidebarNav({ role, activeItemId, onNavigate }));
   aside.appendChild(buildSidebarToggle({ collapsed, onToggleCollapse, aside }));
 
@@ -129,20 +129,34 @@ export function createBottomNav(options = {}) {
   return nav;
 }
 
-function buildSidebarBrand() {
-  const brand = document.createElement("div");
+function buildSidebarBrand({ onNavigate } = {}) {
+  const brand = document.createElement("a");
+  brand.href = "#";
   brand.classList.add("sidebar__brand");
+  brand.setAttribute("aria-label", "Shaadi Saathi Home");
+
+  const logoBadge = document.createElement("div");
+  logoBadge.classList.add("sidebar__logo-badge");
 
   const logoImg = document.createElement("img");
-  logoImg.classList.add("sidebar__brand-logo");
   logoImg.src = "/global/logos/logo.png";
-  logoImg.alt = "Shaadi Saathi";
-  brand.appendChild(logoImg);
+  logoImg.alt = "Shaadi Saathi Logo";
+  logoBadge.appendChild(logoImg);
 
-  const brandText = document.createElement("span");
-  brandText.classList.add("sidebar__brand-text");
+  const brandText = document.createElement("div");
+  brandText.classList.add("sidebar__brand-text", "signature-glow");
   brandText.textContent = "Shaadi Saathi";
+
+  brand.appendChild(logoBadge);
   brand.appendChild(brandText);
+
+  brand.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (onNavigate) {
+      onNavigate("home");
+    }
+    window.location.hash = "";
+  });
 
   return brand;
 }

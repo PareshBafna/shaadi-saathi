@@ -2,6 +2,7 @@ import { loadPageStyle, forceResetFavicon } from './dom-helpers.js';
 import { updateHeader } from './layout.js';
 import { checkSessionOrShowAlert, publicRoutes } from './auth-guard.js';
 
+import { getHomeHTML, initHome } from '../../pages/home/home.js';
 import { renderLogin } from '../../pages/login/login.js';
 import { renderDashboard } from '../../pages/dashboard/dashboard.js';
 import { renderCalendar } from '../../pages/calendar/calendar.js';
@@ -19,9 +20,11 @@ import { renderWebInvitesPublicPreview } from '../../pages/web-invites-public-pr
 import { renderProfile } from '../../pages/profile/profile.js';
 
 export async function router() {
-    const hash = window.location.hash || '#login';
+    const hash = window.location.hash || '';
     const [route, queryString] = hash.split('?');
     const params = new URLSearchParams(queryString || '');
+
+    const isRoot = !route || route === '' || route === '#' || route === '#/' || route === '#home';
 
     if (route !== '#web-invites-preview' && route !== '#sample-web-invites-preview' && route !== '#web-invites-public-preview') {
         document.title = "Shaadi Saathi";
@@ -37,10 +40,24 @@ export async function router() {
     const contentEl = document.getElementById("main-content");
     if (contentEl) contentEl.style.visibility = 'hidden';
 
-    let activePageName = route.replace('#', '');
-    if (activePageName === '' || activePageName === '/') activePageName = 'login';
+    let activePageName = isRoot ? 'home' : route.replace('#', '');
+    if (activePageName === '' || activePageName === '/') activePageName = 'home';
     
     await loadPageStyle(activePageName);
+
+    // ROOT / HOME LANDING ROUTE
+    if (isRoot) {
+        document.querySelector('.sidebar')?.setAttribute('style', 'display: none;');
+        document.querySelector('.bottom-nav')?.setAttribute('style', 'display: none;');
+        document.getElementById('header-container')?.setAttribute('style', 'display: none;');
+
+        if (contentEl) {
+            contentEl.innerHTML = getHomeHTML();
+            initHome();
+            contentEl.style.visibility = 'visible';
+        }
+        return;
+    }
 
     if (route === '#login') {
         const activeUserId = localStorage.getItem('ss_user_id');
@@ -173,13 +190,14 @@ function showAccessRestricted() {
         allowOutsideClick: false,
         allowEscapeKey: false,
         confirmButtonText: 'Go to Home',
-        confirmButtonColor: '#0f172a'
+        confirmButtonColor: '#6e1a26'
     }).then((result) => {
         if (result.isConfirmed) {
             const userRole = window.currentUser?.role || 'guest';
             if (userRole === 'creator') window.location.hash = '#dashboard';
             else if (userRole === 'host' || userRole === 'wedding_user') window.location.hash = '#weddings';
-            else window.location.hash = '#calendar';
+            else if (userRole === 'guest') window.location.hash = '#calendar';
+            else window.location.hash = '';
         }
     });
 }

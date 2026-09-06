@@ -7,16 +7,17 @@
   justify-content: space-between;
   height: var(--header-height, 64px);
   padding: 0 var(--space-6, 24px);
-  background-color: var(--color-bg, #1a0f12);
+  background-color: #13090b !important;
   border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
   flex-shrink: 0;
   box-sizing: border-box;
+  width: 100%;
 }
 
-/* Left Section: Verification Button */
+/* Left Section */
 .global-header__left {
   display: flex;
   align-items: center;
@@ -54,7 +55,7 @@
   flex-shrink: 0;
 }
 
-/* Center Section: Create Wedding */
+/* Center Section */
 .global-header__center {
   display: flex;
   align-items: center;
@@ -91,7 +92,12 @@
   flex-shrink: 0;
 }
 
-/* Right Section: Profile Component */
+/* Center Mobile Brand - HIDDEN ON DESKTOP */
+.global-header__mobile-brand {
+  display: none !important;
+}
+
+/* Right Section */
 .global-header__right {
   display: flex;
   align-items: center;
@@ -146,16 +152,75 @@
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .global-header {
-    padding: 0 var(--space-4, 16px);
+    padding: 0 12px !important;
+    background-color: #13090b !important;
+    height: 56px;
   }
 
-  .global-header__center {
+  .header__whatsapp-btn {
     display: none !important;
   }
 
+  .global-header__center {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Center mobile logo */
+  .global-header__mobile-brand {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .global-header__logo-badge {
+    width: 34px;
+    height: 34px;
+    background: #ffffff;
+    border: 1px solid rgba(204, 160, 56, 0.35);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .global-header__logo-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .global-header__left {
+    flex: 1;
+    justify-content: flex-start;
+  }
+
   .global-header__verify-btn {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 0.75rem;
+  }
+
+  .global-header__right {
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .global-header__profile {
+    gap: 8px;
+    margin-left: 0;
+  }
+
+  .global-header__avatar {
+    width: 32px;
     height: 32px;
-    padding: 0 10px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 }
