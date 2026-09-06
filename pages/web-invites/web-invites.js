@@ -179,7 +179,6 @@ function renderInviteGalleries(container, invites) {
 
             const curUser = window.currentUser || { role: 'guest' };
 
-            // If user is a guest, directly route to preview/public-preview
             if (curUser.role === 'guest') {
                 const { data: wData } = await supabase.from('weddings').select('invitation_type, allow_variants').eq('id', weddingId).single();
                 const isWebInviteOnly = wData?.invitation_type === 'web_invite_only';
@@ -194,7 +193,6 @@ function renderInviteGalleries(container, invites) {
                         targetUrl = getWebInvitePublicPreviewUrl(weddingId);
                     }
                 } else {
-                    // Full wedding & Full wedding (self) always route to preview with variant_id
                     const { data: vList } = await supabase.from('invite_variants').select('id').eq('wedding_id', weddingId).order('created_at', { ascending: true }).limit(1);
                     targetUrl = getWebInvitePreviewUrl(weddingId, vList?.[0]?.id || null);
                 }
@@ -496,19 +494,19 @@ async function openInviteModal(existingInvite = null) {
             <div class="invite-modal-heading">Bride's Family</div>
             <div class="invite-modal-grid-2">
                 <div>
-                    <label class="invite-modal-label">Grandfather *</label>
+                    <label class="invite-modal-label">Grandfather's Name *</label>
                     <input type="text" id="bGrandfather" required placeholder="e.g., Shri Jain" value="${existingInvite?.bride_grandfather || ''}" class="invite-modal-input ${existingInvite?.bride_grandfather ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
                 <div>
-                    <label class="invite-modal-label">Grandmother *</label>
+                    <label class="invite-modal-label">Grandmother's Name *</label>
                     <input type="text" id="bGrandmother" required placeholder="e.g., Smt. Jain" value="${existingInvite?.bride_grandmother || ''}" class="invite-modal-input ${existingInvite?.bride_grandmother ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
                 <div>
-                    <label class="invite-modal-label">Father *</label>
+                    <label class="invite-modal-label">Father's Name *</label>
                     <input type="text" id="bFather" required placeholder="e.g., Rajesh" value="${existingInvite?.bride_father || ''}" class="invite-modal-input ${existingInvite?.bride_father ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
                 <div>
-                    <label class="invite-modal-label">Mother *</label>
+                    <label class="invite-modal-label">Mother's Name *</label>
                     <input type="text" id="bMother" required placeholder="e.g., Sunita" value="${existingInvite?.bride_mother || ''}" class="invite-modal-input ${existingInvite?.bride_mother ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
             </div>
@@ -516,19 +514,19 @@ async function openInviteModal(existingInvite = null) {
             <div class="invite-modal-heading">Groom's Family</div>
             <div class="invite-modal-grid-2">
                 <div>
-                    <label class="invite-modal-label">Grandfather *</label>
+                    <label class="invite-modal-label">Grandfather's Name *</label>
                     <input type="text" id="gGrandfather" required placeholder="e.g., Shri Mutha" value="${existingInvite?.groom_grandfather || ''}" class="invite-modal-input ${existingInvite?.groom_grandfather ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
                 <div>
-                    <label class="invite-modal-label">Grandmother *</label>
+                    <label class="invite-modal-label">Grandmother's Name *</label>
                     <input type="text" id="gGrandmother" required placeholder="e.g., Smt. Mutha" value="${existingInvite?.groom_grandmother || ''}" class="invite-modal-input ${existingInvite?.groom_grandmother ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
                 <div>
-                    <label class="invite-modal-label">Father *</label>
+                    <label class="invite-modal-label">Father's Name *</label>
                     <input type="text" id="gFather" required placeholder="e.g., Vijayji" value="${existingInvite?.groom_father || ''}" class="invite-modal-input ${existingInvite?.groom_father ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
                 <div>
-                    <label class="invite-modal-label">Mother *</label>
+                    <label class="invite-modal-label">Mother's Name *</label>
                     <input type="text" id="gMother" required placeholder="e.g., Kavita" value="${existingInvite?.groom_mother || ''}" class="invite-modal-input ${existingInvite?.groom_mother ? 'invite-modal-input--valid' : 'invite-modal-input--invalid'}">
                 </div>
             </div>
@@ -592,14 +590,14 @@ async function openInviteModal(existingInvite = null) {
             onClick: async () => {
                 const fieldsToValidate = [
                     { id: 'inviteWeddingId', name: 'Wedding Selection' },
-                    { id: 'bGrandfather', name: "Bride's Grandfather" },
-                    { id: 'bGrandmother', name: "Bride's Grandmother" },
-                    { id: 'bFather', name: "Bride's Father" },
-                    { id: 'bMother', name: "Bride's Mother" },
-                    { id: 'gGrandfather', name: "Groom's Grandfather" },
-                    { id: 'gGrandmother', name: "Groom's Grandmother" },
-                    { id: 'gFather', name: "Groom's Father" },
-                    { id: 'gMother', name: "Groom's Mother" },
+                    { id: 'bGrandfather', name: "Bride's Grandfather's Name" },
+                    { id: 'bGrandmother', name: "Bride's Grandmother's Name" },
+                    { id: 'bFather', name: "Bride's Father's Name" },
+                    { id: 'bMother', name: "Bride's Mother's Name" },
+                    { id: 'gGrandfather', name: "Groom's Grandfather's Name" },
+                    { id: 'gGrandmother', name: "Groom's Grandmother's Name" },
+                    { id: 'gFather', name: "Groom's Father's Name" },
+                    { id: 'gMother', name: "Groom's Mother's Name" },
                     { id: 'storyText', name: "Story / About Us Quote" },
                     { id: 'inviteTheme', name: "Invite Theme Color" }
                 ];

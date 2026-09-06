@@ -877,6 +877,7 @@ window.openCreateWeddingModal = openCreateWeddingModal;
 
 export function openEditWeddingModal(wedding) {
     const userRole = window.currentUser?.role || 'guest';
+    const isCreator = userRole === 'creator';
     
     if (!canEditWedding(wedding)) {
         showSweetAlert('error', 'Access Denied', 'You do not have permission to edit this wedding.');
@@ -891,8 +892,7 @@ export function openEditWeddingModal(wedding) {
 
     const allowsVariants = wedding.allow_variants !== false;
 
-    const formHTML = `
-        <form id="editWeddingForm" novalidate class="wedding-modal-form">
+    const creatorOnlyControlsHTML = isCreator ? `
             <!-- Row 1: Primary Side -->
             <div style="margin-bottom: 16px;">
                 <label class="wedding-modal-label">Primary Side</label>
@@ -928,6 +928,11 @@ export function openEditWeddingModal(wedding) {
                     </label>
                 </div>
             </div>
+    ` : '';
+
+    const formHTML = `
+        <form id="editWeddingForm" novalidate class="wedding-modal-form">
+            ${creatorOnlyControlsHTML}
 
             <div class="wedding-modal-row">
                 <div class="wedding-modal-col">
@@ -980,7 +985,7 @@ export function openEditWeddingModal(wedding) {
     modalActions.push({ label: "Cancel", variant: "secondary" });
 
     // 2. Delete in Center (if creator)
-    if (userRole === 'creator') {
+    if (isCreator) {
         modalActions.push({
             label: "Delete",
             variant: "danger",
@@ -1092,9 +1097,13 @@ export function openEditWeddingModal(wedding) {
             const hashtagVal = document.getElementById('editWeddingHashtag').value.trim();
             const instagramVal = document.getElementById('editWeddingInstagram').value.trim();
 
+            const primarySideVal = isCreator 
+                ? (document.querySelector('input[name="editPrimarySide"]:checked')?.value || wedding.primary_side) 
+                : wedding.primary_side;
+
             try {
                 const { error } = await supabase.from('weddings').update({
-                    primary_side: document.querySelector('input[name="editPrimarySide"]:checked').value,
+                    primary_side: primarySideVal,
                     bride_name: document.getElementById('editBrideName').value.trim(),
                     groom_name: document.getElementById('editGroomName').value.trim(),
                     start_date: startDate,
