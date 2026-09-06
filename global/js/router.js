@@ -1,7 +1,8 @@
 import { loadPageStyle, forceResetFavicon } from './dom-helpers.js';
-import { updateHeader } from './layout.js';
+import { updateHeader, ensureDomLayout, mountNavigation } from './layout.js';
 import { checkSessionOrShowAlert, publicRoutes } from './auth-guard.js';
 
+import { getHomeHTML, initHome } from '../../pages/home/home.js';
 import { renderLogin } from '../../pages/login/login.js';
 import { renderDashboard } from '../../pages/dashboard/dashboard.js';
 import { renderCalendar } from '../../pages/calendar/calendar.js';
@@ -19,9 +20,11 @@ import { renderWebInvitesPublicPreview } from '../../pages/web-invites-public-pr
 import { renderProfile } from '../../pages/profile/profile.js';
 
 export async function router() {
-    const hash = window.location.hash || '#login';
+    const hash = window.location.hash || '';
     const [route, queryString] = hash.split('?');
     const params = new URLSearchParams(queryString || '');
+
+    const isRoot = !route || route === '' || route === '#' || route === '#/' || route === '#home';
 
     if (route !== '#web-invites-preview' && route !== '#sample-web-invites-preview' && route !== '#web-invites-public-preview') {
         document.title = "Shaadi Saathi";
@@ -34,13 +37,34 @@ export async function router() {
     document.body.classList.remove('modal-open', 'swal2-shown');
     document.body.style.overflow = '';
 
-    const contentEl = document.getElementById("main-content");
-    if (contentEl) contentEl.style.visibility = 'hidden';
+    ensureDomLayout();
 
-    let activePageName = route.replace('#', '');
-    if (activePageName === '' || activePageName === '/') activePageName = 'login';
+    const contentEl = document.getElementById("main-content");
+    if (contentEl) {
+        contentEl.style.visibility = 'hidden';
+        contentEl.style.opacity = '0';
+    }
+
+    let activePageName = isRoot ? 'home' : route.replace('#', '');
+    if (activePageName === '' || activePageName === '/') activePageName = 'home';
     
     await loadPageStyle(activePageName);
+    if (document.fonts?.ready) await document.fonts.ready;
+
+    // ROOT / HOME LANDING ROUTE
+    if (isRoot) {
+        document.querySelector('.sidebar')?.setAttribute('style', 'display: none;');
+        document.querySelector('.bottom-nav')?.setAttribute('style', 'display: none;');
+        document.getElementById('header-container')?.setAttribute('style', 'display: none;');
+
+        if (contentEl) {
+            contentEl.innerHTML = getHomeHTML();
+            initHome();
+            contentEl.style.visibility = 'visible';
+            contentEl.style.opacity = '1';
+        }
+        return;
+    }
 
     if (route === '#login') {
         const activeUserId = localStorage.getItem('ss_user_id');
@@ -58,6 +82,7 @@ export async function router() {
             contentEl.innerHTML = "";
             contentEl.appendChild(renderLogin());
             contentEl.style.visibility = 'visible';
+            contentEl.style.opacity = '1';
         }
         return;
     }
@@ -89,6 +114,7 @@ export async function router() {
         if (contentEl) {
             contentEl.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to continue.</div>`;
             contentEl.style.visibility = 'visible';
+            contentEl.style.opacity = '1';
         }
         return;
     }
@@ -135,6 +161,11 @@ export async function router() {
 
     contentEl.innerHTML = "";
     
+    // Mount navigation if not in DOM
+    if (!document.querySelector('.sidebar') && window.currentUser) {
+        mountNavigation(window.currentUser);
+    }
+
     let activeId = route.replace('#', '');
     if (activeId === 'wedding-details') activeId = 'weddings';
     if (activeId === 'sample-wedding-details') activeId = 'sample-weddings';
@@ -160,6 +191,7 @@ export async function router() {
     if (window.lucide) window.lucide.createIcons();
 
     contentEl.style.visibility = 'visible';
+    contentEl.style.opacity = '1';
 }
 
 function showAccessRestricted() {
@@ -173,13 +205,14 @@ function showAccessRestricted() {
         allowOutsideClick: false,
         allowEscapeKey: false,
         confirmButtonText: 'Go to Home',
-        confirmButtonColor: '#0f172a'
+        confirmButtonColor: '#6e1a26'
     }).then((result) => {
         if (result.isConfirmed) {
             const userRole = window.currentUser?.role || 'guest';
             if (userRole === 'creator') window.location.hash = '#dashboard';
             else if (userRole === 'host' || userRole === 'wedding_user') window.location.hash = '#weddings';
-            else window.location.hash = '#calendar';
+            else if (userRole === 'guest') window.location.hash = '#calendar';
+            else window.location.hash = '';
         }
     });
 }

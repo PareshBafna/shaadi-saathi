@@ -3,8 +3,11 @@ import { showSweetAlert } from './sweet-alert-message.js';
 
 export const ADMIN_WHATSAPP_NUMBER = "919791146838";
 export const publicRoutes = [
+    '',
+    '#',
+    '#/',
+    '#home',
     '#login', 
-    '#/', 
     '#sample-web-invites-preview', 
     '#web-invites-preview', 
     '#web-invites-public-preview' // Public bypass

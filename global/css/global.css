@@ -265,3 +265,23 @@ body.swal2-shown .bottom-nav {
   bottom: auto !important;
   left: auto !important;
 }
+
+.ss-logo-badge,
+.sidebar__logo-badge,
+.global-header__logo-badge {
+  position: relative;
+  overflow: hidden !important;
+  max-width: 50px;
+  max-height: 50px;
+}
+
+.ss-logo-badge img,
+.sidebar__logo-badge img,
+.global-header__logo-badge img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain;
+  display: block;
+}

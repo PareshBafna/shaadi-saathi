@@ -1,3 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Sacramento&display=swap');
+
+/* Hard image restraint against FOUC inflation */
+.sidebar__logo-badge,
+.global-header__logo-badge {
+  position: relative;
+  overflow: hidden !important;
+  max-width: 50px;
+  max-height: 50px;
+}
+
+.sidebar__logo-badge img,
+.global-header__logo-badge img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain;
+  display: block;
+}
+
 /* ------------------------------------------
    DESKTOP SIDEBAR
 ------------------------------------------ */
@@ -8,7 +29,7 @@
   width: var(--sidebar-width, 240px);
   min-width: var(--sidebar-width, 240px);
   height: 100vh;
-  background-color: var(--color-bg, #1a0f12);
+  background-color: #13090b;
   border-right: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   transition: width 0.25s ease, min-width 0.25s ease;
   flex-shrink: 0;
@@ -24,31 +45,52 @@
 .sidebar__brand {
   display: flex;
   align-items: center;
-  gap: var(--space-3, 12px);
+  gap: 0.85rem;
   height: var(--header-height, 64px);
-  padding: 0 16px;
+  padding: 0 14px;
   border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   overflow: hidden;
   box-sizing: border-box;
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.sidebar__brand-logo {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
+.sidebar__logo-badge {
+  width: 44px;
+  height: 44px;
+  background: #ffffff;
+  border: 1px solid rgba(204, 160, 56, 0.35);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  border-radius: var(--radius-sm, 4px);
-  object-fit: contain;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.sidebar__brand-text {
-  font-family: var(--font-family-display, inherit);
-  font-size: var(--font-size-lg, 1.125rem);
-  font-weight: 700;
-  color: var(--color-text-primary, #ffffff);
+.sidebar__logo-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.sidebar__brand-text.signature-glow {
+  font-family: 'Sacramento', cursive;
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 400;
+  color: #13090b;
+  -webkit-text-fill-color: #13090b;
+  -webkit-text-stroke: 1px #ebb95f;
+  text-shadow: 
+    0 0 4px rgba(235, 185, 95, 0.9),
+    0 0 10px rgba(212, 175, 55, 0.6);
+  letter-spacing: 0.02em;
   white-space: nowrap;
-  opacity: 1;
-  transition: opacity 0.2s ease;
+  display: inline-block;
+  transform: translateY(3px);
 }
 
 .sidebar__nav {
@@ -80,7 +122,7 @@
   border-radius: var(--radius-md, 8px);
   color: var(--color-text-secondary, #c4a480);
   font-size: 0.9rem;
-  font-weight: 600; /* Bold text for desktop links */
+  font-weight: 600;
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   overflow: hidden;
   cursor: pointer;
@@ -149,7 +191,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-bg, #1a0f12);
+  background-color: #13090b;
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.3));
   border-radius: 50%;
   color: var(--color-text-secondary, #c4a480);
@@ -190,7 +232,7 @@
     bottom: 0;
     left: 0;
     width: 100vw;
-    background: var(--color-bg, #1a0f12);
+    background: #13090b;
     border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
     z-index: 1000;
     overflow-x: auto;
@@ -207,7 +249,6 @@
     display: none;
   }
 
-  /* Creator role with scrollable horizontal list */
   .bottom-nav--scrollable {
     justify-content: flex-start !important;
     gap: 0 !important;
@@ -273,7 +314,7 @@
 
   .bottom-nav__label {
     font-size: 0.60rem;
-    font-weight: 600; /* Bold label text for mobile bottom nav */
+    font-weight: 600;
     white-space: nowrap;
     text-align: center;
     width: 100%;
@@ -282,7 +323,6 @@
     transition: color 0.15s ease;
   }
 
-  /* Active State */
   .bottom-nav__item--active {
     background: var(--color-primary, #facc15) !important;
     color: #1a0f12 !important;

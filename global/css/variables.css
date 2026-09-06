@@ -1,5 +1,5 @@
 :root {
-  /* COLOR — BRAND / ACCENT */
+  /* COLOR - BRAND / ACCENT */
   --color-primary: #D4AF37;
   --color-primary-light: #E6C766;
   --color-primary-dark: #A6821F;
@@ -13,7 +13,7 @@
   --color-text-on-accent: #241014;
   --color-overlay: rgba(0, 0, 0, 0.7);
 
-  /* COLOR — NEUTRALS */
+  /* COLOR - NEUTRALS */
   --color-white: #2A1418;
   --color-bg: #170A0D;
   --color-bg-muted: #221014;
@@ -25,7 +25,7 @@
   --color-text-muted: #8A7758;
   --color-text-inverse: #FFFFFF;
 
-  /* COLOR — SEMANTIC / STATUS */
+  /* COLOR - SEMANTIC / STATUS */
   --color-success: #16A34A;
   --color-success-bg: #F0FDF4;
   --color-warning: #D97706;
