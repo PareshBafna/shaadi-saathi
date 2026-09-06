@@ -1,5 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Sacramento&display=swap');
 
+/* Hard image restraint against FOUC inflation */
+.sidebar__logo-badge,
+.global-header__logo-badge {
+  position: relative;
+  overflow: hidden !important;
+  max-width: 50px;
+  max-height: 50px;
+}
+
+.sidebar__logo-badge img,
+.global-header__logo-badge img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain;
+  display: block;
+}
+
 /* ------------------------------------------
    DESKTOP SIDEBAR
 ------------------------------------------ */

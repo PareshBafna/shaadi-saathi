@@ -2,6 +2,25 @@ import { ADMIN_WHATSAPP_NUMBER } from '../../global/js/auth-guard.js';
 
 let typeTimer = null;
 
+export async function loadPageCss(href) {
+    if (document.querySelector(`link[href="${href}"]`)) return;
+
+    return new Promise((resolve) => {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = href;
+        link.onload = () => resolve();
+        link.onerror = () => resolve();
+        document.head.appendChild(link);
+    });
+}
+
+export async function renderHome(container) {
+    await loadPageCss('/pages/home/home.css');
+    container.innerHTML = getHomeHTML();
+    initHome();
+}
+
 export function initHome() {
     const phrases = [
         'Unlimited Themes & Variants.',
@@ -15,7 +34,6 @@ export function initHome() {
     let pIdx = 0, cIdx = 0, isDeleting = false;
     const typeTarget = document.getElementById('ss-landing-typed');
 
-    // clear any prior loop before starting a new one (SPA re-render safety)
     if (typeTimer) clearTimeout(typeTimer);
 
     function typeLoop() {
@@ -38,7 +56,6 @@ export function initHome() {
     typeLoop();
 
     function scrollToId(id) {
-        // run after any pending re-render/layout so a later reset doesn't win the race
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -67,7 +84,6 @@ export function initHome() {
     const faqItems = document.querySelectorAll('.faq-item');
     faqItems.forEach(item => {
         const question = item.querySelector('.faq-q');
-        const answer = item.querySelector('.faq-a');
         if (question) {
             question.setAttribute('role', 'button');
             question.setAttribute('tabindex', '0');
@@ -97,7 +113,7 @@ export function initHome() {
 function getWhatsAppInquiryLink(serviceName) {
     const phone = ADMIN_WHATSAPP_NUMBER;
     if (!phone) {
-        console.warn('ADMIN_WHATSAPP_NUMBER not configured — WhatsApp inquiry links will not work.');
+        console.warn('ADMIN_WHATSAPP_NUMBER not configured - WhatsApp inquiry links will not work.');
     }
     const text = `*New Inquiry for Paresh Bafna Studio - Shaadi Saathi*\n\n*Service Requested:*\n• ${serviceName}`;
     return `https://wa.me/${phone || ''}?text=${encodeURIComponent(text)}`;
@@ -109,13 +125,11 @@ export function getHomeHTML() {
 
     return `
     <div class="ss-wrap">
-       <!-- Above the Fold: Dedicated Fullscreen Screen Section -->
        <div class="ss-hero-screen">
-          <!-- Top Public Header with Script Glow -->
           <nav class="ss-nav-bar">
              <a href="#" class="ss-brand" aria-label="Shaadi Saathi home">
                 <div class="ss-logo-badge">
-                   <img src="/global/logos/logo.png" alt="Shaadi Saathi Logo" />
+                   <img src="/global/logos/logo.png" alt="Shaadi Saathi Logo" width="50" height="50" />
                 </div>
                 <div class="signature-glow">
                    Shaadi Saathi
@@ -126,7 +140,6 @@ export function getHomeHTML() {
              </div>
           </nav>
 
-          <!-- Centered Hero Body -->
           <header class="ss-hero">
              <div class="ss-trust-badge">✦ Trusted by couples planning their big day</div>
              <h1 class="ss-title">
@@ -149,63 +162,54 @@ export function getHomeHTML() {
           </header>
        </div>
 
-       <!-- Features Section (Below the fold) -->
        <div class="sub-section" id="features" style="border-top: 3px solid #842333;">
           <div class="addons reveal">
              <div class="faq-section-header">
                 <span>✦</span> Features
              </div>
              <div class="ss-grid">
-                <!-- 1. Web Invitation — flagship feature, spans full width -->
                 <div class="ss-card ss-card-feature">
                    <span class="ss-card-ico">💌</span>
                    <h3>Web Invitation Included</h3>
                    <p>Interactive digital invite with unlimited themes, custom variants, full event &amp; ceremony details, live venue maps, background audio, animated seals, plus dedicated pages for family members and the couple's journey.</p>
                 </div>
 
-                <!-- 2. WhatsApp Outreach -->
                 <div class="ss-card">
                    <span class="ss-card-ico">💬</span>
                    <h3>WhatsApp Messaging Campaigns</h3>
                    <p>Dispatch static templates or dynamic personalized messages directly to guest chats with one-tap invite links.</p>
                 </div>
 
-                <!-- 3. Guest & User Management -->
                 <div class="ss-card">
                    <span class="ss-card-ico">👥</span>
                    <h3>Events, Users &amp; Guests Management</h3>
                    <p>Organize events and guest lists with role-based access, side allocations (Bride/Groom), VIP tags, and headcount tracking.</p>
                 </div>
 
-                <!-- 4. Calendar Timeline -->
                 <div class="ss-card">
                    <span class="ss-card-ico">📅</span>
                    <h3>Calendar Page &amp; Timeline</h3>
                    <p>Complete multi-day wedding itinerary view keeping guests informed of ceremony schedules, timing, and precise venue navigation.</p>
                 </div>
 
-                <!-- 5. Calendar Sync -->
                 <div class="ss-card">
                    <span class="ss-card-ico">📲</span>
                    <h3>One-Tap Calendar Sync (.ics Export)</h3>
                    <p>Direct calendar export so guests add ceremonies straight to Google, Apple, and Outlook calendars with alarm alerts.</p>
                 </div>
 
-                <!-- 6. Wedding Details -->
                 <div class="ss-card">
                    <span class="ss-card-ico">🏛️</span>
                    <h3>Wedding Details Portal</h3>
                    <p>Dedicated central hub managing couple profiles, bride &amp; groom family lineages, key ceremony locations, and live countdowns.</p>
                 </div>
 
-                <!-- 7. Bulk Import -->
                 <div class="ss-card">
                    <span class="ss-card-ico">📊</span>
                    <h3>Excel / CSV Batch Setup</h3>
                    <p>Done-for-you bulk guest import and database cleanup from spreadsheets to prevent manual data entry errors.</p>
                 </div>
 
-                <!-- 8. Priority Support -->
                 <div class="ss-card">
                    <span class="ss-card-ico">⚡</span>
                    <h3>Priority Event Support</h3>
@@ -215,14 +219,12 @@ export function getHomeHTML() {
           </div>
        </div>
 
-       <!-- Plans Section -->
        <div class="sub-section" id="pricing" style="border-top: 3px solid #842333;">
           <div class="addons reveal">
              <div class="faq-section-header">
                 <span>✦</span> Plans
              </div>
              <div class="ss-pricing-grid-boxed">
-                <!-- Card 1: Workspace -->
                 <div class="ss-box-card">
                    <div>
                       <div class="ss-box-pill">WORKSPACE</div>
@@ -244,7 +246,6 @@ export function getHomeHTML() {
                    <a href="${waSelfManaged}" target="_blank" rel="noopener noreferrer" class="ss-box-btn">Get started</a>
                 </div>
 
-                <!-- Card 2: White Glove -->
                 <div class="ss-box-card ss-box-card-featured">
                    <div class="ss-box-recommended">MOST POPULAR</div>
                    <div>
@@ -267,7 +268,6 @@ export function getHomeHTML() {
           </div>
        </div>
 
-       <!-- FAQS Section -->
        <div class="sub-section" id="ss-faqs" style="border-top: 3px solid #842333;">
           <div class="addons reveal">
              <div class="faq-section-header">
@@ -342,7 +342,7 @@ export function getHomeHTML() {
        </div>
 
        <footer class="ss-footer">
-          <p>© Paresh Bafna Studio — Shaadi Saathi Wedding Operating System.</p>
+          <p>© Paresh Bafna Studio - Shaadi Saathi Wedding Operating System.</p>
        </footer>
     </div>
     `;

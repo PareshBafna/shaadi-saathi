@@ -141,6 +141,8 @@ function buildSidebarBrand({ onNavigate } = {}) {
   const logoImg = document.createElement("img");
   logoImg.src = "/global/logos/logo.png";
   logoImg.alt = "Shaadi Saathi Logo";
+  logoImg.width = 44;
+  logoImg.height = 44;
   logoBadge.appendChild(logoImg);
 
   const brandText = document.createElement("div");

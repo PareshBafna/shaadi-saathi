@@ -1,5 +1,5 @@
 import { loadPageStyle, forceResetFavicon } from './dom-helpers.js';
-import { updateHeader } from './layout.js';
+import { updateHeader, ensureDomLayout, mountNavigation } from './layout.js';
 import { checkSessionOrShowAlert, publicRoutes } from './auth-guard.js';
 
 import { getHomeHTML, initHome } from '../../pages/home/home.js';
@@ -37,13 +37,19 @@ export async function router() {
     document.body.classList.remove('modal-open', 'swal2-shown');
     document.body.style.overflow = '';
 
+    ensureDomLayout();
+
     const contentEl = document.getElementById("main-content");
-    if (contentEl) contentEl.style.visibility = 'hidden';
+    if (contentEl) {
+        contentEl.style.visibility = 'hidden';
+        contentEl.style.opacity = '0';
+    }
 
     let activePageName = isRoot ? 'home' : route.replace('#', '');
     if (activePageName === '' || activePageName === '/') activePageName = 'home';
     
     await loadPageStyle(activePageName);
+    if (document.fonts?.ready) await document.fonts.ready;
 
     // ROOT / HOME LANDING ROUTE
     if (isRoot) {
@@ -55,6 +61,7 @@ export async function router() {
             contentEl.innerHTML = getHomeHTML();
             initHome();
             contentEl.style.visibility = 'visible';
+            contentEl.style.opacity = '1';
         }
         return;
     }
@@ -75,6 +82,7 @@ export async function router() {
             contentEl.innerHTML = "";
             contentEl.appendChild(renderLogin());
             contentEl.style.visibility = 'visible';
+            contentEl.style.opacity = '1';
         }
         return;
     }
@@ -106,6 +114,7 @@ export async function router() {
         if (contentEl) {
             contentEl.innerHTML = `<div style="padding: var(--space-8); text-align: center; color: var(--color-text-secondary);">Please log in to continue.</div>`;
             contentEl.style.visibility = 'visible';
+            contentEl.style.opacity = '1';
         }
         return;
     }
@@ -152,6 +161,11 @@ export async function router() {
 
     contentEl.innerHTML = "";
     
+    // Mount navigation if not in DOM
+    if (!document.querySelector('.sidebar') && window.currentUser) {
+        mountNavigation(window.currentUser);
+    }
+
     let activeId = route.replace('#', '');
     if (activeId === 'wedding-details') activeId = 'weddings';
     if (activeId === 'sample-wedding-details') activeId = 'sample-weddings';
@@ -177,6 +191,7 @@ export async function router() {
     if (window.lucide) window.lucide.createIcons();
 
     contentEl.style.visibility = 'visible';
+    contentEl.style.opacity = '1';
 }
 
 function showAccessRestricted() {

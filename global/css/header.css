@@ -167,7 +167,6 @@
     align-items: center;
   }
 
-  /* Center mobile logo */
   .global-header__mobile-brand {
     display: flex !important;
     align-items: center;

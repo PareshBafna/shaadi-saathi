@@ -79,7 +79,7 @@ _(Note: Do not change Name and Code as it's used to verify your account)_`;
   mobileBrand.setAttribute("aria-label", "Shaadi Saathi Home");
   mobileBrand.innerHTML = `
     <div class="global-header__logo-badge">
-      <img src="/global/logos/logo.png" alt="Shaadi Saathi Logo" />
+      <img src="/global/logos/logo.png" alt="Shaadi Saathi Logo" width="34" height="34" />
     </div>
   `;
   mobileBrand.addEventListener("click", (e) => {
