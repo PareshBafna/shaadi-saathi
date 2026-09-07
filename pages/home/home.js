@@ -342,7 +342,7 @@ export function getHomeHTML() {
        </div>
 
        <footer class="ss-footer">
-          <p>© Paresh Bafna Studio - Shaadi Saathi Wedding Operating System.</p>
+          <p>© Paresh Bafna Studio - Shaadi Saathi.</p>
        </footer>
     </div>
     `;
