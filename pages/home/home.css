@@ -203,7 +203,7 @@ body.ss-landing-page,
 	box-shadow: 0 4px 12px rgba(204, 160, 56, 0.25);
 }
 
-/* Outline variant for secondary hero CTA, so "Features" and "Plans" aren't visually equal-weighted */
+/* Outline variant for secondary hero CTA */
 .ss-btn-outline {
 	background: transparent;
 	color: var(--gold);
@@ -302,11 +302,12 @@ body.ss-landing-page,
 	font-size: 1.3rem;
 }
 
-/* Features Grid */
+/* Features Grid - Equal Heights, 3 columns desktop */
 .ss-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	gap: 1.25rem;
+	align-items: stretch;
 }
 
 .ss-card {
@@ -315,6 +316,10 @@ body.ss-landing-page,
 	border-left: 3px solid #842333;
 	border-radius: var(--radius);
 	padding: 1.6rem;
+	display: flex;
+	flex-direction: column;
+	min-height: 220px;
+	box-sizing: border-box;
 	transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
@@ -324,33 +329,20 @@ body.ss-landing-page,
 	background: var(--ss-app-card-hover);
 }
 
-/* Flagship feature card spans full grid width, stands apart from the rest */
-.ss-card-feature {
-	grid-column: 1 / -1;
-	background: linear-gradient(135deg, var(--ss-app-panel), var(--ss-app-card-hover));
-	border-left: 3px solid var(--gold);
-	display: flex;
-	flex-direction: column;
-}
-
-.ss-card-feature .ss-card-ico {
-	font-size: 2rem;
-}
-
-.ss-card-feature h3 {
-	font-size: 1.3rem;
-}
-
 .ss-card-ico {
 	font-size: 1.7rem;
 	margin-bottom: 0.75rem;
 	display: inline-block;
+	flex-shrink: 0;
 }
 
 .ss-card h3 {
 	font-size: 1.1rem;
-	margin: 0 0 0.45rem 0;
+	margin: 0 0 0.5rem 0;
 	color: #ffffff;
+	min-height: 2.8rem;
+	display: flex;
+	align-items: flex-start;
 }
 
 .ss-card p {
@@ -358,6 +350,81 @@ body.ss-landing-page,
 	color: var(--text-muted);
 	line-height: 1.55;
 	margin: 0;
+	flex: 1;
+}
+
+/* Coming Soon Equal-Sized Scratch Grid */
+.ss-coming-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 1.25rem;
+	align-items: stretch;
+}
+
+.ss-scratch-card {
+	background: var(--ss-app-panel);
+	border: 1px solid var(--ss-border);
+	border-left: 3px solid var(--gold);
+	border-radius: var(--radius);
+	padding: 1.6rem;
+	display: flex;
+	flex-direction: column;
+	min-height: 220px;
+	box-sizing: border-box;
+	transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.ss-scratch-card:hover {
+	transform: translateY(-4px);
+	border-color: var(--gold);
+}
+
+.ss-scratch-card .ss-card-ico {
+	font-size: 1.7rem;
+	margin-bottom: 0.5rem;
+	flex-shrink: 0;
+}
+
+.ss-scratch-card h3 {
+	font-size: 1.1rem;
+	margin: 0 0 0.75rem 0;
+	color: #ffffff;
+	min-height: 2.8rem;
+	display: flex;
+	align-items: flex-start;
+}
+
+.ss-scratch-box {
+	position: relative;
+	flex: 1;
+	min-height: 100px;
+	border-radius: 6px;
+	overflow: hidden;
+	background: rgba(0, 0, 0, 0.25);
+	border: 1px dashed rgba(204, 160, 56, 0.2);
+}
+
+.ss-scratch-desc {
+	padding: 0.85rem;
+	font-size: 13.5px;
+	color: var(--text-muted);
+	line-height: 1.55;
+	margin: 0;
+	user-select: none;
+}
+
+.ss-scratch-canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	cursor: grab;
+	touch-action: none;
+}
+
+.ss-scratch-canvas:active {
+	cursor: grabbing;
 }
 
 /* Plans Section */
@@ -378,7 +445,6 @@ body.ss-landing-page,
 	justify-content: space-between;
 }
 
-/* Featured plan gets a gold border + lift so it reads as the recommended choice */
 .ss-box-card-featured {
 	border-color: var(--gold);
 	box-shadow: 0 8px 28px rgba(204, 160, 56, 0.14);

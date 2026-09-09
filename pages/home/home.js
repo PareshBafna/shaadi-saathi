@@ -108,6 +108,66 @@ export function initHome() {
             });
         }
     });
+
+    initScratchCards();
+}
+
+function initScratchCards() {
+    const boxes = document.querySelectorAll('.ss-scratch-box');
+    boxes.forEach(box => {
+        const canvas = box.querySelector('.ss-scratch-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const rect = box.getBoundingClientRect();
+        canvas.width = rect.width || 280;
+        canvas.height = rect.height || 110;
+
+        function fillCanvas() {
+            ctx.fillStyle = '#2c1217';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = 'rgba(204, 160, 56, 0.25)';
+            ctx.lineWidth = 1;
+            for (let i = -canvas.height; i < canvas.width; i += 16) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i + canvas.height, canvas.height);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#cca038';
+            ctx.font = '600 12px "DM Sans", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('✨ SCRATCH TO REVEAL ✨', canvas.width / 2, canvas.height / 2);
+        }
+        fillCanvas();
+
+        let isDrawing = false;
+
+        function scratch(e) {
+            if (!isDrawing) return;
+            const b = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const x = clientX - b.left;
+            const y = clientY - b.top;
+
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.beginPath();
+            ctx.arc(x, y, 18, 0, Math.PI * 2, false);
+            ctx.fill();
+        }
+
+        canvas.addEventListener('mousedown', (e) => { isDrawing = true; scratch(e); });
+        canvas.addEventListener('mousemove', scratch);
+        window.addEventListener('mouseup', () => { isDrawing = false; });
+
+        canvas.addEventListener('touchstart', (e) => { isDrawing = true; scratch(e); }, { passive: true });
+        canvas.addEventListener('touchmove', scratch, { passive: true });
+        window.addEventListener('touchend', () => { isDrawing = false; });
+    });
 }
 
 function getWhatsAppInquiryLink(serviceName) {
@@ -129,7 +189,7 @@ export function getHomeHTML() {
           <nav class="ss-nav-bar">
              <a href="#" class="ss-brand" aria-label="Shaadi Saathi home">
                 <div class="ss-logo-badge">
-                   <img src="/global/logos/logo.png" alt="Shaadi Saathi Logo" width="50" height="50" />
+                   <img src="/global/logos/logo-compressed.png" alt="Shaadi Saathi Logo" width="50" height="50" />
                 </div>
                 <div class="signature-glow">
                    Shaadi Saathi
@@ -168,7 +228,7 @@ export function getHomeHTML() {
                 <span>✦</span> Features
              </div>
              <div class="ss-grid">
-                <div class="ss-card ss-card-feature">
+                <div class="ss-card">
                    <span class="ss-card-ico">💌</span>
                    <h3>Web Invitation Included</h3>
                    <p>Interactive digital invite with unlimited themes, custom variants, full event &amp; ceremony details, live venue maps, background audio, animated seals, plus dedicated pages for family members and the couple's journey.</p>
@@ -214,6 +274,87 @@ export function getHomeHTML() {
                    <span class="ss-card-ico">⚡</span>
                    <h3>Priority Event Support</h3>
                    <p>Dedicated studio support and live troubleshooting on standby to ensure your wedding operations run without a glitch.</p>
+                </div>
+             </div>
+          </div>
+       </div>
+
+       <div class="sub-section" id="coming-soon" style="border-top: 3px solid #842333;">
+          <div class="addons reveal">
+             <div class="faq-section-header">
+                <span>✦</span> Coming Soon
+             </div>
+             <div class="ss-coming-grid">
+                <div class="ss-scratch-card">
+                   <span class="ss-card-ico">🏨</span>
+                   <h3>Room Allocation</h3>
+                   <div class="ss-scratch-box">
+                      <p class="ss-scratch-desc">Assign hotel rooms, track room occupancies, and manage check-in/check-out dates per guest.</p>
+                      <canvas class="ss-scratch-canvas"></canvas>
+                   </div>
+                </div>
+
+                <div class="ss-scratch-card">
+                   <span class="ss-card-ico">🚗</span>
+                   <h3>Logistics &amp; Transport</h3>
+                   <div class="ss-scratch-box">
+                      <p class="ss-scratch-desc">Track arrival flights, schedule airport pickups, and coordinate shuttle transfers across venues.</p>
+                      <canvas class="ss-scratch-canvas"></canvas>
+                   </div>
+                </div>
+
+                <div class="ss-scratch-card">
+                   <span class="ss-card-ico">🤝</span>
+                   <h3>Vendor Management &amp; Expenses</h3>
+                   <div class="ss-scratch-box">
+                      <p class="ss-scratch-desc">Central hub to manage vendor contracts, deliverables, arrival timelines, payment advances, due balances, and invoices.</p>
+                      <canvas class="ss-scratch-canvas"></canvas>
+                   </div>
+                </div>
+
+                <div class="ss-scratch-card">
+                   <span class="ss-card-ico">💰</span>
+                   <h3>Budget Tracker</h3>
+                   <div class="ss-scratch-box">
+                      <p class="ss-scratch-desc">Monitor overall wedding allocations, track projected vs. actual spends, and keep total event costs under control.</p>
+                      <canvas class="ss-scratch-canvas"></canvas>
+                   </div>
+                </div>
+
+                <div class="ss-scratch-card">
+                   <span class="ss-card-ico">📋</span>
+                   <h3>Family Tasks</h3>
+                   <div class="ss-scratch-box">
+                      <p class="ss-scratch-desc">Task delegation board with deadlines, role assignments, and status tracking for immediate family members and coordinators.</p>
+                      <canvas class="ss-scratch-canvas"></canvas>
+                   </div>
+                </div>
+
+                <div class="ss-scratch-card">
+                   <span class="ss-card-ico">👗</span>
+                   <h3>Dress Code &amp; Moodboards</h3>
+                   <div class="ss-scratch-box">
+                      <p class="ss-scratch-desc">Visual style guides, ceremonial color palettes, and outfit inspirations for every wedding function.</p>
+                      <canvas class="ss-scratch-canvas"></canvas>
+                   </div>
+                </div>
+
+                <div class="ss-scratch-card">
+                   <span class="ss-card-ico">🎁</span>
+                   <h3>Digital Shagun &amp; Gift Registry</h3>
+                   <div class="ss-scratch-box">
+                      <p class="ss-scratch-desc">Direct UPI and custom registry integration with automated instant digital thank-you notes.</p>
+                      <canvas class="ss-scratch-canvas"></canvas>
+                   </div>
+                </div>
+
+                <div class="ss-scratch-card">
+                   <span class="ss-card-ico">📖</span>
+                   <h3>Interactive Digital Guestbook</h3>
+                   <div class="ss-scratch-box">
+                      <p class="ss-scratch-desc">Dedicated memory wall where guests upload written wishes, voice recordings, and candid snapshots straight from mobile phones.</p>
+                      <canvas class="ss-scratch-canvas"></canvas>
+                   </div>
                 </div>
              </div>
           </div>
@@ -342,6 +483,9 @@ export function getHomeHTML() {
        </div>
 
        <footer class="ss-footer">
+          <p style="margin-bottom: 0.5rem;">
+             
+          </p>
           <p>© Paresh Bafna Studio - Shaadi Saathi.</p>
        </footer>
     </div>
