@@ -8,6 +8,8 @@ export const publicRoutes = [
     '#/',
     '#home',
     '#login', 
+    '#privacy',
+    '#terms',
     '#sample-web-invites-preview', 
     '#web-invites-preview', 
     '#web-invites-public-preview' // Public bypass

@@ -484,7 +484,8 @@ export function getHomeHTML() {
 
        <footer class="ss-footer">
           <p style="margin-bottom: 0.5rem;">
-             
+             <a href="#privacy" style="color: var(--text-muted); text-decoration: none; margin-right: 1rem;">Privacy Policy</a>
+             <a href="#terms" style="color: var(--text-muted); text-decoration: none;">Terms &amp; Conditions</a>
           </p>
           <p>© Paresh Bafna Studio - Shaadi Saathi.</p>
        </footer>

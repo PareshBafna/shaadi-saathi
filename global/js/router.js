@@ -4,6 +4,8 @@ import { checkSessionOrShowAlert, publicRoutes } from './auth-guard.js';
 
 import { getHomeHTML, initHome } from '../../pages/home/home.js';
 import { renderLogin } from '../../pages/login/login.js';
+import { renderPrivacyPolicy } from '../../pages/privacy/privacy.js';
+import { renderTermsConditions } from '../../pages/terms/terms.js';
 import { renderDashboard } from '../../pages/dashboard/dashboard.js';
 import { renderCalendar } from '../../pages/calendar/calendar.js';
 import { renderWeddings } from '../../pages/weddings/weddings.js';
@@ -25,6 +27,7 @@ export async function router() {
     const params = new URLSearchParams(queryString || '');
 
     const isRoot = !route || route === '' || route === '#' || route === '#/' || route === '#home';
+    const isLegal = route === '#privacy' || route === '#terms';
 
     if (route !== '#web-invites-preview' && route !== '#sample-web-invites-preview' && route !== '#web-invites-public-preview') {
         document.title = "Shaadi Saathi";
@@ -45,7 +48,7 @@ export async function router() {
         contentEl.style.opacity = '0';
     }
 
-    let activePageName = isRoot ? 'home' : route.replace('#', '');
+    let activePageName = (isRoot || isLegal) ? 'home' : route.replace('#', '');
     if (activePageName === '' || activePageName === '/') activePageName = 'home';
     
     await loadPageStyle(activePageName);
@@ -60,6 +63,21 @@ export async function router() {
         if (contentEl) {
             contentEl.innerHTML = getHomeHTML();
             initHome();
+            contentEl.style.visibility = 'visible';
+            contentEl.style.opacity = '1';
+        }
+        return;
+    }
+
+    // PRIVACY POLICY & TERMS
+    if (isLegal) {
+        document.querySelector('.sidebar')?.setAttribute('style', 'display: none;');
+        document.querySelector('.bottom-nav')?.setAttribute('style', 'display: none;');
+        document.getElementById('header-container')?.setAttribute('style', 'display: none;');
+
+        if (contentEl) {
+            contentEl.innerHTML = "";
+            contentEl.appendChild(route === '#privacy' ? renderPrivacyPolicy() : renderTermsConditions());
             contentEl.style.visibility = 'visible';
             contentEl.style.opacity = '1';
         }
