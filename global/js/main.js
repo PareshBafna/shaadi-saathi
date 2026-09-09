@@ -3,6 +3,16 @@ import { ensureDomLayout, mountNavigation } from './layout.js';
 import { resolveDynamicUserRole, checkSessionOrShowAlert, publicRoutes } from './auth-guard.js';
 import { router } from './router.js';
 
+const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX';
+
+function trackPageView() {
+    if (typeof window.gtag === 'function') {
+        window.gtag('config', GA_MEASUREMENT_ID, {
+            page_path: window.location.hash || window.location.pathname
+        });
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     // Scaffold DOM containers in case index.html is blank
     ensureDomLayout();
@@ -53,9 +63,13 @@ function initApp(user) {
     }
 
     if (!window.__routerAttached) {
-        window.addEventListener("hashchange", router);
+        window.addEventListener("hashchange", () => {
+            router();
+            trackPageView();
+        });
         window.__routerAttached = true;
     }
 
     router();
+    trackPageView();
 }
