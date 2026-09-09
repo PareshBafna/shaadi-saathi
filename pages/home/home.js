@@ -298,7 +298,7 @@ export function getHomeHTML() {
                    <span class="ss-card-ico">🚗</span>
                    <h3>Logistics &amp; Transport</h3>
                    <div class="ss-scratch-box">
-                      <p class="ss-scratch-desc">Track arrival flights, schedule airport pickups, and coordinate shuttle transfers across venues.</p>
+                      <p class="ss-scratch-desc">Track arrival flights and trains, schedule station and airport pickups, and coordinate shuttle transfers across venues.</p>
                       <canvas class="ss-scratch-canvas"></canvas>
                    </div>
                 </div>
