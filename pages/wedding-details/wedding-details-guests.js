@@ -65,11 +65,13 @@ export function buildGuestListSection(wedding, guests, events, variants, canConf
             const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
             const allowsVariants = isWebInviteOnly ? (wedding.allow_variants !== false) : true;
             
-            const weddingUrl = isWebInviteOnly
+            const weddingInviteUrl = isWebInviteOnly
                 ? (allowsVariants && guest.variant_id 
                     ? getWebInvitePublicPreviewUrl(wedding.id, guest.variant_id)
                     : getWebInvitePublicPreviewUrl(wedding.id))
                 : getWebInvitePreviewUrl(wedding.id, guest.variant_id || null);
+
+            const weddingDetailsUrl = `${window.location.origin}/#wedding-details?id=${wedding.id}`;
             
             const sortedGuestEvents = [...guestEvents].sort((a, b) => {
                 const timeA = a.time || '00:00:00';
@@ -83,7 +85,7 @@ export function buildGuestListSection(wedding, guests, events, variants, canConf
                 return `• ${ev.event_name || ev.title} (${evDate})`;
             }).join('\n');
 
-            const waMessage = `Jai Jinendra,\n\n*${(guest.name || '').toUpperCase()}*,\n\n*${(wedding.family_name || '').toUpperCase()}* Family has sent you an invitation for the wedding of *${displayNames}* on *_Shaadi Saathi_*.\n\nYou are cordially invited to the following events:\n${eventsListText}\n\nClick the link below to view the complete invitation and event details:\n${weddingUrl}\n\nAwaiting your gracious presence.\n\nRegards,\n*${wedding.family_details || ''}*\n\n*_Shaadi Saathi_*`;
+            const waMessage = `Jai Jinendra,\n\n*${(guest.name || '').toUpperCase()}*,\n\n*${(wedding.family_name || '').toUpperCase()}* Family has sent you an invitation for the wedding of *${displayNames}* on *_Shaadi Saathi_*.\n\nYou are cordially invited to the following events:\n${eventsListText}\n\nClick the link below to view the wedding details:\n${weddingDetailsUrl}\n\nClick the link below to view the wedding invitation:\n${weddingInviteUrl}\n\nAwaiting your gracious presence.\n\nRegards,\n*${wedding.family_details || ''}*\n\n*_Shaadi Saathi_*`;
             const encodedMessage = encodeURIComponent(waMessage);
 
             return `
