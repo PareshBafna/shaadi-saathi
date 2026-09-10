@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /functions/
+Disallow: /api/
+
+Sitemap: https://shaadi-saathi.pages.dev/sitemap.xml
