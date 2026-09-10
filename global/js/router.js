@@ -30,8 +30,8 @@ export function render404Page() {
         <p style="color: var(--color-text-secondary, #a1a1aa); max-width: 420px; margin-bottom: 1.75rem; font-size: 0.95rem; line-height: 1.5;">
             The page you requested does not exist or may have been moved.
         </p>
-        <a href="#login" class="wedding-action-btn-primary" style="text-decoration: none; padding: 0.65rem 1.4rem; font-size: 0.95rem; font-weight: 600; border-radius: 6px;">
-            Return to Safety
+        <a href="#home" class="btn btn-primary" style="display: inline-block; text-decoration: none; background-color: #facc15; color: #18181b; padding: 0.65rem 1.4rem; font-size: 0.95rem; font-weight: 600; border-radius: 6px;">
+            Return to Home
         </a>
     `;
     return wrap;
@@ -147,8 +147,7 @@ export async function router() {
     if (route === '#web-invites-public-preview') {
         document.getElementById('layout')?.replaceChildren();
         document.body.innerHTML = "";
-        const previewElement = await renderWebInvitesPublicPreview();
-        document.body.appendChild(previewElement);
+        await renderWebInvitesPublicPreview(params.get('id'), params.get('variant_id'));
         return;
     }
 
