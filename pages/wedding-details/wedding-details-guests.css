@@ -1,0 +1,85 @@
+.wedding-details-table-inner--guests {
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.variant-group-block {
+  background: var(--color-bg, #0c0a09);
+  border: 1px solid var(--color-border, #292524);
+  border-radius: var(--radius-md, 6px);
+  margin-bottom: var(--space-4, 1rem);
+  overflow: hidden;
+}
+
+.variant-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+  background: var(--color-white, #1c1917);
+  border-bottom: 1px solid var(--color-border, #292524);
+  user-select: none;
+}
+
+.variant-group-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-primary, #eab308);
+}
+
+.variant-group-count {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #a1a1aa);
+}
+
+.guest-wa-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: #25D366;
+  color: white;
+  border-radius: 50%;
+  text-decoration: none;
+  transition: opacity 0.2s;
+  margin: 0 auto;
+}
+
+.guest-wa-btn:hover {
+  opacity: 0.8;
+}
+
+.guest-wa-badge--error {
+  text-align: center;
+  color: var(--color-danger);
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+}
+
+.guest-control-left {
+  flex: 1 1 0;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+}
+
+.guest-control-center {
+  flex: 1 1 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.guest-control-right {
+  flex: 1 1 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}

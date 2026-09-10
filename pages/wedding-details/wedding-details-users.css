@@ -1,0 +1,23 @@
+.wedding-details-table-inner--users {
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.users-table-grid {
+  display: grid !important;
+  grid-template-columns: 32px 45px minmax(160px, 1.5fr) minmax(140px, 1.2fr) !important;
+  align-items: center;
+  padding: 0.75rem var(--space-4, 1rem);
+  gap: 12px;
+  min-height: 50px;
+  box-sizing: border-box;
+  width: 100%;
+  transition: background 0.2s ease;
+}
+
+.users-table-grid:hover {
+  background: var(--color-border);
+}

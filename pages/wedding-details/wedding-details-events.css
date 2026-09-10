@@ -1,0 +1,146 @@
+.wedding-details-timeline-wrap {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 12px;
+  margin-top: 12px;
+}
+
+.wedding-details-timeline-line {
+  position: absolute;
+  left: 16px;
+  top: 12px;
+  bottom: 20px;
+  width: 2px;
+  background: var(--color-border);
+}
+
+.wedding-details-timeline-day {
+  position: relative;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.wedding-details-timeline-day--subsequent { 
+  margin-top: 24px; 
+}
+
+.wedding-details-timeline-dot {
+  position: absolute;
+  left: -1.5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid var(--color-white);
+  z-index: 2;
+}
+
+.wedding-details-timeline-day-title {
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin: 0 0 0 24px;
+}
+
+.timeline-event-card {
+  position: relative;
+  margin-left: 24px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--color-bg, #0c0a09);
+  border: 1px solid var(--color-border, #292524);
+  border-radius: var(--radius-md, 6px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color var(--transition-fast, 0.15s ease);
+}
+
+.timeline-event-card:hover { 
+  border-color: var(--color-primary, #eab308); 
+}
+
+.timeline-event-card__dot {
+  position: absolute;
+  left: -24px;
+  top: 22px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+  border: 2px solid var(--color-white);
+  z-index: 2;
+}
+
+.timeline-event-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.timeline-event-card__title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.timeline-event-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.timeline-event-card__edit-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  margin-left: auto;
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+}
+
+.timeline-event-card__edit-btn:hover {
+  color: var(--color-primary);
+}
+
+.timeline-event-card__meta {
+  display: flex;
+  gap: 16px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  flex-wrap: wrap;
+}
+
+.timeline-event-card__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline-event-card__meta-item i,
+.timeline-event-card__meta-item svg {
+  width: 14px;
+  height: 14px;
+}
+
+.timeline-event-card__venue-link {
+  line-height: 1.4;
+  color: var(--color-primary);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--transition-fast);
+}
+
+.timeline-event-card__venue-link:hover {
+  color: var(--color-text-primary);
+}
+
+.timeline-event-card__venue-text {
+  line-height: 1.4;
+}

@@ -1,0 +1,253 @@
+/* ============================================================
+   HEADER STYLING
+   ============================================================ */
+.wedding-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: var(--space-4, 1rem);
+}
+
+.wedding-details-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+.wedding-details-header__title {
+  font-size: var(--font-size-3xl, 1.875rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-primary, #ffffff);
+  margin: 0;
+  line-height: var(--line-height-tight, 1.2);
+}
+
+.wedding-details-header__date {
+  color: var(--color-text-secondary, #a1a1aa);
+  margin: 0;
+  font-size: var(--font-size-base, 1rem);
+}
+
+.wedding-details-header__date strong {
+  color: var(--color-primary, #eab308);
+}
+
+.wedding-details-header__hashtag-wrap {
+  margin-top: 4px;
+}
+
+.wedding-details-header__hashtag {
+  background: var(--color-primary, #eab308);
+  color: var(--color-text-on-accent, #000000);
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-medium, 500);
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  box-sizing: border-box;
+  width: fit-content;
+}
+
+.wedding-details-header__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.wedding-details-header__instagram-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  padding: 0 16px;
+  height: 32px;
+  border-radius: 999px;
+  color: #ffffff;
+  transition: opacity var(--transition-fast, 0.15s ease);
+  box-sizing: border-box;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.wedding-details-header__instagram-btn:hover {
+  opacity: 0.85;
+}
+
+.wedding-details-header__instagram-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.wedding-details-header__invite-btn {
+  background: var(--color-primary, #eab308);
+  color: var(--color-text-on-accent, #000000);
+  padding: 0 16px;
+  height: 36px;
+  border-radius: var(--radius-sm, 4px);
+  text-decoration: none;
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-medium, 500);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity var(--transition-fast, 0.15s ease);
+  box-sizing: border-box;
+}
+
+.wedding-details-header__invite-btn:hover {
+  opacity: 0.85;
+}
+
+.wedding-details-header__invite-btn i,
+.wedding-details-header__invite-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ============================================================
+   STATS GRID & EXACT ICON CONSTRAINTS
+   ============================================================ */
+.wedding-details-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6, 1.5rem);
+  margin-bottom: var(--space-4, 1rem);
+}
+
+.wedding-details-stats__top-row {
+  display: flex;
+  gap: var(--space-6, 1.5rem);
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.wedding-details-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: var(--space-6, 1.5rem);
+  width: 100%;
+}
+
+.wedding-details-stat-card {
+  background: var(--color-white, #1c1917);
+  border: 1px solid var(--color-border, #292524);
+  border-radius: var(--radius-lg, 8px);
+  padding: var(--space-5, 1.25rem);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wedding-details-stat-card--flex1 {
+  flex: 1;
+  min-width: 250px;
+}
+
+.wedding-details-stat-card--flex2 {
+  flex: 2;
+  min-width: 300px;
+}
+
+.wedding-details-stat-card--column {
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.wedding-details-stat-card__subtitle {
+  color: var(--color-text-secondary, #a1a1aa);
+  font-size: var(--font-size-sm, 0.875rem);
+  margin: 0;
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.wedding-details-stat-card__title {
+  color: var(--color-text-primary, #ffffff);
+  font-size: var(--font-size-2xl, 1.5rem);
+  font-weight: var(--font-weight-bold, 700);
+  margin: 4px 0 0 0;
+}
+
+.wedding-details-stat-card__title--md {
+  font-size: var(--font-size-lg, 1.125rem);
+}
+
+.wedding-details-stat-card__title--details {
+  line-height: 1.4;
+}
+
+.wedding-details-stat-card__icon-badge {
+  background: var(--color-border, #292524);
+  color: var(--color-primary, #eab308);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm, 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wedding-details-stat-card__icon-badge i,
+.wedding-details-stat-card__icon-badge svg {
+  width: 20px;
+  height: 20px;
+}
+
+.wedding-details-host-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-3, 0.75rem);
+  padding-top: var(--space-3, 0.75rem);
+  border-top: 1px solid var(--color-border, #292524);
+}
+
+.wedding-details-host-row__text {
+  color: var(--color-text-primary, #ffffff);
+  font-size: var(--font-size-base, 1rem);
+  font-weight: var(--font-weight-bold, 700);
+}
+
+.wedding-details-host-row__call-btn {
+  background: var(--color-border, #292524);
+  color: var(--color-primary, #eab308);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm, 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast, 0.15s ease);
+}
+
+.wedding-details-host-row__call-btn:hover {
+  opacity: 0.8;
+}
+
+.wedding-details-host-row__call-btn i,
+.wedding-details-host-row__call-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.wedding-details-host-empty {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+}
