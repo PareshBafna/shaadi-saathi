@@ -1,7 +1,7 @@
 import { supabase } from '../../database/js/api.js';
 import { openModal } from '../../global/js/modal.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
-import { getWebInvitePublicPreviewUrl } from '../../global/js/env-config.js';
+import { getWebInvitePreviewUrl, getWebInvitePublicPreviewUrl } from '../../global/js/env-config.js';
 import { 
     normalizePhone, 
     generateInviteCode, 
@@ -61,9 +61,15 @@ export function buildGuestListSection(wedding, guests, events, variants, canConf
         
         if (guest.phone && hasInvitedEvents) {
             const displayNames = wedding.primary_side === 'groom' ? `${wedding.groom_name} & ${wedding.bride_name}` : `${wedding.bride_name} & ${wedding.groom_name}`;
-            const weddingUrl = guest.variant_id 
-                ? getWebInvitePublicPreviewUrl(wedding.id, guest.variant_id)
-                : getWebInvitePublicPreviewUrl(wedding.id);
+            
+            const isWebInviteOnly = wedding.invitation_type === 'web_invite_only';
+            const allowsVariants = isWebInviteOnly ? (wedding.allow_variants !== false) : true;
+            
+            const weddingUrl = isWebInviteOnly
+                ? (allowsVariants && guest.variant_id 
+                    ? getWebInvitePublicPreviewUrl(wedding.id, guest.variant_id)
+                    : getWebInvitePublicPreviewUrl(wedding.id))
+                : getWebInvitePreviewUrl(wedding.id, guest.variant_id || null);
             
             const sortedGuestEvents = [...guestEvents].sort((a, b) => {
                 const timeA = a.time || '00:00:00';
