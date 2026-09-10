@@ -1,12 +1,50 @@
 import { supabase } from '../../database/js/api.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
+// Replace with your real Cloudflare Turnstile Site Key
+const TURNSTILE_SITE_KEY = '0x4AAAAAAEutjFdHF82YBfYP';
+
+let turnstileWidgetLogin = null;
+let turnstileWidgetReg = null;
+let turnstileTokenLogin = null;
+let turnstileTokenReg = null;
+
 function cleanPhoneNumber(phone) {
     return phone.replace(/[^0-9+]/g, '');
 }
 
 function generateVerificationCode() {
     return 'VERIFY-' + Math.floor(100000 + Math.random() * 900000);
+}
+
+async function verifyTurnstileToken(token) {
+    // If testing on pure localhost without local wrangler functions, bypass
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        try {
+            const res = await fetch('/api/verify-turnstile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            if (res.status === 404) {
+                console.warn('Local environment without cloudflare functions runner detected. Skipping server validation.');
+                return true;
+            }
+            const data = await res.json();
+            return data.success;
+        } catch (e) {
+            console.warn('Backend verify skipped on local server:', e);
+            return true;
+        }
+    }
+
+    const res = await fetch('/api/verify-turnstile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+    });
+    const data = await res.json();
+    return data.success;
 }
 
 export async function validateSession() {
@@ -97,7 +135,49 @@ function getRoleRedirectHash(role) {
     return '#calendar';
 }
 
+function mountTurnstileWidgets(container) {
+    if (!window.turnstile) {
+        setTimeout(() => mountTurnstileWidgets(container), 250);
+        return;
+    }
+
+    const loginEl = container.querySelector('#cf-turnstile-login');
+    if (loginEl && turnstileWidgetLogin === null) {
+        try {
+            turnstileWidgetLogin = window.turnstile.render(loginEl, {
+                sitekey: TURNSTILE_SITE_KEY,
+                theme: 'dark',
+                callback: (token) => { turnstileTokenLogin = token; },
+                'expired-callback': () => { turnstileTokenLogin = null; },
+                'error-callback': () => { turnstileTokenLogin = null; }
+            });
+        } catch (e) {
+            console.error("Turnstile login render error:", e);
+        }
+    }
+
+    const regEl = container.querySelector('#cf-turnstile-reg');
+    if (regEl && turnstileWidgetReg === null) {
+        try {
+            turnstileWidgetReg = window.turnstile.render(regEl, {
+                sitekey: TURNSTILE_SITE_KEY,
+                theme: 'dark',
+                callback: (token) => { turnstileTokenReg = token; },
+                'expired-callback': () => { turnstileTokenReg = null; },
+                'error-callback': () => { turnstileTokenReg = null; }
+            });
+        } catch (e) {
+            console.error("Turnstile reg render error:", e);
+        }
+    }
+}
+
 export function renderLogin() {
+    turnstileWidgetLogin = null;
+    turnstileWidgetReg = null;
+    turnstileTokenLogin = null;
+    turnstileTokenReg = null;
+
     const container = document.createElement('div');
     container.className = 'login-page-wrapper';
 
@@ -121,6 +201,8 @@ export function renderLogin() {
                         <label class="login-label">6-Digit PIN *</label>
                         <input type="password" id="login-pin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="Enter 6-digit PIN" class="login-input" required>
                     </div>
+
+                    <div id="cf-turnstile-login" style="margin: 0.85rem 0; display: flex; justify-content: center; min-height: 65px;"></div>
 
                     <button id="btn-login" class="login-submit-btn">Log In</button>
                 </div>
@@ -153,6 +235,8 @@ export function renderLogin() {
                         <input type="password" id="reg-pin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="Create a 6-digit PIN" class="login-input" required>
                     </div>
 
+                    <div id="cf-turnstile-reg" style="margin: 0.85rem 0; display: flex; justify-content: center; min-height: 65px;"></div>
+
                     <button id="btn-register" class="login-submit-btn">Register</button>
                 </div>
                 
@@ -179,6 +263,8 @@ export function renderLogin() {
                 el.addEventListener('input', updateValidationState);
             }
         });
+
+        mountTurnstileWidgets(container);
     }, 50);
 
     const loginView = container.querySelector('#login-view');
@@ -236,6 +322,10 @@ export function renderLogin() {
         if (!isValid) {
             return showSweetAlert('error', 'Missing Info', `Please fill out: ${firstEmpty}`);
         }
+
+        if (window.turnstile && !turnstileTokenLogin) {
+            return showSweetAlert('warning', 'Security Check', 'Please verify the security check before logging in.');
+        }
         
         const phone = container.querySelector('#login-phone').value.trim();
         const pin = container.querySelector('#login-pin').value.trim();
@@ -248,11 +338,23 @@ export function renderLogin() {
         }
 
         try {
+            // Validate Turnstile on server
+            if (turnstileTokenLogin) {
+                const isValidToken = await verifyTurnstileToken(turnstileTokenLogin);
+                if (!isValidToken) {
+                    throw new Error("Security verification failed. Please try again.");
+                }
+            }
+
             const user = await loginUser({ phone, pin });
             window.currentUser = user; 
             window.location.hash = getRoleRedirectHash(user.role);
             window.location.reload();
         } catch (err) {
+            if (window.turnstile && turnstileWidgetLogin !== null) {
+                window.turnstile.reset(turnstileWidgetLogin);
+                turnstileTokenLogin = null;
+            }
             if (err.message.includes("User not found")) {
                 showSweetAlert('error', 'Not Registered', 'User is not registered. Please register first.', null, 'Go to Register', () => { btnShowRegister.click(); });
             } else {
@@ -288,6 +390,10 @@ export function renderLogin() {
             return showSweetAlert('error', 'Missing Info', `Please fill out: ${firstEmpty}`);
         }
 
+        if (window.turnstile && !turnstileTokenReg) {
+            return showSweetAlert('warning', 'Security Check', 'Please verify the security check before registering.');
+        }
+
         const name = container.querySelector('#reg-name').value.trim();
         const phone = container.querySelector('#reg-phone').value.trim();
         const pin = container.querySelector('#reg-pin').value.trim();
@@ -300,11 +406,23 @@ export function renderLogin() {
         }
 
         try {
+            // Validate Turnstile on server
+            if (turnstileTokenReg) {
+                const isValidToken = await verifyTurnstileToken(turnstileTokenReg);
+                if (!isValidToken) {
+                    throw new Error("Security verification failed. Please try again.");
+                }
+            }
+
             const user = await registerUser({ name, phone, pin });
             window.currentUser = user;
             window.location.hash = getRoleRedirectHash(user.role);
             window.location.reload();
         } catch (err) {
+            if (window.turnstile && turnstileWidgetReg !== null) {
+                window.turnstile.reset(turnstileWidgetReg);
+                turnstileTokenReg = null;
+            }
             showSweetAlert('error', 'Registration Failed', err.message);
         }
     });
