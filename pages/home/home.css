@@ -328,7 +328,7 @@ body.ss-landing-page,
 
 .ss-card:hover {
 	transform: translateY(-4px);
-	border-color: var(--gold);
+	border-color: #842333;
 	background: var(--ss-app-card-hover);
 }
 
