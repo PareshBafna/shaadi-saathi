@@ -11,6 +11,11 @@ import {
     broadcastWeddingDataUpdated 
 } from './wedding-details-common.js';
 
+export const VALIDATION_PATTERNS = {
+    phone: /^[6-9]\d{9}$/,
+    name: /^[a-zA-Z\s.]{2,60}$/
+};
+
 export function buildGuestListSection(wedding, guests, events, variants, canConfig, isCreator = false) {
     window.__currentEvents = events || [];
     window.__currentVariants = variants || [];
@@ -277,7 +282,7 @@ export function openGuestModal(weddingId, variants = []) {
             </div>
             <div>
                 <label class="wedding-modal-label">Phone Number *</label>
-                <input type="tel" id="guestPhone" required placeholder="Enter phone number" oninput="this.value = this.value.replace(/[^0-9]/g, '');" class="wedding-modal-input wedding-modal-input--invalid">
+                <input type="tel" id="guestPhone" maxlength="10" required placeholder="10-digit mobile number" oninput="this.value = this.value.replace(/[^0-9]/g, '');" class="wedding-modal-input wedding-modal-input--invalid">
             </div>
             <div style="position: relative;">
                 <label class="wedding-modal-label">Assign Variant (Optional)</label>
@@ -303,26 +308,39 @@ export function openGuestModal(weddingId, variants = []) {
                     const phoneEl = document.getElementById('guestPhone');
                     const variantId = document.getElementById('guestVariantId').value || null;
 
-                    if (!nameEl.value.trim() || !phoneEl.value.trim()) {
+                    const cleanName = nameEl.value.trim();
+                    const cleanPhone = phoneEl.value.trim();
+
+                    if (!cleanName || !cleanPhone) {
                         showSweetAlert('error', 'Missing Information', 'Please fill out all mandatory fields.');
                         return;
                     }
 
-                    const phoneInput = phoneEl.value.trim();
-                    const cleanedInputNormalized = normalizePhone(phoneInput);
+                    if (!VALIDATION_PATTERNS.name.test(cleanName)) {
+                        nameEl.classList.add('wedding-modal-input--invalid');
+                        showSweetAlert('error', 'Invalid Name', 'Name must contain only letters, dots, or spaces (min 2 characters).');
+                        return;
+                    }
+
+                    const normalizedPhone = normalizePhone(cleanPhone);
+                    if (!VALIDATION_PATTERNS.phone.test(normalizedPhone)) {
+                        phoneEl.classList.add('wedding-modal-input--invalid');
+                        showSweetAlert('error', 'Invalid Phone', 'Please enter a valid 10-digit Indian phone number starting with 6, 7, 8, or 9.');
+                        return;
+                    }
 
                     try {
                         const { data: existingGuests, error: fetchErr } = await supabase.from('guests').select('*').eq('wedding_id', weddingId);
                         if (fetchErr) throw fetchErr;
 
-                        const matchingGuest = existingGuests.find(g => normalizePhone(g.phone) === cleanedInputNormalized);
+                        const matchingGuest = existingGuests.find(g => normalizePhone(g.phone) === normalizedPhone);
 
                         if (matchingGuest) {
                             const { error: updateErr } = await supabase
                                 .from('guests')
                                 .update({
-                                    name: nameEl.value.trim(),
-                                    phone: phoneInput,
+                                    name: cleanName,
+                                    phone: normalizedPhone,
                                     variant_id: variantId
                                 })
                                 .eq('id', matchingGuest.id);
@@ -330,8 +348,8 @@ export function openGuestModal(weddingId, variants = []) {
                         } else {
                             const { error: insertError } = await supabase.from('guests').insert([{ 
                                 wedding_id: weddingId,
-                                name: nameEl.value.trim(),
-                                phone: phoneInput,
+                                name: cleanName,
+                                phone: normalizedPhone,
                                 variant_id: variantId,
                                 invite_code: generateInviteCode()
                             }]);
@@ -357,10 +375,14 @@ export function openGuestModal(weddingId, variants = []) {
             const el = document.getElementById(id);
             if (el) {
                 const updateValidity = () => {
-                    el.classList.toggle('wedding-modal-input--invalid', !el.value.trim());
-                    el.classList.toggle('wedding-modal-input--valid', !!el.value.trim());
+                    const val = el.value.trim();
+                    let isValid = false;
+                    if (id === 'guestName') isValid = VALIDATION_PATTERNS.name.test(val);
+                    if (id === 'guestPhone') isValid = VALIDATION_PATTERNS.phone.test(normalizePhone(val));
+                    
+                    el.classList.toggle('wedding-modal-input--invalid', !isValid);
+                    el.classList.toggle('wedding-modal-input--valid', isValid);
                 };
-                updateValidity();
                 el.addEventListener('input', updateValidity);
             }
         });
@@ -390,7 +412,7 @@ export async function openEditGuestModal(weddingId, guestId, variants = []) {
             </div>
             <div>
                 <label class="wedding-modal-label">Phone Number *</label>
-                <input type="tel" id="editGuestPhone" value="${guest.phone || ''}" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required class="wedding-modal-input wedding-modal-input--valid">
+                <input type="tel" id="editGuestPhone" maxlength="10" value="${normalizePhone(guest.phone) || ''}" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required class="wedding-modal-input wedding-modal-input--valid">
             </div>
             <div style="position: relative;">
                 <label class="wedding-modal-label">Assign Variant</label>
@@ -450,10 +472,23 @@ export async function openEditGuestModal(weddingId, guestId, variants = []) {
                         return;
                     }
 
+                    if (!VALIDATION_PATTERNS.name.test(name)) {
+                        document.getElementById('editGuestName').classList.add('wedding-modal-input--invalid');
+                        showSweetAlert('error', 'Invalid Name', 'Name must contain only letters, dots, or spaces.');
+                        return;
+                    }
+
+                    const normalizedPhone = normalizePhone(phone);
+                    if (!VALIDATION_PATTERNS.phone.test(normalizedPhone)) {
+                        document.getElementById('editGuestPhone').classList.add('wedding-modal-input--invalid');
+                        showSweetAlert('error', 'Invalid Phone', 'Please enter a valid 10-digit Indian phone number.');
+                        return;
+                    }
+
                     try {
                         const { error } = await supabase.from('guests').update({ 
                             name: name,
-                            phone: phone,
+                            phone: normalizedPhone,
                             variant_id: variantId
                         }).eq('id', guest.id);
                         
@@ -595,14 +630,28 @@ export function triggerCSVImport(weddingId) {
                     if (varErr) throw varErr;
 
                     const validRows = [];
+                    const validationErrors = [];
                     const invalidVariantRows = [];
 
                     rawRows.forEach((row, idx) => {
+                        const rowIndex = idx + 2;
                         const name = getCellValue(row, ['Name', 'Guest Name', 'Full Name']);
                         const phone = getCellValue(row, ['Phone Number', 'Phone', 'Mobile', 'Mobile Number', 'Contact']);
                         const variantCol = getCellValue(row, ['Variant', 'Variant Name', 'Invite Variant', 'Assigned Variant']);
 
                         if (!name && !phone) return;
+
+                        const normalizedPhone = normalizePhone(phone);
+                        const isNameValid = VALIDATION_PATTERNS.name.test(name);
+                        const isPhoneValid = VALIDATION_PATTERNS.phone.test(normalizedPhone);
+
+                        if (!isNameValid || !isPhoneValid) {
+                            validationErrors.push({
+                                rowNumber: rowIndex,
+                                reason: !isNameValid ? 'Invalid name (letters/spaces only)' : 'Invalid 10-digit phone number'
+                            });
+                            return;
+                        }
 
                         let vId = null;
                         if (variantCol && 
@@ -615,18 +664,18 @@ export function triggerCSVImport(weddingId) {
                                 vId = match.id;
                             } else {
                                 invalidVariantRows.push({
-                                    rowNumber: idx + 2,
-                                    guestName: name || `Row ${idx + 2}`,
+                                    rowNumber: rowIndex,
+                                    guestName: name || `Row ${rowIndex}`,
                                     variantName: variantCol
                                 });
                             }
                         }
 
-                        validRows.push({ name, phone, variantId: vId });
+                        validRows.push({ name, phone: normalizedPhone, variantId: vId });
                     });
 
                     if (validRows.length === 0) {
-                        showSweetAlert('info', 'No Data', 'No valid guest records found in the sheet.');
+                        showSweetAlert('error', 'Import Failed', 'No valid guest records found. Ensure rows have valid names and 10-digit mobile numbers.');
                         return;
                     }
 
@@ -647,12 +696,10 @@ export function triggerCSVImport(weddingId) {
                     let importedCount = 0;
 
                     for (const { name, phone, variantId } of validRows) {
-                        if (!name || !phone) continue;
-                        const cleanedNormalized = normalizePhone(phone);
-                        if (!cleanedNormalized || seenNormalized.has(cleanedNormalized)) continue;
-                        seenNormalized.add(cleanedNormalized);
+                        if (seenNormalized.has(phone)) continue;
+                        seenNormalized.add(phone);
 
-                        const existing = existingGuests?.find(g => normalizePhone(g.phone) === cleanedNormalized);
+                        const existing = existingGuests?.find(g => normalizePhone(g.phone) === phone);
 
                         if (existing) {
                             await supabase.from('guests').update({
@@ -674,24 +721,25 @@ export function triggerCSVImport(weddingId) {
 
                     broadcastWeddingDataUpdated();
 
+                    let warningHtml = '';
+                    if (validationErrors.length > 0) {
+                        warningHtml += `<p style="margin-bottom: 4px; color: #ef4444;"><strong>${validationErrors.length}</strong> rows skipped due to invalid formats.</p>`;
+                    }
                     if (invalidVariantRows.length > 0) {
-                        const errorListHTML = invalidVariantRows.map(err => 
-                            `<li style="margin-bottom: 4px;"><strong>Row ${err.rowNumber} (${err.guestName}):</strong> Variant "<em>${err.variantName}</em>" not found (set to No Variant).</li>`
-                        ).join('');
+                        warningHtml += `<p style="margin-bottom: 4px; color: #facc15;"><strong>${invalidVariantRows.length}</strong> guests assigned to Default because variant didn't exist.</p>`;
+                    }
 
+                    if (warningHtml) {
                         await Swal.fire({
                             icon: 'warning',
-                            title: 'Import Completed with Warnings',
+                            title: 'Import Completed with Notes',
                             html: `
                                 <div style="text-align: left; font-size: 0.85rem; max-height: 220px; overflow-y: auto;">
-                                    <p style="margin-bottom: 8px;"><strong>${importedCount}</strong> guests were processed successfully.</p>
-                                    <p style="margin-bottom: 6px; color: #facc15;">The following guests had non-existent variants and were imported without a variant:</p>
-                                    <ul style="padding-left: 18px; margin: 0; color: #f87171;">
-                                        ${errorListHTML}
-                                    </ul>
+                                    <p style="margin-bottom: 8px;"><strong>${importedCount}</strong> guests saved successfully.</p>
+                                    ${warningHtml}
                                 </div>
                             `,
-                            confirmButtonColor: 'var(--color-primary, #eab308)',
+                            confirmButtonColor: 'var(--color-primary, #facc15)',
                             confirmButtonText: 'Understood'
                         });
                     } else {

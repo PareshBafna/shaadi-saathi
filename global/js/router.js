@@ -21,6 +21,22 @@ import { renderWebInvitesPreview } from '../../pages/web-invites-preview/web-inv
 import { renderWebInvitesPublicPreview } from '../../pages/web-invites-public-preview/web-invites-public-preview.js';
 import { renderProfile } from '../../pages/profile/profile.js';
 
+export function render404Page() {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'min-height: 65vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--color-text-primary, #ffffff); padding: 2rem; box-sizing: border-box;';
+    wrap.innerHTML = `
+        <h1 style="font-size: 5rem; color: var(--color-primary, #facc15); margin: 0; line-height: 1; font-weight: 800;">404</h1>
+        <h2 style="margin: 1rem 0 0.5rem 0; font-size: 1.5rem; font-weight: 700;">Page Not Found</h2>
+        <p style="color: var(--color-text-secondary, #a1a1aa); max-width: 420px; margin-bottom: 1.75rem; font-size: 0.95rem; line-height: 1.5;">
+            The page you requested does not exist or may have been moved.
+        </p>
+        <a href="#login" class="wedding-action-btn-primary" style="text-decoration: none; padding: 0.65rem 1.4rem; font-size: 0.95rem; font-weight: 600; border-radius: 6px;">
+            Return to Safety
+        </a>
+    `;
+    return wrap;
+}
+
 export async function router() {
     const hash = window.location.hash || '';
     const [route, queryString] = hash.split('?');
@@ -28,6 +44,7 @@ export async function router() {
 
     const isRoot = !route || route === '' || route === '#' || route === '#/' || route === '#home';
     const isLegal = route === '#privacy' || route === '#terms';
+    const isLandingAnchor = route === '#features' || route === '#pricing';
 
     if (route !== '#web-invites-preview' && route !== '#sample-web-invites-preview' && route !== '#web-invites-public-preview') {
         document.title = "Shaadi Saathi";
@@ -48,14 +65,14 @@ export async function router() {
         contentEl.style.opacity = '0';
     }
 
-    let activePageName = (isRoot || isLegal) ? 'home' : route.replace('#', '');
+    let activePageName = (isRoot || isLegal || isLandingAnchor) ? 'home' : route.replace('#', '');
     if (activePageName === '' || activePageName === '/') activePageName = 'home';
     
     await loadPageStyle(activePageName);
     if (document.fonts?.ready) await document.fonts.ready;
 
-    // ROOT / HOME LANDING ROUTE
-    if (isRoot) {
+    // ROOT / HOME LANDING ROUTE OR SMOOTH-SCROLL ANCHORS (#features, #pricing)
+    if (isRoot || isLandingAnchor) {
         document.querySelector('.sidebar')?.setAttribute('style', 'display: none;');
         document.querySelector('.bottom-nav')?.setAttribute('style', 'display: none;');
         document.getElementById('header-container')?.setAttribute('style', 'display: none;');
@@ -65,6 +82,14 @@ export async function router() {
             initHome();
             contentEl.style.visibility = 'visible';
             contentEl.style.opacity = '1';
+
+            if (isLandingAnchor) {
+                const sectionId = route.replace('#', '');
+                setTimeout(() => {
+                    const targetEl = document.getElementById(sectionId);
+                    if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+            }
         }
         return;
     }
@@ -114,7 +139,7 @@ export async function router() {
 
     if (route === '#web-invites-preview') {
         document.getElementById('layout')?.replaceChildren();
-        renderWebInvitesPreview(params.get('id'));
+        renderWebInvitesPreview(params.get('id'), params.get('variant_id'));
         return;
     }
 
@@ -159,8 +184,16 @@ export async function router() {
     };
 
     const matchedRoute = routeConfig[route];
+    
     if (!matchedRoute) {
-        showAccessRestricted();
+        document.querySelector('.sidebar')?.setAttribute('style', 'display: none;');
+        document.querySelector('.bottom-nav')?.setAttribute('style', 'display: none;');
+        document.getElementById('header-container')?.setAttribute('style', 'display: none;');
+        
+        contentEl.innerHTML = "";
+        contentEl.appendChild(render404Page());
+        contentEl.style.visibility = 'visible';
+        contentEl.style.opacity = '1';
         return;
     }
 
@@ -179,7 +212,6 @@ export async function router() {
 
     contentEl.innerHTML = "";
     
-    // Mount navigation if not in DOM
     if (!document.querySelector('.sidebar') && window.currentUser) {
         mountNavigation(window.currentUser);
     }

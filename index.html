@@ -35,20 +35,24 @@
     <link rel="icon" type="image/png" href="/global/logos/logo-compressed.png" />
     <link rel="apple-touch-icon" href="/global/logos/logo-compressed.png" />
 
+    <!-- Performance: Preconnect Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <!-- Global & Common Components -->
     <link rel="stylesheet" href="/global/css/global.css" />
     <link rel="stylesheet" href="/global/css/sidebar.css" />
     <link rel="stylesheet" href="/global/css/header.css" />
     <link rel="stylesheet" href="/pages/home/home.css" />
 
-    <!-- Third Party Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    <!-- Performance: Non-blocking Optimized Third Party Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
 
     <style>
         /* Essential reset to ensure the layout takes the full screen */
-        body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; background-color: var(--color-bg, #f8fafc); }
+        body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; background-color: var(--color-bg, #170A0D); }
     </style>
 </head>
 <body>
@@ -72,6 +76,6 @@
 
     <!-- Application Entry Point -->
     <script type="module" src="/global/js/main.js"></script>
-    <script src="/global/js/security.js"></script>
+    <script src="/global/js/security.js" defer></script>
 </body>
 </html>
