@@ -125,10 +125,8 @@ function generateDynamicLogo(name1, name2, colors) {
 
 function loadCSS(id, href) {
     return new Promise((resolve) => {
-        if (document.getElementById(id)) {
-            resolve();
-            return;
-        }
+        const existing = document.getElementById(id);
+        if (existing) existing.remove();
         const link = document.createElement('link');
         link.id = id;
         link.rel = 'stylesheet';
@@ -174,9 +172,10 @@ export async function renderSampleWebInvites(explicitSampleId = null) {
 
     setupMockData(inviteId);
 
+    const v = Date.now();
     await Promise.all([
-        loadCSS('web-invite-splash-styles', '/global/css/splash.css'),
-        loadCSS('web-invite-base-styles', '/global/css/invite.css'),
+        loadCSS('web-invite-splash-styles', `/global/css/splash.css?v=${v}`),
+        loadCSS('web-invite-base-styles', `/global/css/invite.css?v=${v}`),
         loadScript('swal-cdn-script', 'https://cdn.jsdelivr.net/npm/sweetalert2@11')
     ]);
 
@@ -199,14 +198,22 @@ export async function renderSampleWebInvites(explicitSampleId = null) {
     dynamicStyle.id = 'invite-dynamic-style';
     dynamicStyle.innerHTML = `
         :root {
-            --color-primary: ${currentThemeColors.main};
-            --color-secondary: ${currentThemeColors.accent};
-            --color-bg-dark: ${currentThemeColors.bgDark};
-            --theme-accent-rgb: ${currentThemeRGB.accent};
-            --theme-bg-dark-rgb: ${currentThemeRGB.bgDark};
+            --color-primary: ${currentThemeColors.main} !important;
+            --color-secondary: ${currentThemeColors.accent} !important;
+            --color-bg-dark: ${currentThemeColors.bgDark} !important;
+            --theme-color: ${currentThemeColors.main} !important;
+            --theme-accent: ${currentThemeColors.accent} !important;
+            --accent-color: ${currentThemeColors.accent} !important;
+            --theme-accent-rgb: ${currentThemeRGB.accent} !important;
+            --theme-main-rgb: ${currentThemeRGB.main} !important;
+            --theme-bg-dark-rgb: ${currentThemeRGB.bgDark} !important;
         }
         body {
-            background-image: url('/global/images/background/${selectedThemeName}-background.png');
+            background-image: url('/global/images/background/${selectedThemeName}-background.png') !important;
+            background-color: ${currentThemeColors.bgDark} !important;
+        }
+        .bg-image {
+            background-image: url('/global/images/background/${selectedThemeName}-background.png') !important;
         }
     `;
     document.head.appendChild(dynamicStyle);

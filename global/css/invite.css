@@ -43,6 +43,15 @@ body.theme-loaded {
 }
 
 /* Background Overlays */
+.bg-image {
+  position: fixed;
+  inset: 0;
+  background-size: cover !important;
+  background-position: center !important;
+  z-index: -4;
+  pointer-events: none;
+}
+
 .video-overlay {
   position: fixed;
   inset: 0;
@@ -213,7 +222,7 @@ section.full-page.visible {
   transform: translateY(0) scale(1);
 }
 
-/* Card Container */
+/* Card Container (Clean Dark Glass) */
 .card {
   width: 100%;
   max-width: 500px;
@@ -221,8 +230,11 @@ section.full-page.visible {
   max-height: none;
   border-radius: 30px;
   padding: 22px 18px 18px;
-  background: linear-gradient(145deg, rgba(var(--theme-bg-dark-rgb), 0.95), #000000) !important;
+  background: rgba(15, 8, 28, 0.65) !important;
   border: 1px solid var(--color-secondary) !important;
+  box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.25) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   position: relative;
   overflow: visible;
   display: flex;
@@ -435,7 +447,7 @@ section.full-page.visible {
   border-radius: 999px;
   margin: 14px auto;
   background: var(--color-secondary) !important;
-  box-shadow: 0 0 10px var(--color-secondary) !important;
+  box-shadow: 0 0 8px var(--color-secondary) !important;
 }
 
 .divider-thick {
@@ -469,7 +481,7 @@ section.full-page.visible {
   border-radius: 14px;
   border: 1px solid var(--color-secondary) !important;
   background: rgba(var(--theme-bg-dark-rgb), 0.6) !important;
-  box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.25) !important;
+  box-shadow: 0 0 10px rgba(var(--theme-accent-rgb), 0.25) !important;
   text-align: center;
   animation: countdownGlow 3.5s ease-in-out infinite alternate;
 }
@@ -596,7 +608,7 @@ section.full-page.visible {
   line-height: 1;
 }
 
-/* Buttons */
+/* Original Working Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -689,7 +701,7 @@ section.full-page.visible {
 }
 
 .nav-dot.active {
-  background: var(--color-secondary) !important;
+  background-color: var(--color-secondary) !important;
   transform: scale(1.4);
   box-shadow: 0 0 10px var(--color-secondary) !important;
   border-color: #ffffff !important;
@@ -820,7 +832,7 @@ section.full-page.visible {
   display: block;
 }
 
-/* Custom Signature Font & Animations */
+/* Custom Signature Font & Pure White Neon Bloom */
 @font-face {
   font-family: 'Best Signature Font';
   font-style: normal;
@@ -834,24 +846,35 @@ section.full-page.visible {
   font-size: 2.2rem;
   font-family: 'Best Signature Font', cursive, sans-serif !important;
   margin-bottom: 4px;
-  color: inherit;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: 
+    0 0 5px #ffffff,
+    0 0 10px var(--color-secondary),
+    0 0 20px var(--color-secondary),
+    0 0 35px var(--color-secondary),
+    0 0 50px rgba(var(--theme-accent-rgb), 0.9) !important;
   animation: 
-    blueGlow 3s ease-in-out infinite alternate, 
+    themeNeonGlow 2.5s ease-in-out infinite alternate, 
     softBounce 4s ease-in-out infinite;
-  text-shadow: 0 0 5px var(--color-secondary);
 }
 
-@keyframes blueGlow {
+@keyframes themeNeonGlow {
   0% {
     text-shadow: 
-      0 0 5px rgba(var(--theme-accent-rgb), 0.8),
-      0 0 10px rgba(var(--theme-accent-rgb), 0.5);
+      0 0 4px #ffffff,
+      0 0 8px var(--color-secondary),
+      0 0 18px var(--color-secondary),
+      0 0 30px rgba(var(--theme-accent-rgb), 0.8),
+      0 0 45px rgba(var(--theme-accent-rgb), 0.6);
   }
   100% {
     text-shadow: 
-      0 0 10px rgba(var(--theme-accent-rgb), 1),
-      0 0 20px rgba(var(--theme-accent-rgb), 0.8),
-      0 0 35px rgba(var(--theme-accent-rgb), 0.6);
+      0 0 6px #ffffff,
+      0 0 12px var(--color-secondary),
+      0 0 24px var(--color-secondary),
+      0 0 45px var(--color-secondary),
+      0 0 65px rgba(var(--theme-accent-rgb), 1);
   }
 }
 
@@ -871,8 +894,8 @@ section.full-page.visible {
 }
 
 @keyframes themeGlowPulse {
-  0% { box-shadow: 0 0 20px rgba(var(--theme-accent-rgb), 0.2), inset 0 0 10px rgba(var(--theme-accent-rgb), 0.1); }
-  100% { box-shadow: 0 0 40px rgba(var(--theme-accent-rgb), 0.5), inset 0 0 20px rgba(var(--theme-accent-rgb), 0.3); }
+  0% { box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.2), inset 0 0 8px rgba(var(--theme-accent-rgb), 0.1); }
+  100% { box-shadow: 0 0 25px rgba(var(--theme-accent-rgb), 0.35), inset 0 0 15px rgba(var(--theme-accent-rgb), 0.2); }
 }
 
 @keyframes logoFloat {

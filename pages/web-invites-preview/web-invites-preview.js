@@ -111,7 +111,6 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
     const loginRedirectUrl = '#login';
     const dashboardWeddingsUrl = '#weddings'; 
 
-    // 1. Validate ss_user_id from localStorage
     const ssUserId = localStorage.getItem('ss_user_id');
     if (!ssUserId) {
         showSwalError("Authentication Required", "Please log in to view this invitation.", "Go Back To Login", loginRedirectUrl);
@@ -120,7 +119,6 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-    // 2. Validate id and variant_id parameters are not empty and valid
     if (!inviteId || (!uuidRegex.test(inviteId) && inviteId !== '00000000-0000-0000-0000-000000000000')) {
         showSwalError("Invalid Link", "The wedding link parameter is missing or invalid.", "Go Back to Weddings", dashboardWeddingsUrl);
         return;
@@ -132,27 +130,23 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
     }
 
     try {
-        // 3. Validate ss_user_id in database
         const { data: curUser, error: userErr } = await supabase.from('users').select('*').eq('id', ssUserId).maybeSingle();
         if (userErr || !curUser) {
             showSwalError("Authentication Required", "User session not found. Please log in again.", "Go Back To Login", loginRedirectUrl);
             return;
         }
 
-        // 4. Validate wedding id exists in database
         const { data: wedding, error: wErr } = await supabase.from('weddings').select('*').eq('id', inviteId).maybeSingle();
         if (wErr || !wedding) {
             showSwalError("Error", "Incorrect wedding details. Please contact Admin.", "Go Back to Weddings", dashboardWeddingsUrl);
             return;
         }
 
-        // Check if the invitation type is web_invite_only
         if (wedding.invitation_type === 'web_invite_only') {
             showSwalError("Invalid Invitation", "The invitation is not available for this wedding.", "Go Back to Weddings", dashboardWeddingsUrl);
             return;
         }
 
-        // 5. Validate both id and variant_id combination exists in database
         const { data: variantData, error: variantErr } = await supabase
             .from('invite_variants')
             .select('*')
@@ -165,7 +159,6 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
             return;
         }
 
-        // 6. User Wedding Check
         const { data: rawHosts } = await supabase.from('wedding_hosts').select('user_id').eq('wedding_id', wedding.id);
         const { data: rawWUsers } = await supabase.from('wedding_users').select('user_id').eq('wedding_id', wedding.id);
 
@@ -207,7 +200,9 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
             return;
         }
 
-        let rawThemeName = inviteDetails.theme || 'blue';
+        let rawThemeName = (variantData && variantData.theme) || (inviteDetails && (inviteDetails.theme || inviteDetails.theme_name || inviteDetails.theme_color)) || wedding.theme || 'blue';
+        rawThemeName = rawThemeName.toLowerCase().trim();
+
         const legacyThemeMap = { 'emerald': 'green', 'burgundy': 'maroon', 'rose': 'peach' };
         const selectedThemeName = legacyThemeMap[rawThemeName] || rawThemeName;
 
@@ -217,8 +212,8 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
             maroon: { main: '#881337', bgDark: '#4c0519', bgLight: '#fff1f2', accent: '#fb7185' },
             gold:   { main: '#b45309', bgDark: '#451a03', bgLight: '#fffbeb', accent: '#fbbf24' },
             peach:  { main: '#be123c', bgDark: '#4c0519', bgLight: '#fff1f2', accent: '#fb7185' },
-            violet: { main: '#5b21b6', bgDark: '#2e1065', bgLight: '#f5f3ff', accent: '#a78bfa' },
-            purple: { main: '#6b21a8', bgDark: '#3b0764', bgLight: '#faf5ff', accent: '#c084fc' },
+            violet: { main: '#5b21b6', bgDark: '#12072b', bgLight: '#f5f3ff', accent: '#a78bfa' },
+            purple: { main: '#6b21a8', bgDark: '#19032d', bgLight: '#faf5ff', accent: '#c084fc' },
             red:    { main: '#b91c1c', bgDark: '#450a0a', bgLight: '#fef2f2', accent: '#f87171' },
             pink:   { main: '#be185d', bgDark: '#500724', bgLight: '#fdf2f8', accent: '#f472b6' }
         };
@@ -236,11 +231,19 @@ async function initDynamicInvite(inviteId, targetVariantId = null) {
                 --color-primary: ${colors.main};
                 --color-secondary: ${colors.accent};
                 --color-bg-dark: ${colors.bgDark};
+                --theme-color: ${colors.main};
+                --theme-accent: ${colors.accent};
+                --accent-color: ${colors.accent};
                 --theme-accent-rgb: ${currentThemeRGB.accent};
+                --theme-main-rgb: ${currentThemeRGB.main};
                 --theme-bg-dark-rgb: ${currentThemeRGB.bgDark};
             }
             body {
-                background-image: url('/global/images/background/${selectedThemeName}-background.png');
+                background-image: url('/global/images/background/${selectedThemeName}-background.png') !important;
+                background-color: ${colors.bgDark} !important;
+            }
+            .bg-image {
+                background-image: url('/global/images/background/${selectedThemeName}-background.png') !important;
             }
         `;
         document.head.appendChild(dynamicStyle);
@@ -719,10 +722,8 @@ window.addEventListener("scroll", () => {
 
 function loadCSS(id, href) {
     return new Promise((resolve) => {
-        if (document.getElementById(id)) {
-            resolve();
-            return;
-        }
+        const existing = document.getElementById(id);
+        if (existing) existing.remove();
         const link = document.createElement('link');
         link.id = id;
         link.rel = 'stylesheet';
@@ -747,9 +748,10 @@ function loadScript(id, src) {
 }
 
 export async function renderWebInvitesPreview(explicitWeddingId = null, explicitVariantId = null) {
+    const v = Date.now();
     await Promise.all([
-        loadCSS('web-invite-splash-styles', '/global/css/splash.css'),
-        loadCSS('web-invite-base-styles', '/global/css/invite.css'),
+        loadCSS('web-invite-splash-styles', `/global/css/splash.css?v=${v}`),
+        loadCSS('web-invite-base-styles', `/global/css/invite.css?v=${v}`),
         loadScript('swal-cdn-script', 'https://cdn.jsdelivr.net/npm/sweetalert2@11')
     ]);
 
