@@ -112,7 +112,6 @@ async function initPublicVariantInvite(weddingId, variantId = null) {
     const genericErrorMessage = "The wedding link parameter is missing or invalid";
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-    // 1. Validate ID parameter: not empty and valid UUID format[cite: 8]
     if (!weddingId || (!uuidRegex.test(weddingId) && weddingId !== '00000000-0000-0000-0000-000000000000')) {
         showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
         return;
@@ -125,7 +124,6 @@ async function initPublicVariantInvite(weddingId, variantId = null) {
             return;
         }
 
-        // 2. Validate invitation type: must be 'web_invite_only'
         if (wedding.invitation_type !== 'web_invite_only') {
             showSwalError("Invalid Link", "The invitation is not available for this wedding.", "Go Back to Weddings", dashboardWeddingsUrl);
             return;
@@ -134,7 +132,6 @@ async function initPublicVariantInvite(weddingId, variantId = null) {
         const allowsVariants = wedding.allow_variants !== false;
         let variant = null;
 
-        // 3. Variant parameter validation: only when allow_variants is YES (true)
         if (allowsVariants) {
             if (!variantId || !uuidRegex.test(variantId)) {
                 showSwalError("Invalid Link", genericErrorMessage, "Go Back to Weddings", dashboardWeddingsUrl);
@@ -161,7 +158,9 @@ async function initPublicVariantInvite(weddingId, variantId = null) {
             return;
         }
 
-        let rawThemeName = inviteDetails.theme || 'blue';
+        let rawThemeName = (variant && variant.theme) || (inviteDetails && (inviteDetails.theme || inviteDetails.theme_name || inviteDetails.theme_color)) || wedding.theme || 'blue';
+        rawThemeName = rawThemeName.toLowerCase().trim();
+
         const legacyThemeMap = { 'emerald': 'green', 'burgundy': 'maroon', 'rose': 'peach' };
         const selectedThemeName = legacyThemeMap[rawThemeName] || rawThemeName;
 
@@ -171,8 +170,8 @@ async function initPublicVariantInvite(weddingId, variantId = null) {
             maroon: { main: '#881337', bgDark: '#4c0519', bgLight: '#fff1f2', accent: '#fb7185' },
             gold:   { main: '#b45309', bgDark: '#451a03', bgLight: '#fffbeb', accent: '#fbbf24' },
             peach:  { main: '#be123c', bgDark: '#4c0519', bgLight: '#fff1f2', accent: '#fb7185' },
-            violet: { main: '#5b21b6', bgDark: '#2e1065', bgLight: '#f5f3ff', accent: '#a78bfa' },
-            purple: { main: '#6b21a8', bgDark: '#3b0764', bgLight: '#faf5ff', accent: '#c084fc' },
+            violet: { main: '#5b21b6', bgDark: '#12072b', bgLight: '#f5f3ff', accent: '#a78bfa' },
+            purple: { main: '#6b21a8', bgDark: '#19032d', bgLight: '#faf5ff', accent: '#c084fc' },
             red:    { main: '#b91c1c', bgDark: '#450a0a', bgLight: '#fef2f2', accent: '#f87171' },
             pink:   { main: '#be185d', bgDark: '#500724', bgLight: '#fdf2f8', accent: '#f472b6' }
         };
@@ -187,14 +186,22 @@ async function initPublicVariantInvite(weddingId, variantId = null) {
         dynamicStyle.id = 'invite-dynamic-style';
         dynamicStyle.innerHTML = `
             :root {
-                --color-primary: ${colors.main};
-                --color-secondary: ${colors.accent};
-                --color-bg-dark: ${colors.bgDark};
-                --theme-accent-rgb: ${currentThemeRGB.accent};
-                --theme-bg-dark-rgb: ${currentThemeRGB.bgDark};
+                --color-primary: ${colors.main} !important;
+                --color-secondary: ${colors.accent} !important;
+                --color-bg-dark: ${colors.bgDark} !important;
+                --theme-color: ${colors.main} !important;
+                --theme-accent: ${colors.accent} !important;
+                --accent-color: ${colors.accent} !important;
+                --theme-accent-rgb: ${currentThemeRGB.accent} !important;
+                --theme-main-rgb: ${currentThemeRGB.main} !important;
+                --theme-bg-dark-rgb: ${currentThemeRGB.bgDark} !important;
             }
             body {
-                background-image: url('/global/images/background/${selectedThemeName}-background.png');
+                background-image: url('/global/images/background/${selectedThemeName}-background.png') !important;
+                background-color: ${colors.bgDark} !important;
+            }
+            .bg-image {
+                background-image: url('/global/images/background/${selectedThemeName}-background.png') !important;
             }
         `;
         document.head.appendChild(dynamicStyle);
@@ -531,7 +538,7 @@ const generateAboutUsHTML = () => {
                             <a href="https://www.instagram.com/paresh_bafna_studio/" target="_blank">
                                 <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/instagram.svg" width="30" height="30" class="social-icon-img" alt="Instagram">
                             </a>
-                            <a href="https://www.instagram.com/web_invites_by_pb/" target="_blank">
+                            <a href="https://www.instagram.com/shaadi.saathi/" target="_blank">
                                 <img src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/instagram.svg" width="30" height="30" class="social-icon-img" alt="Instagram">
                             </a>
                             <a href="https://wa.me/919791146838" target="_blank">
@@ -673,10 +680,8 @@ window.addEventListener("scroll", () => {
 
 function loadCSS(id, href) {
     return new Promise((resolve) => {
-        if (document.getElementById(id)) {
-            resolve();
-            return;
-        }
+        const existing = document.getElementById(id);
+        if (existing) existing.remove();
         const link = document.createElement('link');
         link.id = id;
         link.rel = 'stylesheet';
@@ -701,9 +706,10 @@ function loadScript(id, src) {
 }
 
 export async function renderWebInvitesPublicPreview(explicitWeddingId = null, explicitVariantId = null) {
+    const v = Date.now();
     await Promise.all([
-        loadCSS('web-invite-splash-styles', '/global/css/splash.css'),
-        loadCSS('web-invite-base-styles', '/global/css/invite.css'),
+        loadCSS('web-invite-splash-styles', `/global/css/splash.css?v=${v}`),
+        loadCSS('web-invite-base-styles', `/global/css/invite.css?v=${v}`),
         loadScript('swal-cdn-script', 'https://cdn.jsdelivr.net/npm/sweetalert2@11')
     ]);
 

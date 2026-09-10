@@ -1,0 +1,118 @@
+.variants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--space-4, 1rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.variant-card {
+  background: var(--color-bg, #0c0a09);
+  border: 1px solid var(--color-border, #292524);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--space-4, 1rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color var(--transition-fast, 0.15s ease);
+}
+
+.variant-card:hover {
+  border-color: var(--color-primary, #eab308);
+}
+
+.variant-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.variant-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-primary, #ffffff);
+}
+
+.variant-card__count-badge {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #a1a1aa);
+  margin-top: 4px;
+}
+
+.variant-card__events-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.variant-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-border, #292524);
+  padding-top: 12px;
+  margin-top: 6px;
+  gap: 10px;
+}
+
+.variant-card__btn-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wedding-details-guest-event-tag {
+  background: var(--color-border);
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wedding-details-guest-event-tag i,
+.wedding-details-guest-event-tag svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Multi-Checkbox Guest Modal */
+.guest-assign-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border, #292524);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-bg, #0c0a09);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guest-assign-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.guest-assign-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.guest-assign-current-tag {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  background: var(--color-border, #292524);
+  color: var(--color-text-secondary, #a1a1aa);
+  border-radius: 4px;
+}

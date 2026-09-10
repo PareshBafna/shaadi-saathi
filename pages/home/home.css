@@ -12,14 +12,14 @@
 	--ss-border: #38151b;
 	--ss-border-subtle: #2b1116;
 
-	--ss-gold-btn: #cca038;
-	--ss-gold-btn-hover: #dbaf47;
+	--ss-gold-btn: #facc15;
+	--ss-gold-btn-hover: #eab308;
 	--ss-gold-text: #13090b;
-	--ss-crimson-btn: #962d3e;
-	--ss-crimson-btn-hover: #ad3549;
-	--gold: #cca038;
-	--gold-sub: rgba(204, 160, 56, 0.12);
-	--gold-border: rgba(204, 160, 56, 0.35);
+	--ss-crimson-btn: #facc15;
+	--ss-crimson-btn-hover: #eab308;
+	--gold: #facc15;
+	--gold-sub: rgba(250, 204, 21, 0.12);
+	--gold-border: rgba(250, 204, 21, 0.35);
 
 	--text-primary: #f5f0eb;
 	--text-muted: #b8a6a9;
@@ -81,8 +81,8 @@ body.ss-landing-page,
 	flex-shrink: 1;
 }
 
-/* Shaadi Saathi Text Color Matched to Background with Golden Outer Glow */
-.signature-glow {
+/* Shaadi Saathi Text Color Matched to Background with Golden Outer Glow (ONLY FOR HOME BRAND) */
+.ss-brand .signature-glow {
 	font-family: 'Sacramento', cursive;
 	font-size: 1.8rem;
 	line-height: 1;
@@ -100,7 +100,7 @@ body.ss-landing-page,
 }
 
 @media (min-width: 480px) {
-	.signature-glow {
+	.ss-brand .signature-glow {
 		font-size: 2rem;
 		transform: translateY(3px);
 	}
@@ -110,7 +110,7 @@ body.ss-landing-page,
 }
 
 @media (min-width: 768px) {
-	.signature-glow {
+	.ss-brand .signature-glow {
 		font-size: 3rem;
 		transform: translateY(3px);
 	}
@@ -144,7 +144,7 @@ body.ss-landing-page,
 }
 
 .ss-nav-login {
-	background: rgba(204, 160, 56, 0.08);
+	background: rgba(250, 204, 21, 0.08);
 	color: var(--text-primary);
 	border: 1px solid var(--gold-border);
 	padding: 0.5rem 1.25rem;
@@ -159,20 +159,20 @@ body.ss-landing-page,
 }
 
 .ss-nav-login:hover {
-	border-color: var(--ss-gold-btn);
-	color: var(--ss-gold-btn);
-	background: rgba(204, 160, 56, 0.18);
+	border-color: #facc15;
+	color: #facc15;
+	background: rgba(250, 204, 21, 0.18);
 }
 
 .ss-nav-cta,
 .ss-btn-main {
-	background: var(--ss-gold-btn);
-	color: var(--ss-gold-text);
+	background: #facc15 !important;
+	color: #13090b !important;
 	border: none;
 	padding: 0.45rem 0.85rem;
 	border-radius: var(--radius);
 	font-size: 12px;
-	font-weight: 600;
+	font-weight: 700;
 	text-decoration: none;
 	display: inline-flex;
 	align-items: center;
@@ -198,22 +198,25 @@ body.ss-landing-page,
 
 .ss-nav-cta:hover,
 .ss-btn-main:hover {
-	background: var(--ss-gold-btn-hover);
+	background: #eab308 !important;
+	color: #13090b !important;
 	transform: translateY(-1px);
-	box-shadow: 0 4px 12px rgba(204, 160, 56, 0.25);
+	box-shadow: 0 4px 14px rgba(250, 204, 21, 0.35);
 }
 
 /* Outline variant for secondary hero CTA */
 .ss-btn-outline {
-	background: transparent;
-	color: var(--gold);
-	border: 1px solid var(--gold-border);
+	background: transparent !important;
+	color: #facc15 !important;
+	border: 1px solid var(--gold-border) !important;
 	box-shadow: none;
 }
 
 .ss-btn-outline:hover {
-	background: rgba(204, 160, 56, 0.12);
-	box-shadow: none;
+	background: #facc15 !important;
+	color: #13090b !important;
+	border-color: #facc15 !important;
+	box-shadow: 0 4px 14px rgba(250, 204, 21, 0.35);
 }
 
 /* Small trust signal above the H1 */
@@ -401,7 +404,7 @@ body.ss-landing-page,
 	border-radius: 6px;
 	overflow: hidden;
 	background: rgba(0, 0, 0, 0.25);
-	border: 1px dashed rgba(204, 160, 56, 0.2);
+	border: 1px dashed rgba(250, 204, 21, 0.2);
 }
 
 .ss-scratch-desc {
@@ -447,7 +450,7 @@ body.ss-landing-page,
 
 .ss-box-card-featured {
 	border-color: var(--gold);
-	box-shadow: 0 8px 28px rgba(204, 160, 56, 0.14);
+	box-shadow: 0 8px 28px rgba(250, 204, 21, 0.14);
 }
 
 .ss-box-recommended {
@@ -455,8 +458,8 @@ body.ss-landing-page,
 	top: -13px;
 	left: 50%;
 	transform: translateX(-50%);
-	background: var(--ss-gold-btn);
-	color: var(--ss-gold-text);
+	background: #facc15;
+	color: #13090b;
 	font-size: 10.5px;
 	font-weight: 700;
 	letter-spacing: 0.08em;
@@ -530,23 +533,26 @@ body.ss-landing-page,
 .ss-box-btn {
 	display: block;
 	width: 100%;
-	background: var(--ss-crimson-btn);
-	color: #ffffff;
+	background: #facc15 !important;
+	color: #13090b !important;
 	text-align: center;
 	padding: 0.8rem 1rem;
 	border-radius: 8px;
 	font-size: 14px;
-	font-weight: 600;
+	font-weight: 700;
 	text-decoration: none;
 	border: none;
 	cursor: pointer;
 	box-sizing: border-box;
-	transition: background-color 0.2s ease, transform 0.15s ease;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+	transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .ss-box-btn:hover {
-	background: var(--ss-crimson-btn-hover);
+	background: #eab308 !important;
+	color: #13090b !important;
 	transform: translateY(-1px);
+	box-shadow: 0 4px 14px rgba(250, 204, 21, 0.35);
 }
 
 /* FAQs */

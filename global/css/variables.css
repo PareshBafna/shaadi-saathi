@@ -1,28 +1,32 @@
 :root {
   /* COLOR - BRAND / ACCENT */
-  --color-primary: #D4AF37;
-  --color-primary-light: #E6C766;
-  --color-primary-dark: #A6821F;
-  --color-primary-bg: #FBF3DE;
+  /* #FACC15 gives >9.8:1 contrast ratio against #170A0D & #13090B (Passes WCAG AAA) */
+  --gold: #FACC15;
+  --gold-hover: #EAB308;
+  --color-primary: #FACC15;
+  --color-primary-light: #FDE047;
+  --color-primary-dark: #CA8A04;
+  --color-primary-bg: #422006;
 
   --color-secondary: #6E0D25;
   --color-secondary-light: #8F2C42;
   --color-secondary-dark: #4A0819;
   --color-secondary-bg: #FBEAEE;
 
-  --color-text-on-accent: #241014;
+  --color-text-on-accent: #13090B;
   --color-overlay: rgba(0, 0, 0, 0.7);
 
   /* COLOR - NEUTRALS */
   --color-white: #2A1418;
   --color-bg: #170A0D;
+  --color-bg-maroon: #13090B;
   --color-bg-muted: #221014;
-  --color-border: rgba(212, 175, 55, 0.18);
-  --color-border-strong: rgba(212, 175, 55, 0.35);
+  --color-border: rgba(250, 204, 21, 0.22);
+  --color-border-strong: rgba(250, 204, 21, 0.45);
 
-  --color-text-primary: #F3E6C0;
-  --color-text-secondary: #C9B183;
-  --color-text-muted: #8A7758;
+  --color-text-primary: #FBF4E2;
+  --color-text-secondary: #E4D5B7;
+  --color-text-muted: #A39272;
   --color-text-inverse: #FFFFFF;
 
   /* COLOR - SEMANTIC / STATUS */
