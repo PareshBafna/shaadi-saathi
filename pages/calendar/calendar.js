@@ -30,8 +30,11 @@ function downloadAllEventsICS(events, weddings) {
 
         const wedding = (weddings || []).find(w => w.id === ev.wedding_id);
         const displayNames = wedding ? (wedding.primary_side === 'groom' ? `${wedding.groom_name} & ${wedding.bride_name}` : `${wedding.bride_name} & ${wedding.groom_name}`) : 'Wedding';
+        const rawFamily = wedding && wedding.family_name ? wedding.family_name.trim().toUpperCase() : '';
+        const familyName = rawFamily ? (rawFamily.endsWith("'s") ? rawFamily : `${rawFamily}'s`) : '';
 
-        const summary = `${ev.event_name || ev.title} - ${displayNames}`;
+        const eventName = ev.event_name || ev.title || 'Event';
+        const summary = familyName ? `${eventName} - ${familyName} - ${displayNames}` : `${eventName} - ${displayNames}`;
         const description = ev.description || ev.one_liner || '';
         const location = ev.venue || '';
 
@@ -41,6 +44,21 @@ function downloadAllEventsICS(events, weddings) {
         icsContent += `SUMMARY:${summary}\n`;
         icsContent += `DESCRIPTION:${description}\n`;
         icsContent += `LOCATION:${location}\n`;
+        
+        // 2 hours before
+        icsContent += "BEGIN:VALARM\n";
+        icsContent += "TRIGGER:-PT2H\n";
+        icsContent += "ACTION:DISPLAY\n";
+        icsContent += `DESCRIPTION:Reminder: ${summary} starts in 2 hours\n`;
+        icsContent += "END:VALARM\n";
+
+        // 1 hour before
+        icsContent += "BEGIN:VALARM\n";
+        icsContent += "TRIGGER:-PT1H\n";
+        icsContent += "ACTION:DISPLAY\n";
+        icsContent += `DESCRIPTION:Reminder: ${summary} starts in 1 hour\n`;
+        icsContent += "END:VALARM\n";
+
         icsContent += "END:VEVENT\n";
     });
 
@@ -412,7 +430,7 @@ function renderFilteredEvents() {
 
     const calendarBtnHTML = displayEvents && displayEvents.length > 0 ? `
         <button id="add-to-calendar-btn" style="${btnStyle}">
-            <i data-lucide="calendar" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Calendar
+            <i data-lucide="bell-ring" style="width: 14px; height: 14px; stroke: #1c1917 !important;"></i> Remind Me
         </button>
     ` : '';
 
