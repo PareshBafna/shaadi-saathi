@@ -18,7 +18,7 @@ export function buildEventItinerarySection(wedding, events, canConfig) {
     
     let rightHTML = events && events.length > 0 ? `
         <button id="add-to-calendar-btn" class="wedding-action-btn-primary">
-            <i data-lucide="calendar"></i> Calendar
+            <i data-lucide="bell-ring"></i> Remind Me
         </button>
     ` : '';
     
@@ -161,6 +161,9 @@ export function downloadICS(wedding, events) {
         ? `${wedding.groom_name} & ${wedding.bride_name}` 
         : `${wedding.bride_name} & ${wedding.groom_name}`;
 
+    const rawFamily = wedding && wedding.family_name ? wedding.family_name.trim().toUpperCase() : '';
+    const familyName = rawFamily ? (rawFamily.endsWith("s") ? rawFamily : `${rawFamily}'s`) : '';
+
     events.forEach(ev => {
         const startDate = new Date(`${ev.date}T${ev.time || '00:00'}`);
         if (isNaN(startDate.getTime())) return; 
@@ -176,7 +179,8 @@ export function downloadICS(wedding, events) {
                    d.getSeconds().toString().padStart(2, '0');
         };
 
-        const summary = `${ev.event_name || ev.title} - ${displayNames} Wedding`;
+        const eventName = ev.event_name || ev.title || 'Event';
+        const summary = familyName ? `${eventName} - ${familyName} - ${displayNames}` : `${eventName} - ${displayNames}`;
         const description = ev.description || ev.one_liner || '';
         const location = ev.venue || '';
 
@@ -186,6 +190,21 @@ export function downloadICS(wedding, events) {
         icsContent += `SUMMARY:${summary}\n`;
         icsContent += `DESCRIPTION:${description}\n`;
         icsContent += `LOCATION:${location}\n`;
+
+        // 2 hours before
+        icsContent += "BEGIN:VALARM\n";
+        icsContent += "TRIGGER:-PT2H\n";
+        icsContent += "ACTION:DISPLAY\n";
+        icsContent += `DESCRIPTION:Reminder: ${summary} starts in 2 hours\n`;
+        icsContent += "END:VALARM\n";
+
+        // 1 hour before
+        icsContent += "BEGIN:VALARM\n";
+        icsContent += "TRIGGER:-PT1H\n";
+        icsContent += "ACTION:DISPLAY\n";
+        icsContent += `DESCRIPTION:Reminder: ${summary} starts in 1 hour\n`;
+        icsContent += "END:VALARM\n";
+
         icsContent += "END:VEVENT\n";
     });
 
