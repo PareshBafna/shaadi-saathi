@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const rawHash = window.location.hash || '';
     const [route] = rawHash.split('?');
 
-    const isRoot = !route || route === '' || route === '#' || route === '#/' || route === '#home';
+    const isRoot = !route || route === '' || route === '#' || route === '#/';
 
     document.body.style.opacity = '0.5';
     let user = await validateSession();
@@ -123,7 +123,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     window.currentUser = user || null;
 
-    if (user && route === '#login') {
+    if (user && (route === '#login' || isRoot)) {
         window.location.hash = user.role === 'creator' ? '#dashboard' : (user.role === 'host' || user.role === 'wedding_user' ? '#weddings' : '#calendar');
         return;
     } else if (route === '#web-invites-preview') {
