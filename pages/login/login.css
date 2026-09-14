@@ -2,6 +2,8 @@
    LOGIN & REGISTER PAGE STYLES
    ============================================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Sacramento&display=swap');
+
 .login-page-wrapper {
   display: flex;
   align-items: center;
@@ -23,6 +25,53 @@
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
   font-family: var(--font-family-sans, system-ui, sans-serif);
   box-sizing: border-box;
+}
+
+.login-brand-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  margin-bottom: var(--space-6, 24px);
+}
+
+.login-brand-header .signature-glow {
+  font-family: 'Sacramento', cursive;
+  font-size: 2.2rem;
+  line-height: 1;
+  font-weight: 400;
+  color: #13090b !important;
+  -webkit-text-fill-color: #13090b !important;
+  -webkit-text-stroke: 1px #ebb95f !important;
+  text-shadow: 
+    0 0 4px rgba(235, 185, 95, 0.9),
+    0 0 10px rgba(212, 175, 55, 0.6) !important;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  display: inline-block;
+  transform: translateY(2px);
+}
+
+.login-brand-header .ss-logo-badge {
+  width: 44px;
+  height: 44px;
+  background: #ffffff;
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.login-brand-header .ss-logo-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .login-view--hidden {
@@ -74,7 +123,7 @@
   padding: var(--space-3, 12px);
   border-radius: var(--radius-sm, 6px);
   outline: none;
-  font-size: 16px; /* Prevents auto-zoom on mobile devices */
+  font-size: 16px;
   box-sizing: border-box;
   font-family: inherit;
   transition: border-color 0.2s ease;

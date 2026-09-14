@@ -1,7 +1,6 @@
 import { supabase } from '../../database/js/api.js';
 import { showSweetAlert } from '../../global/js/sweet-alert-message.js';
 
-// Replace with your real Cloudflare Turnstile Site Key
 const TURNSTILE_SITE_KEY = '0x4AAAAAAEutjFdHF82YBfYP';
 
 let turnstileWidgetLogin = null;
@@ -18,7 +17,6 @@ function generateVerificationCode() {
 }
 
 async function verifyTurnstileToken(token) {
-    // If testing on pure localhost without local wrangler functions, bypass
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         try {
             const res = await fetch('/api/verify-turnstile', {
@@ -184,6 +182,15 @@ export function renderLogin() {
     container.innerHTML = `
         <div class="login-card">
             
+            <a href="#" class="login-brand-header" aria-label="Shaadi Saathi home">
+                <div class="ss-logo-badge">
+                    <img src="/global/logos/logo-compressed.png" alt="Shaadi Saathi Logo" width="44" height="44" />
+                </div>
+                <div class="signature-glow">
+                    Shaadi Saathi
+                </div>
+            </a>
+
             <!-- LOGIN VIEW -->
             <div id="login-view">
                 <div class="login-header">
@@ -338,7 +345,6 @@ export function renderLogin() {
         }
 
         try {
-            // Validate Turnstile on server
             if (turnstileTokenLogin) {
                 const isValidToken = await verifyTurnstileToken(turnstileTokenLogin);
                 if (!isValidToken) {
@@ -406,7 +412,6 @@ export function renderLogin() {
         }
 
         try {
-            // Validate Turnstile on server
             if (turnstileTokenReg) {
                 const isValidToken = await verifyTurnstileToken(turnstileTokenReg);
                 if (!isValidToken) {
