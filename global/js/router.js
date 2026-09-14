@@ -30,8 +30,8 @@ export function render404Page() {
         <p style="color: var(--color-text-secondary, #a1a1aa); max-width: 420px; margin-bottom: 1.75rem; font-size: 0.95rem; line-height: 1.5;">
             The page you requested does not exist or may have been moved.
         </p>
-        <a href="#home" class="btn btn-primary" style="display: inline-block; text-decoration: none; background-color: #facc15; color: #18181b; padding: 0.65rem 1.4rem; font-size: 0.95rem; font-weight: 600; border-radius: 6px;">
-            Return to Home
+        <a href="#login" class="btn btn-primary" style="display: inline-block; text-decoration: none; background-color: #facc15; color: #18181b; padding: 0.65rem 1.4rem; font-size: 0.95rem; font-weight: 600; border-radius: 6px;">
+            Return to Login
         </a>
     `;
     return wrap;
@@ -42,7 +42,8 @@ export async function router() {
     const [route, queryString] = hash.split('?');
     const params = new URLSearchParams(queryString || '');
 
-    const isRoot = !route || route === '' || route === '#' || route === '#/' || route === '#home';
+    const isRoot = !route || route === '' || route === '#' || route === '#/';
+    const isHome = route === '#home';
     const isLegal = route === '#privacy' || route === '#terms';
     const isLandingAnchor = route === '#features' || route === '#pricing';
 
@@ -65,14 +66,35 @@ export async function router() {
         contentEl.style.opacity = '0';
     }
 
-    let activePageName = (isRoot || isLegal || isLandingAnchor) ? 'home' : route.replace('#', '');
-    if (activePageName === '' || activePageName === '/') activePageName = 'home';
+    let activePageName = (isHome || isLandingAnchor) ? 'home' : (isLegal ? route.replace('#', '') : (isRoot ? 'login' : route.replace('#', '')));
     
     await loadPageStyle(activePageName);
     if (document.fonts?.ready) await document.fonts.ready;
 
-    // ROOT / HOME LANDING ROUTE OR SMOOTH-SCROLL ANCHORS (#features, #pricing)
-    if (isRoot || isLandingAnchor) {
+    // ROOT DIRECT TO LOGIN
+    if (isRoot || route === '#login') {
+        const activeUserId = localStorage.getItem('ss_user_id');
+        if (activeUserId && window.currentUser) {
+            const role = window.currentUser.role;
+            window.location.hash = role === 'creator' ? '#dashboard' : (role === 'host' || role === 'wedding_user' ? '#weddings' : '#calendar');
+            return;
+        }
+
+        document.querySelector('.sidebar')?.setAttribute('style', 'display: none;');
+        document.querySelector('.bottom-nav')?.setAttribute('style', 'display: none;');
+        document.getElementById('header-container')?.setAttribute('style', 'display: none;');
+
+        if (contentEl) {
+            contentEl.innerHTML = "";
+            contentEl.appendChild(renderLogin());
+            contentEl.style.visibility = 'visible';
+            contentEl.style.opacity = '1';
+        }
+        return;
+    }
+
+    // EXPLICIT HOME / ANCHOR ROUTES (#home, #features, #pricing)
+    if (isHome || isLandingAnchor) {
         document.querySelector('.sidebar')?.setAttribute('style', 'display: none;');
         document.querySelector('.bottom-nav')?.setAttribute('style', 'display: none;');
         document.getElementById('header-container')?.setAttribute('style', 'display: none;');
@@ -103,27 +125,6 @@ export async function router() {
         if (contentEl) {
             contentEl.innerHTML = "";
             contentEl.appendChild(route === '#privacy' ? renderPrivacyPolicy() : renderTermsConditions());
-            contentEl.style.visibility = 'visible';
-            contentEl.style.opacity = '1';
-        }
-        return;
-    }
-
-    if (route === '#login') {
-        const activeUserId = localStorage.getItem('ss_user_id');
-        if (activeUserId && window.currentUser) {
-            const role = window.currentUser.role;
-            window.location.hash = role === 'creator' ? '#dashboard' : (role === 'host' || role === 'wedding_user' ? '#weddings' : '#calendar');
-            return;
-        }
-
-        document.querySelector('.sidebar')?.setAttribute('style', 'display: none;');
-        document.querySelector('.bottom-nav')?.setAttribute('style', 'display: none;');
-        document.getElementById('header-container')?.setAttribute('style', 'display: none;');
-
-        if (contentEl) {
-            contentEl.innerHTML = "";
-            contentEl.appendChild(renderLogin());
             contentEl.style.visibility = 'visible';
             contentEl.style.opacity = '1';
         }
@@ -261,7 +262,7 @@ function showAccessRestricted() {
             if (userRole === 'creator') window.location.hash = '#dashboard';
             else if (userRole === 'host' || userRole === 'wedding_user') window.location.hash = '#weddings';
             else if (userRole === 'guest') window.location.hash = '#calendar';
-            else window.location.hash = '';
+            else window.location.hash = '#login';
         }
     });
 }
