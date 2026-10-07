@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let user = await validateSession();
     document.body.style.opacity = '1';
 
-    const isPublic = isRoot || route === '#login' || publicRoutes.includes(route);
+    const isPublic = isRoot || route === '#home' || route === '#login' || publicRoutes.includes(route);
 
     if (!user && !isPublic) {
         checkSessionOrShowAlert();
@@ -123,7 +123,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     window.currentUser = user || null;
 
-    if (user && (route === '#login' || isRoot)) {
+    if (user && route === '#login') {
         window.location.hash = user.role === 'creator' ? '#dashboard' : (user.role === 'host' || user.role === 'wedding_user' ? '#weddings' : '#calendar');
         return;
     } else if (route === '#web-invites-preview') {
