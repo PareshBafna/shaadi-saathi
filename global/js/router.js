@@ -30,8 +30,8 @@ export function render404Page() {
         <p style="color: var(--color-text-secondary, #a1a1aa); max-width: 420px; margin-bottom: 1.75rem; font-size: 0.95rem; line-height: 1.5;">
             The page you requested does not exist or may have been moved.
         </p>
-        <a href="#login" class="btn btn-primary" style="display: inline-block; text-decoration: none; background-color: #facc15; color: #18181b; padding: 0.65rem 1.4rem; font-size: 0.95rem; font-weight: 600; border-radius: 6px;">
-            Return to Login
+        <a href="#home" class="btn btn-primary" style="display: inline-block; text-decoration: none; background-color: #facc15; color: #18181b; padding: 0.65rem 1.4rem; font-size: 0.95rem; font-weight: 600; border-radius: 6px;">
+            Return to Home
         </a>
     `;
     return wrap;
@@ -66,13 +66,13 @@ export async function router() {
         contentEl.style.opacity = '0';
     }
 
-    let activePageName = (isHome || isLandingAnchor) ? 'home' : (isLegal ? route.replace('#', '') : (isRoot ? 'login' : route.replace('#', '')));
+    let activePageName = (isHome || isLandingAnchor || isRoot) ? 'home' : (isLegal ? route.replace('#', '') : route.replace('#', ''));
     
     await loadPageStyle(activePageName);
     if (document.fonts?.ready) await document.fonts.ready;
 
-    // ROOT DIRECT TO LOGIN
-    if (isRoot || route === '#login') {
+    // LOGIN ROUTE
+    if (route === '#login') {
         const activeUserId = localStorage.getItem('ss_user_id');
         if (activeUserId && window.currentUser) {
             const role = window.currentUser.role;
@@ -93,8 +93,8 @@ export async function router() {
         return;
     }
 
-    // EXPLICIT HOME / ANCHOR ROUTES (#home, #features, #pricing)
-    if (isHome || isLandingAnchor) {
+    // ROOT, EXPLICIT HOME, ANCHOR ROUTES (#home, #features, #pricing)
+    if (isRoot || isHome || isLandingAnchor) {
         document.querySelector('.sidebar')?.setAttribute('style', 'display: none;');
         document.querySelector('.bottom-nav')?.setAttribute('style', 'display: none;');
         document.getElementById('header-container')?.setAttribute('style', 'display: none;');
